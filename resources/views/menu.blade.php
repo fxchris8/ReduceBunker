@@ -1,0 +1,34 @@
+@extends('layouts.app')
+
+@section('title', 'Menu')
+
+@section('content')
+<div class="container mx-auto py-6 px-4">
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="bg-gray-50 px-4 py-4 flex justify-center">
+            <a href="/">
+                <button
+                    class="w-[250px] py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
+                    Dashboard
+                </button>
+            </a>
+        </div>
+        <div class="bg-gray-50 px-4 py-4 flex justify-center">
+            <a href="/send-email">
+                <button
+                    class="w-[250px] py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
+                    Consumption Analysis
+                </button>
+            </a>
+        </div>
+        <div class="bg-gray-50 px-4 py-4 flex justify-center">
+            <a href="/planning">
+                <button
+                    class="w-[250px] py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
+                    Refueling Planning 
+                </button>
+            </a>
+        </div>
+    </div>
+</div>
+@endsection
