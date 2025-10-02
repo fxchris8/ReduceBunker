@@ -10,36 +10,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use Illuminate\Support\Facades\Http;
-
-
-// class PlanningController extends Controller
-// {
-    
-// public function show()
-//     {
-//         // 🔹 Ambil data seamen dari API
-//         $response = Http::post('http://nanika.spil.co.id:3021/get-summary-noon-report', [
-//             "tanggal_start" => "01/01/2025",
-//             "tanggal_end" => "08/01/2025",
-//             "report_id" => "14",
-//             "vessel_code" => "AKA"
-//         ]);
-
-//         Log::info('API response status', ['status' => $response->status()]);
-//         Log::info('API response body', ['body' => $response->json()]);
-//         Log::info('Content-Type', ['header' => $response->header('Content-Type')]);
-
-
-//         // 🔍 Cek apakah response berhasil
-//         $seamenData = $response->successful()
-//             ? $response->json()['data_seamen'] ?? []
-//             : [];
-
-//         // 🔹 Kirim ke view
-//         return view('po.planning', compact('seamenData'));
-//     }
-
-// }
+use Illuminate\Support\Facades\Mail;
 
 
 class PlanningController extends Controller
@@ -113,9 +84,26 @@ class PlanningController extends Controller
             return in_array($header, $desiredHeaders);
         }));
 
-        $filteredHeaderRows = array_map(function ($row) use ($selectedIndexes) {
-            return array_intersect_key($row, array_flip($selectedIndexes));
-        }, $headerRows);
+        $extraColumns = [
+            'Jarak FROM Route' => 'Jarak FROM Route',
+            'Jarak NEW Route' => 'Jarak NEW Route',
+            'L/NM MFO' => 'L/NM MFO',
+            'L/NM HSD' => 'L/NM HSD',
+            'ROB Tiba MFO' => 'ROB Tiba MFO',
+            'ROB Tiba HSD' => 'ROB Tiba HSD',
+            'Kebutuhan Next Route MFO' => 'Kebutuhan Next Route MFO',
+            'Kebutuhan Next Route HSD' => 'Kebutuhan Next Route HSD',
+            'Pengisian MFO' => 'Pengisian MFO',
+            'Pengisian HSD' => 'Pengisian HSD',
+        ];
+
+        $filteredHeaderRows = array_map(function ($row, $rowIndex) use ($selectedIndexes, $extraColumns) {
+            $filtered = array_intersect_key($row, array_flip($selectedIndexes));
+            if ($rowIndex === 1) {
+                $filtered = array_merge($filtered, $extraColumns);
+            }
+            return $filtered;
+        }, $headerRows, array_keys($headerRows));
 
         $filteredTableRows = array_map(function ($row) use ($selectedIndexes) {
             return array_intersect_key($row, array_flip($selectedIndexes));
@@ -134,7 +122,6 @@ class PlanningController extends Controller
             $indexByHeader[$value] = $key;
         }
 
-        // Ambil index yang kita perlukan
         $vesselIndex = $indexByHeader['VESSEL'] ?? null;
         $fromIndex   = $indexByHeader['FROM'] ?? null;
         $routeIndex  = $indexByHeader['SAILING ROUTE'] ?? null;
@@ -219,8 +206,8 @@ class PlanningController extends Controller
                 $pengisian_mfo = 0;
                 $pengisian_hsd = 0;
             } else {
-                $pengisian_mfo = $selisih_mfo;
-                $pengisian_hsd = $selisih_hsd;
+                $pengisian_mfo = $selisih_mfo * 1.1;
+                $pengisian_hsd = $selisih_hsd * 1.1;
             }
 
             $row['jarak_from'] = $from_route_dist;
@@ -241,10 +228,85 @@ class PlanningController extends Controller
             return $row;
         }, $filteredTableRows);
 
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $rowIndex = 1;
+
+        foreach ($filteredHeaderRows as $headerRow) {
+            $colIndex = 1;
+            if ($rowIndex === 2) {
+                $headerRow[] = 'Koreksi';
+            }
+            foreach ($headerRow as $cell) {
+                $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
+                $sheet->setCellValue($columnLetter . $rowIndex, $cell);
+
+                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
+                    'font' => ['bold' => true],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'd0d0d0'],
+                    ],
+                    'alignment' => [
+                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                        'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000'],
+                        ],
+                    ],
+                ]);
+                $colIndex++;
+            }
+            $rowIndex++;
+        }
+
+        foreach ($enhancedTableRows as $tableRow) {
+            $colIndex = 1;
+            foreach ($tableRow as $cell) {
+                $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
+                $sheet->setCellValue($columnLetter . $rowIndex, $cell);
+
+                $fillColor = ($rowIndex % 2 == 0) ? 'e0e0e0' : 'FFFFFF';
+                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => $fillColor],
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000'],
+                        ],
+                    ],
+                ]);
+
+                $colIndex++;
+            }
+            $rowIndex++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'planning_') . '.xlsx';
+        $writer->save($tempFile);
+
+        Mail::raw('Berikut terlampir hasil upload Refueling Planning.', function ($message) use ($tempFile) {
+            $message->to('marulihtgl12@gmail.com') // oilmgt@spil.co.id
+                    ->subject('Refueling Planning Excel')
+                    ->attach($tempFile, [
+                        'as' => 'refueling_planning.xlsx',
+                        'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    ]);
+        });
+
         return view('po.planning', [
             'tanggal' => $tanggal,
             'headerRows' => $filteredHeaderRows,
             'tableRows' => $enhancedTableRows,
+            'extraColumns' => $extraColumns
         ]);
 
     }
@@ -259,22 +321,61 @@ class PlanningController extends Controller
 
         $rowIndex = 1;
 
-        // Tulis header
         foreach ($headerRows as $headerRow) {
             $colIndex = 1;
+            
+            if ($rowIndex === 2) { 
+                $headerRow[] = 'Koreksi';
+            }
+
             foreach ($headerRow as $cell) {
                 $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
                 $sheet->setCellValue($columnLetter . $rowIndex, $cell);
+
+                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
+                    'font' => [
+                        'bold' => true,
+                    ],
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => 'd0d0d0'],
+                    ],
+                    'alignment' => [
+                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                        'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000'],
+                        ],
+                    ],
+                ]);
                 $colIndex++;
             }
             $rowIndex++;
         }
+
 
         foreach ($tableRows as $tableRow) {
             $colIndex = 1;
             foreach ($tableRow as $cell) {
                 $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
                 $sheet->setCellValue($columnLetter . $rowIndex, $cell);
+
+                $fillColor = ($rowIndex % 2 == 0) ? 'e0e0e0' : 'FFFFFF';
+                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
+                    'fill' => [
+                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => $fillColor],
+                    ],
+                    'borders' => [
+                        'allBorders' => [
+                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                            'color' => ['rgb' => '000000'],
+                        ],
+                    ],
+                ]);
                 $colIndex++;
             }
             $rowIndex++;

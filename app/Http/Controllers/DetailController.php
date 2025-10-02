@@ -18,7 +18,7 @@ class DetailController extends Controller
 
     public function bl_mehsd($sessionType)
     {
-        $rawDetails = session("details_minus_{$sessionType}", [])['SELISIH'] ?? [];
+        $rawDetails = session("details_minus_{$sessionType}", [])['SELISIH ME Maneuvering'] ?? [];
 
         $details = is_array($rawDetails[0] ?? null) ? $rawDetails : (empty($rawDetails) ? [] : [$rawDetails]);
 

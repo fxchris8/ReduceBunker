@@ -10,20 +10,20 @@
         </div>
         <div class="p-6">
             <div class="overflow-x-auto overflow-y-auto max-h-[550px] border rounded-md shadow-sm w-full">
-                <table class="table-fixed w-full border-4 border-gray-300 rounded shadow-sm divide-y divide-gray-200">
+                <table class="table-fixed w-full divide-y divide-gray-200 text-sm text-center rounded">
                     <thead class="bg-gray-300 sticky top-0 z-10">
                         <tr>
-                            <th class="px-4 py-2 border">Vessel</th>
-                            <th class="px-4 py-2 border">ME HSD</th>
-                            <th class="px-4 py-2 border">Maneuvering Time</th>
+                            <th class="px-4 py-2">Vessel</th>
+                            <th class="px-4 py-2">ME HSD</th>
+                            <th class="px-4 py-2">Maneuvering Time</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-gray-200">
                         @foreach ($details as $row)
                             <tr class="text-center odd:bg-white even:bg-gray-200">
-                                <td class="border px-4 py-2">{{ $row['vessel'] }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['me_hsd'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['maneuvering'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 whitespace-nowrap">{{ $row['vessel'] }}</td>
+                                <td class="px-4 py-2 whitespace-nowrap">{{ number_format($row['me_hsd'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 whitespace-nowrap">{{ number_format($row['maneuvering'], 2, '.', ',') }}</td>
                             </tr>
                         @endforeach
                     </tbody>

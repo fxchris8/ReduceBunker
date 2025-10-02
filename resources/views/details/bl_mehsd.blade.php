@@ -26,7 +26,7 @@
                             <tr class="text-center odd:bg-white even:bg-gray-200">
                                 <td class="border px-4 py-2">{{ $row['vessel'] }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['me_hsd'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['maneuvering_time'], 2, '.', ',') }}</td>
+                                <td class="border px-4 py-2">{{ number_format($row['maneuvering'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['bl_me'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['me_mnv'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['selisih'], 2, '.', ',') }}</td>

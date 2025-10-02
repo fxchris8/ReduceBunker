@@ -3,7 +3,7 @@
         @section('title', 'Refueling Planning')
 
         @section('content')
-        
+
         <div class="container mx-auto py-6 px-4">
             <div class="bg-white rounded-lg shadow-md">
                 <div class="bg-gray-50 px-4 py-4 border-b">
@@ -32,84 +32,30 @@
 
                         @if (!empty($tableRows))
                             <div class="overflow-x-auto overflow-y-auto max-h-[575px] border rounded-md shadow-sm w-full">
-                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center">
+                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded">
                                     <thead class="bg-gray-300 sticky top-0 z-10">
-                                        @foreach ($headerRows as $row)
+                                        @foreach ($headerRows as $rowIndex => $row)
                                             <tr>
                                                 @foreach ($row as $cell)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">
+                                                    <th class="px-4 py-2">
                                                         {{ $cell }}
                                                     </th>
                                                 @endforeach
 
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">Jarak FROM Route</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">Jarak NEW Route</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">L/NM MFO</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">L/NM HSD</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">ROB Tiba MFO</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">ROB Tiba HSD</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">Kebutuhan Next Route MFO</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">Kebutuhan Next Route HSD</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">Pengisian MFO</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
-                                                @endif
-
-                                                @if ($loop->last)
-                                                    <th class="px-4 py-2 font-semibold text-gray-600">Pengisian HSD</th>
-                                                @else
-                                                    <th class="px-4 py-2"></th>
+                                                @if ($rowIndex === 0)
+                                                    @for ($i = 0; $i < count($extraColumns); $i++)
+                                                        <th class="px-4 py-2"></th>
+                                                    @endfor
                                                 @endif
                                             </tr>
                                         @endforeach
                                     </thead>
                                     <tbody class="divide-y divide-gray-200">
                                         @foreach ($tableRows as $row)
-                                            <tr class="odd:bg-white even:bg-gray-200">
+                                            <tr class="text-center odd:bg-white even:bg-gray-200">
                                                 @foreach ($row as $colIndex => $cell)
                                                     <td class="px-4 py-2 whitespace-nowrap">
-                                                        {{ is_numeric($cell) ? number_format($cell, 2, '.', ',') : $cell }}
+                                                        {{ $colIndex === 'A' ? $cell : (is_numeric($cell) ? number_format($cell, 2, '.', ',') : $cell) }}
                                                     </td>
                                                 @endforeach
                                             </tr>
@@ -132,4 +78,5 @@
                 </div>
             </div>
         </div>
+        
         @endsection 

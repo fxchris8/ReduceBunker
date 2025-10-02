@@ -19,7 +19,7 @@
                             <th class="px-4 py-2 border">ME MFO</th>
                             <th class="px-4 py-2 border">BL L/Nm</th>
                             <th class="px-4 py-2 border">L/NM</th>
-                            <th class="px-4 py-2 border">EXCESS ME MFO L/NM</th>
+                            <th class="px-4 py-2 border">EXCESS ME MFO L/NM (%)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -29,9 +29,9 @@
                                 <td class="border px-4 py-2">{{ number_format($row['steam_distance'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['steam_time'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['me_mfo'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['bl_lnm'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['lnm'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ $row['excess_me_mfo']}}</td>
+                                <td class="border px-4 py-2">{{ number_format($row['bl_l_nm'], 2, '.', ',') }}</td>
+                                <td class="border px-4 py-2">{{ number_format($row['l_nm'], 2, '.', ',') }}</td>
+                                <td class="border px-4 py-2">{{ $row['excess_me_mfo_l_nm']}}</td>
                             </tr>
                         @endforeach
                     </tbody>

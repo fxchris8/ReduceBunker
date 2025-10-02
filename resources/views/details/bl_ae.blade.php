@@ -28,9 +28,9 @@
                                 <td class="border px-4 py-2">{{ $row['vessel'] }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['ae_mfo'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['ae_hsd'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['genset_hsd'], 2, '.', ',') }}</td>
+                                <td class="border px-4 py-2">{{ number_format($row['genset'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['bl_ae'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['total_ae'], 2, '.', ',') }}</td>
+                                <td class="border px-4 py-2">{{ number_format($row['ae_consumption'], 2, '.', ',') }}</td>
                                 <td class="border px-4 py-2">{{ number_format($row['excess_ae'], 2, '.', ',') }}</td>
                             </tr>
                         @endforeach
