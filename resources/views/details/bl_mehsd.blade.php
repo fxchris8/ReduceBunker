@@ -8,28 +8,28 @@
         <div class="bg-gray-50 px-4 py-4 border-b">
             <h2 class="text-xl font-bold">Details of ME HSD Consumption For Maneuvering > BL At {{ strtoupper($sessionType) }}</h2>
         </div>
-        <div class="p-6">
-            <div class="overflow-x-auto overflow-y-auto max-h-[550px] border rounded-md shadow-sm w-full">
-                <table class="table-fixed w-full border-4 border-gray-300 rounded shadow-sm divide-y divide-gray-200">
+        <div class="border rounded-md p-6">
+            <div class="overflow-x-auto overflow-y-auto max-h-[550px] rounded-md shadow-sm w-full">
+                <table class="table-fixed w-full divide-y divide-gray-200 text-sm text-center rounded border">
                     <thead class="bg-gray-300 sticky top-0 z-10">
                         <tr>
-                            <th class="px-4 py-2 border">Vessel</th>
-                            <th class="px-4 py-2 border">ME HSD</th>
-                            <th class="px-4 py-2 border">Maneuvering Time</th>
-                            <th class="px-4 py-2 border">BL ME</th>
-                            <th class="px-4 py-2 border">ME Maneuvering Consumption (L/H)</th>
-                            <th class="px-4 py-2 border">Selisih</th>
+                            <th class="px-4 py-2 text-center border-2 border-black">Vessel</th>
+                            <th class="px-4 py-2 text-center border-2 border-black">ME HSD</th>
+                            <th class="px-4 py-2 text-center border-2 border-black">Maneuvering Time</th>
+                            <th class="px-4 py-2 text-center border-2 border-black">BL ME</th>
+                            <th class="px-4 py-2 text-center border-2 border-black">ME Maneuvering Consumption (L/H)</th>
+                            <th class="px-4 py-2 text-center border-2 border-black">Selisih</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($details as $row)
                             <tr class="text-center odd:bg-white even:bg-gray-200">
-                                <td class="border px-4 py-2">{{ $row['vessel'] }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['me_hsd'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['maneuvering'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['bl_me'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['me_mnv'], 2, '.', ',') }}</td>
-                                <td class="border px-4 py-2">{{ number_format($row['selisih'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border-2 border-black">{{ $row['vessel'] }}</td>
+                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['me_hsd'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['maneuvering'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['bl_me'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['me_mnv'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['selisih'], 2, '.', ',') }}</td>
                             </tr>
                         @endforeach
                     </tbody>

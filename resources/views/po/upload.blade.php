@@ -58,7 +58,7 @@
                                                 <th class="px-4 py-2 text-center border-2 border-black">{{ ucfirst($header) }}</th>
                                             @endif
                                         @endforeach
-                                        <th class="px-4 py-2 border-2 border-black">Pilih</th>
+                                        <th class="px-4 py-2 text-center border-2 border-black">Pilih</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -66,7 +66,7 @@
                                         <tr class="text-center odd:bg-white even:bg-gray-200">
                                             @foreach ($row as $colIndex => $cell)
                                                 @if(!in_array($colIndex, $excludedHeaders_port))
-                                                    <td class="px-4 py-2 border-2 border-black {{ $cell['class'] }}">
+                                                    <td class="px-4 py-2 text-center border-2 border-black {{ $cell['class'] }}">
                                                         {{ $colIndex === 0 ? $cell['value'] : (is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value']) }}
                                                     </td>
                                                 @endif
@@ -101,7 +101,7 @@
                                                 <th class="px-4 py-2 text-center border-2 border-black">{{ ucfirst($header) }}</th>
                                             @endif
                                         @endforeach
-                                        <th class="px-4 py-2 border-2 border-black">Pilih</th>
+                                        <th class="px-4 py-2 text-center border-2 border-black">Pilih</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -109,7 +109,7 @@
                                         <tr class="text-center odd:bg-white even:bg-gray-200">
                                             @foreach ($row as $colIndex => $cell)
                                                 @if(!in_array($colIndex, $excludedHeaders_sea))
-                                                    <td class="px-4 py-2 border-2 border-black {{ $cell['class'] }}">
+                                                    <td class="px-4 py-2 text-center border-2 border-black {{ $cell['class'] }}">
                                                         {{ $colIndex === 0 ? $cell['value'] : (is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value']) }}
                                                     </td>
                                                 @endif

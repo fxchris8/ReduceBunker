@@ -9,72 +9,61 @@
                 <div class="bg-gray-50 px-4 py-4 border-b">
                     <h1 class="text-xl font-bold">Refueling Planning</h1>
                 </div>
-                <div class="p-6">
-                    <form action="{{ route('file.refueling') }}" method="POST" enctype="multipart/form-data" class="flex justify-center">
-                        @csrf
-                        <div class="w-full max-w-2xl rounded-lg flex items-center gap-4">
-                            <input type="file" name="file" accept=".csv, .xlsx, .xls, .ods" required
-                                class="w-full py-2 px-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            
-                            <button type="submit"
-                                class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
-                                Upload
-                            </button>
+                
+                <div class="border rounded-md p-6">
+                    @if(isset($error))
+                        <div class="bg-red-100 text-red-600 p-3 rounded mb-4">
+                            {{ $error }}
                         </div>
-                    </form>
+                    @endif
 
-                    <div>
-                        @if (!empty($tanggal))
-                            <div class="mt-6 px-4 py-2 rounded-md text-lg font-bold inline-block">
-                                {{ $tanggal }}
-                            </div>
-                        @endif
+                    <div class="px-4 py-2 rounded-md text-lg mb-4">
+                        <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal Laporan
+                        </label>
+                        <input type="date" id="report_date" name="report_date"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                            value="{{ request('report_date', date('Y-m-d')) }}"
+                            onchange="window.location='{{ route('po.planning') }}?report_date='+this.value">
+                    </div>
 
-                        @if (!empty($tableRows))
-                            <div class="overflow-x-auto overflow-y-auto max-h-[575px] border rounded-md shadow-sm w-full">
-                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded">
-                                    <thead class="bg-gray-300 sticky top-0 z-10">
-                                        @foreach ($headerRows as $rowIndex => $row)
-                                            <tr>
-                                                @foreach ($row as $cell)
-                                                    <th class="px-4 py-2">
-                                                        {{ $cell }}
-                                                    </th>
-                                                @endforeach
-
-                                                @if ($rowIndex === 0)
-                                                    @for ($i = 0; $i < count($extraColumns); $i++)
-                                                        <th class="px-4 py-2"></th>
-                                                    @endfor
-                                                @endif
-                                            </tr>
+                    @if(is_array($headerRows) && count($headerRows) > 0)
+                        <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">
+                            <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                <thead class="bg-gray-300 sticky top-0 z-10">
+                                    <tr>
+                                        @foreach($headerRows as $header)
+                                            <th class="px-4 py-2 text-center border-2 border-black">
+                                                {{ ucfirst($header) }}
+                                            </th>
                                         @endforeach
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        @foreach ($tableRows as $row)
-                                            <tr class="text-center odd:bg-white even:bg-gray-200">
-                                                @foreach ($row as $colIndex => $cell)
-                                                    <td class="px-4 py-2 whitespace-nowrap">
-                                                        {{ $colIndex === 'A' ? $cell : (is_numeric($cell) ? number_format($cell, 2, '.', ',') : $cell) }}
-                                                    </td>
-                                                @endforeach
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                            <form action="{{ route('file.refueling.download') }}" method="POST" class="mt-4 flex justify-end">
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($report as $index => $row)
+                                        <tr class="text-center odd:bg-white even:bg-gray-200">
+                                            @foreach($headerRows as $header)
+                                                <td class="px-4 py-2 text-center border-2 border-black">
+                                                    {{ is_numeric($row[$header] ?? null) ? number_format($row[$header], 2, '.', ',') : ($row[$header] ?? '') }}
+                                                </td>
+                                            @endforeach
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="flex justify-end mt-4">
+                            <form method="POST" action="{{ route('file.refueling.download') }}" class="mt-4">
                                 @csrf
-                                <input type="hidden" name="headerRows" value="{{ json_encode($headerRows) }}">
-                                <input type="hidden" name="tableRows" value="{{ json_encode($tableRows) }}">
-                                <button class="py-2 px-4 bg-green-600 text-white rounded-md">
+                                <button type="submit"
+                                    class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded shadow">
                                     Download
                                 </button>
                             </form>
-                        @else
-                            <p class="text-gray-500">Sheet kosong atau tidak ditemukan.</p>
-                        @endif
-                    </div>
+                        </div>
+                    @else
+                        <p>Tidak ada data tersedia.</p>
+                    @endif
                 </div>
             </div>
         </div>

@@ -25,8 +25,7 @@ Route::get('/details/bl-me-hsd-maneuvering/{sessionType}', [DetailController::cl
 Route::get('/details/bl-me-mfo/{sessionType}', [DetailController::class, 'bl_memfo'])->name('details.bl_memfo');
 Route::get('/details/bl-ae/{sessionType}', [DetailController::class, 'bl_ae'])->name('details.bl_ae');
 
-Route::get('/planning', [PlanningController::class, 'show'])->name('po.planning');
-Route::post('/refueling', [PlanningController::class, 'upload'])->name('file.refueling');
+Route::any('/planning', [PlanningController::class, 'show'])->name('po.planning');
 Route::post('/refueling/download', [PlanningController::class, 'download'])->name('file.refueling.download');
 
 Route::get('/po', [POController::class, 'index'])->name('po.po_dashboard');

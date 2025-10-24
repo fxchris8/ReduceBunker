@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+set_time_limit(0);
+
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Support\Facades\Log;
@@ -15,387 +17,624 @@ use Illuminate\Support\Facades\Mail;
 
 class PlanningController extends Controller
 {
-    public function upload(Request $request)
-    {   
-        Log::info(PHP_EOL . str_repeat('=', 100) . PHP_EOL);
+    private function loadLnmMap(): array
+    {
+        $filePath = storage_path('app/L_NM.xlsx');
+        if (!file_exists($filePath)) {
+            \Log::error("File L_NM.xlsx tidak ditemukan di $filePath");
+            return [];
+        }
 
-        $file = $request->file('file');
-        $spreadsheet = IOFactory::load($file->getPathname());
+        $spreadsheet = IOFactory::load($filePath);
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, true);
 
-        $sheet = $spreadsheet->getSheetByName('SBY');
-        $data = $sheet->toArray(null, true, true, true);
-        $headerRows = array_slice($data, 3, 2);
-        $tableRows  = array_slice($data, 5);
-
-        $l_nm_FilePath = storage_path('app\L_NM.xlsx');
-        $spreadsheet_l_nm = IOFactory::load($l_nm_FilePath);
-        $sheet_l_nm = $spreadsheet_l_nm->getActiveSheet();
-        $l_nm_Data = $sheet_l_nm->toArray(null, true, true, true);
-
-        $l_nm_map = [];
-
-        foreach (array_slice($l_nm_Data, 1) as $row) {
-            $vessel = trim($row['B']); 
-            $mfo    = trim($row['C']);
-            $hsd    = trim($row['D']);
+        $map = [];
+        foreach (array_slice($rows, 1) as $row) { // skip header
+            $vessel = strtoupper(trim($row['B'] ?? ''));
+            $mfo    = trim($row['C'] ?? '');
+            $hsd    = trim($row['D'] ?? '');
             if ($vessel && $mfo && $hsd) {
-                $l_nm_map[$vessel] = ['mfo' => $mfo, 'hsd' => $hsd];
+                $map[$vessel] = [
+                    'mfo' => (float) $mfo,
+                    'hsd' => (float) $hsd,
+                ];
             }
         }
+        return $map;
+    }
 
-        $jarak_FilePath = storage_path('app\Data Jarak.xlsx');
-        $spreadsheet_jarak = IOFactory::load($jarak_FilePath);
-        $sheet_jarak = $spreadsheet_jarak->getActiveSheet();
-        $jarak_Data = $sheet_jarak->toArray(null, true, true, true);
+    private function splitRouteByPosition(string $currentRouteWithNext, string $position): array
+    {
+        $routeArray = explode('.', $currentRouteWithNext);
+        $positionArray = explode('.', $position);
+        $positionLength = count($positionArray);
 
-        $jarak_map = [];
+        $matchIndex = null;
 
-        foreach (array_slice($jarak_Data, 1) as $row) {
-            $from = trim($row['A']);
-            $to   = trim($row['B']);
-            $dist = floatval($row['C']);
-            if ($from && $to && $dist) {
-                $jarak_map[$from][$to] = $dist;
-            }
-        }
-
-        if ($sheet) {
-            $tanggal = $sheet->getCell('A3')->getValue();
-        }
-
-        $normalizeHeader = function ($header) {
-            $header = strtoupper(trim($header));
-            $header = preg_replace('/\s+/', ' ', $header);
-            $header = preg_replace('/\(\s+/', '(', $header);
-            $header = preg_replace('/\s+\)/', ')', $header);
-            return $header;
-        };
-
-        $headerRow0 = array_map($normalizeHeader, $headerRows[0]);
-        $headerRow1 = array_map($normalizeHeader, $headerRows[1]);
-
-        $combinedHeader = [];
-        foreach ($headerRow0 as $key => $value) {
-            $combinedHeader[$key] = ($headerRow1[$key] ?? '') ?: $value;
-        }
-        $desiredHeaders = ['NO', 'VESSEL', 'VOYAGE', 'FROM', 'ETA', 'ETB', 'ETD', 'SAILING ROUTE'];
-
-        $selectedIndexes = array_keys(array_filter($combinedHeader, function ($header) use ($desiredHeaders) {
-            return in_array($header, $desiredHeaders);
-        }));
-
-        $extraColumns = [
-            'Jarak FROM Route' => 'Jarak FROM Route',
-            'Jarak NEW Route' => 'Jarak NEW Route',
-            'L/NM MFO' => 'L/NM MFO',
-            'L/NM HSD' => 'L/NM HSD',
-            'ROB Tiba MFO' => 'ROB Tiba MFO',
-            'ROB Tiba HSD' => 'ROB Tiba HSD',
-            'Kebutuhan Next Route MFO' => 'Kebutuhan Next Route MFO',
-            'Kebutuhan Next Route HSD' => 'Kebutuhan Next Route HSD',
-            'Pengisian MFO' => 'Pengisian MFO',
-            'Pengisian HSD' => 'Pengisian HSD',
-        ];
-
-        $filteredHeaderRows = array_map(function ($row, $rowIndex) use ($selectedIndexes, $extraColumns) {
-            $filtered = array_intersect_key($row, array_flip($selectedIndexes));
-            if ($rowIndex === 1) {
-                $filtered = array_merge($filtered, $extraColumns);
-            }
-            return $filtered;
-        }, $headerRows, array_keys($headerRows));
-
-        $filteredTableRows = array_map(function ($row) use ($selectedIndexes) {
-            return array_intersect_key($row, array_flip($selectedIndexes));
-        }, $tableRows);
-
-        $vesselIndex = null;
-        foreach ($combinedHeader as $key => $value) {
-            if (strtoupper(trim($value)) === 'VESSEL') {
-                $vesselIndex = $key;
+        // Cari index pertama dari $positionArray dalam $routeArray
+        for ($i = 0; $i <= count($routeArray) - $positionLength; $i++) {
+            $slice = array_slice($routeArray, $i, $positionLength);
+            if ($slice === $positionArray) {
+                $matchIndex = $i;
                 break;
             }
         }
 
-        $indexByHeader = [];
-        foreach ($combinedHeader as $key => $value) {
-            $indexByHeader[$value] = $key;
+        if ($matchIndex === null) {
+            // Tidak ditemukan, kembalikan array asli dan kosong
+            return [$currentRouteWithNext, ''];
         }
 
-        $vesselIndex = $indexByHeader['VESSEL'] ?? null;
-        $fromIndex   = $indexByHeader['FROM'] ?? null;
-        $routeIndex  = $indexByHeader['SAILING ROUTE'] ?? null;
+        // Bagi array menjadi dua bagian
+        $firstPart = array_slice($routeArray, 0, $matchIndex + 1); // +1 agar posisi awal ikut
+        $secondPart = array_slice($routeArray, $matchIndex + 1);
+
+        return [implode('.', $firstPart), implode('.', $secondPart)];
+    }
+
+
+    function reorderReport($grouped, $noon_report_groupedByVessel = [], $l_nm_map = [], $port_id_map = [], $jarak_map = []) {
+        $currentRoute = $grouped['from_port'] ?? '';
+        $nextRoute    = $grouped['sailing_route'] ?? '';
+
+        // Ambil part pertama dari next route
+        $first_next_route = '';
+        if ($nextRoute !== '') {
+            $parts = preg_split('/\s*-\s*|,|_|\s+|\./', $nextRoute);
+            $parts = array_values(array_filter(array_map('trim', $parts), fn($v) => $v !== ''));
+            $first_next_route = $parts[0] ?? '';
+        }
+
+        // Tambahkan part pertama next route ke current route jika tidak kosong
+        $currentRouteWithNext = $currentRoute;
+        if ($currentRoute !== '' && $first_next_route !== '') {
+            $currentRouteWithNext .= '.' . $first_next_route;
+        }
 
         $calculateDistance = function (?string $route) use ($jarak_map) {
+            static $cache = [];
             $route = strtoupper(trim($route ?? ''));
-            if ($route === '') return 0.0;
+            if ($route === '') return null;
+            if (isset($cache[$route])) return $cache[$route];
 
-            // pisah dengan: " - ", "-", ",", "_", ".", atau spasi berlebih
+            \Log::info("\n");
+            \Log::info("Route : $route");
+
             $parts = preg_split('/\s*-\s*|,|_|\s+|\./', $route);
             $parts = array_values(array_filter(array_map('trim', $parts), fn($v) => $v !== ''));
 
-            $total = 0.0;
+            $total = null;
             for ($i = 0; $i < count($parts) - 1; $i++) {
                 $o = $parts[$i];
                 $d = $parts[$i + 1];
 
-                if ($o === $d) {
-                    $total += 0.0;
+                if ($o == $d) {
                     continue;
                 }
-
-                if (isset($jarak_map[$o][$d])) {
+                
+                if ($o !== $d && isset($jarak_map[$o][$d])) {
                     $total += (float) $jarak_map[$o][$d];
-                } else {
-                    Log::warning("Distance not found for route: $o to $d \n");
-                    // kalau ingin tandai gagal, bisa return null; untuk sekarang keep 0 + break
-                    return null;
-                    // break;
+                }
+                else {
+                    $missing[] = "Dari $o ke $d";
                 }
             }
-            return $total;
+
+            if (!empty($missing)) {
+                foreach ($missing as $miss) {
+                    \Log::info("- $miss");
+                }
+                return null;
+            }
+
+            return $cache[$route] = $total;
         };
 
-        $enhancedTableRows = array_map(function ($row) use (
-            $vesselIndex, $fromIndex, $routeIndex, $l_nm_map, $calculateDistance
-        ) {
-            $rawName    = $vesselIndex ? ($row[$vesselIndex] ?? '') : '';
-            $vesselKey  = strtoupper(preg_replace('/[^A-Z0-9]/', '', $rawName));
+        $vesselRaw = $grouped['vesselid'] ?? '';
+        $vesselKey = strtoupper(trim($vesselRaw));
 
-            $mfo = $l_nm_map[$vesselKey]['mfo'] ?? '';
-            $hsd = $l_nm_map[$vesselKey]['hsd'] ?? '';
+        // Hitung jarak
+        // $distanceCurrent = $calculateDistance($currentRouteWithNext);
+        $distanceNext = $calculateDistance($nextRoute);
 
-            $mfo_val = is_numeric($mfo) ? (float) $mfo : 0.0;
-            $hsd_val = is_numeric($hsd) ? (float) $hsd : 0.0;
+        //////////////////////////////////////////////////////////////////////////
 
-            $sailingRoute = $routeIndex ? trim($row[$routeIndex] ?? '') : '';
+        $lnm_hsd = $l_nm_map[$vesselKey]['hsd'] ?? null;
+        $lnm_mfo = $l_nm_map[$vesselKey]['mfo'] ?? null;
+
+        //////////////////////////////////////////////////////////////////////////
+
+        $rob_hsd_sebelumnya = null;
+        $rob_mfo_sebelumnya = null;
+        $dtg = null;
+        $departureName = null;
+        $destinationName = null;
+        $departurePort = null;
+        $destinationPort = null;
+        $position = null;
+        $distanceCurrent = null;
+        $part1 = '';
+        $part2 = '';
+        $part2_distance = '';
+
+        if (isset($noon_report_groupedByVessel[$vesselKey])) {
+            $robRow = $noon_report_groupedByVessel[$vesselKey];
+
+            $rob_hsd_sebelumnya = $robRow['rob_hsd'] ?? null;
+            $rob_mfo_sebelumnya = $robRow['rob_mfo'] ?? null;
             
-            $first_next_route = preg_split('/\s*-\s*|,|_|\s+|\./', $sailingRoute);
-            $first_next_route = array_values(array_filter(array_map('trim', $first_next_route), fn($v) => $v !== ''));
-            $first_next_route = $first_next_route[0];
+            $dtg = $robRow['distance_to_go'] ?? null;
 
-            $fromRoute    = $fromIndex ? trim($row[$fromIndex]  ?? '') : '';
-            
-            if ($fromRoute !== '') {
-                $fromRoute .= '.' . $first_next_route;
-            }
+            $departureName = strtoupper(trim($robRow['departure'] ?? ''));
+            $destinationName = strtoupper(trim($robRow['destination'] ?? ''));
 
-            Log::info("\n");
-            Log::info("From Route", [
-                'fromRoute' => $fromRoute,
-            ]);
+            // if ($departureName === 'BAUBAU') {
+            //     $departureName = 'BAU-BAU';
+            // }
 
-            $from_route_dist = $calculateDistance($fromRoute);
+            // if ($destinationName === 'BAUBAU') {
+            //     $destinationName = 'BAU-BAU';
+            // }
 
-            Log::info('Next Route', [
-                'sailingRoute' => $sailingRoute,
-            ]);
+            $departurePort = $port_id_map[$departureName] ?? null;
+            $destinationPort = $port_id_map[$destinationName] ?? null;
 
-            $next_route_dist = $calculateDistance($sailingRoute);
+            if ($departurePort || $destinationPort) {
+                $position = $departurePort . '.' . $destinationPort;
+            } 
+        }
 
-            $kebutuhan_from_route_mfo = ceil(250000 - ($from_route_dist * $mfo_val));
-            $kebutuhan_from_route_hsd = ceil(50000 - ($from_route_dist * $hsd_val));
+        $total_current_route = count(explode('.', $currentRouteWithNext));
 
-            $kebutuhan_next_route_mfo = ceil($next_route_dist * $mfo_val);
-            $kebutuhan_next_route_hsd = ceil($next_route_dist * $hsd_val);
-
-            $selisih_mfo = $kebutuhan_next_route_mfo - $kebutuhan_from_route_mfo;
-            $selisih_hsd = $kebutuhan_next_route_hsd - $kebutuhan_from_route_hsd;
-
-            if ($selisih_mfo <= 0) {
-                $pengisian_mfo = 0;
-                $pengisian_hsd = 0;
+        if ($dtg == null) {
+            $distanceCurrent = 0;
+        } else {
+            if ($total_current_route == 2){
+                $distanceCurrent = $dtg;
             } else {
-                $pengisian_mfo = $selisih_mfo * 1.1;
-                $pengisian_hsd = $selisih_hsd * 1.1;
+                list($part1, $part2) = $this->splitRouteByPosition($currentRouteWithNext, $position);
+
+                $part2_distance = $calculateDistance($part2);
+                $distanceCurrent = $dtg + $part2_distance;
+            }
+        }
+
+        if ($currentRouteWithNext == ''){
+            $distanceCurrent = $dtg;
+
+            if ($dtg == null) {
+                $distanceCurrent = 0;
+            }
+        }
+
+        //////////////////////////////////////////////////////////////////////////
+
+        if ($rob_hsd_sebelumnya !== null && $rob_mfo_sebelumnya !== null && 
+            $distanceCurrent >= 0 && 
+            $distanceNext >= 0
+            // && $lnm_hsd !== null && $lnm_mfo !== null
+            ) {
+            $rob_hsd_berthing = $rob_hsd_sebelumnya - ($distanceCurrent * $lnm_hsd) ?? null;
+            $rob_mfo_berthing = $rob_mfo_sebelumnya - ($distanceCurrent * $lnm_mfo) ?? null;
+
+            $kebutuhan_hsd_next_route = ($distanceNext * $lnm_hsd) ?? null;
+            $kebutuhan_mfo_next_route = ($distanceNext * $lnm_mfo) ?? null;
+
+            $selisih_hsd = $kebutuhan_hsd_next_route - $rob_hsd_berthing;
+            $selisih_mfo = $kebutuhan_mfo_next_route - $rob_mfo_berthing;
+
+            if ($selisih_hsd >= 0) {
+                $pengisian_hsd = ceil(($selisih_hsd * 1.1) / 5000) * 5000;
+            } else {
+                $pengisian_hsd = 0;
             }
 
-            $row['jarak_from'] = $from_route_dist;
-            $row['jarak_next'] = $next_route_dist;
+            if ($selisih_mfo >= 0) {
+                $pengisian_mfo = ceil(($selisih_mfo * 1.1) / 5000) * 5000;
+            } else {
+                $pengisian_mfo = 0;
+            }
+        } else {
+            $rob_hsd_berthing = null;
+            $rob_mfo_berthing = null;
+            $kebutuhan_hsd_next_route = null;
+            $kebutuhan_mfo_next_route = null;
+            $pengisian_hsd = null;
+            $pengisian_mfo = null;
+        }
+                        
+        $ordered = [
+            'Vessel ID' => $grouped['vesselid'] ?? null,
+            'Voyage' => $grouped['voyage'] ?? null,
 
-            $row['LNM_MFO']    = $mfo_val;
-            $row['LNM_HSD']    = $hsd_val;
+            'New Current Route (FROM)' => $currentRouteWithNext,
 
-            $row['kebutuhan_from_route_mfo'] = $kebutuhan_from_route_mfo;
-            $row['kebutuhan_from_route_hsd'] = $kebutuhan_from_route_hsd;
+            'ETA' => $grouped['eta'] ?? null,
+            'ETB' => $grouped['etb'] ?? null,
+            'ETD' => $grouped['etd'] ?? null,
 
-            $row['kebutuhan_next_route_mfo'] = $kebutuhan_next_route_mfo;
-            $row['kebutuhan_next_route_hsd'] = $kebutuhan_next_route_hsd;
+            'Next Route (Sailing Route)' => $grouped['sailing_route'] ?? null,
 
-            $row['pengisian_mfo'] = ceil($pengisian_mfo / 5000) * 5000;
-            $row['pengisian_hsd'] = ceil($pengisian_hsd / 5000) * 5000;
+            // 'Distance to Go' => $dtg,
 
-            return $row;
-        }, $filteredTableRows);
+            // 'Departure Name' => $departureName,
+            // 'Destination Name' => $destinationName,
 
+            // 'Departure Port' => $departurePort,
+            // 'Destination Port' => $destinationPort,
+
+            // 'Position' => $position,
+
+            // 'Part 1' => $part1,
+            // 'Part 2' => $part2,
+
+            // 'Part 2 Distance' => $part2_distance,
+
+            'Jarak Sisa Current Route' => $distanceCurrent,
+            // 'Total jarak voyage' => $calculateDistance($currentRouteWithNext),
+
+            'Jarak Next Route' => $distanceNext,
+
+            'L/NM HSD' => $lnm_hsd,
+            'L/NM MFO' => $lnm_mfo,
+
+            'ROB HSD Sebelumnya' => $rob_hsd_sebelumnya,
+            'ROB MFO Sebelumnya' => $rob_mfo_sebelumnya,
+
+            'ROB HSD Arrival' => $rob_hsd_berthing,
+            'ROB MFO Arrival' => $rob_mfo_berthing,
+
+            'Kebutuhan HSD Next Route' => $kebutuhan_hsd_next_route,
+            'Kebutuhan MFO Next Route' => $kebutuhan_mfo_next_route,
+
+            'Pengisian HSD' => $pengisian_hsd,
+            'Pengisian MFO' => $pengisian_mfo,
+            ];
+
+        return $ordered;
+    }
+
+    private function generatePlanningExcel(array $all_dvs_Reports, string $dvs_formattedDate): string
+    {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        $rowIndex = 1;
+        // Header
+        // $rowIndex = 1;
+        $header = [
+            'Vessel ID',
+            'Voyage',
+            'New Current Route (FROM)',
+            'ETA',
+            'ETB',
+            'ETD',
+            'Next Route (Sailing Route)',
+            'Jarak Current Route',
+            'Jarak Next Route',
+            'L/NM HSD',
+            'L/NM MFO',
+            'ROB HSD Sebelumnya',
+            'ROB MFO Sebelumnya',
+            'ROB HSD Berthing',
+            'ROB MFO Berthing',
+            'Kebutuhan HSD Next Route',
+            'Kebutuhan MFO Next Route',
+            'Pengisian HSD',
+            'Pengisian MFO',
+            'Koreksi',
+        ];
 
-        foreach ($filteredHeaderRows as $headerRow) {
-            $colIndex = 1;
-            if ($rowIndex === 2) {
-                $headerRow[] = 'Koreksi';
-            }
-            foreach ($headerRow as $cell) {
-                $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
-                $sheet->setCellValue($columnLetter . $rowIndex, $cell);
+        $sheet->fromArray($header, null, 'A1');
+        $lastCol = Coordinate::stringFromColumnIndex(count($header));
 
-                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
-                    'font' => ['bold' => true],
-                    'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'd0d0d0'],
-                    ],
-                    'alignment' => [
-                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                        'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['rgb' => '000000'],
-                        ],
-                    ],
-                ]);
-                $colIndex++;
-            }
+        $sheet->getStyle("A1:{$lastCol}1")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'd0d0d0'],
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+        ]);
+
+        $rowIndex = 2;
+        foreach ($all_dvs_Reports as $reportRow) {
+            $reportRow['Koreksi'] = ''; // tambahkan kolom koreksi kosong
+            $sheet->fromArray(array_values($reportRow), null, "A{$rowIndex}");
             $rowIndex++;
         }
 
-        foreach ($enhancedTableRows as $tableRow) {
-            $colIndex = 1;
-            foreach ($tableRow as $cell) {
-                $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
-                $sheet->setCellValue($columnLetter . $rowIndex, $cell);
+        $lastRow = $rowIndex - 1;
 
-                $fillColor = ($rowIndex % 2 == 0) ? 'e0e0e0' : 'FFFFFF';
-                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
-                    'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => $fillColor],
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['rgb' => '000000'],
-                        ],
-                    ],
-                ]);
+        $bodyRange = "A2:{$lastCol}{$lastRow}";
+        $sheet->getStyle($bodyRange)->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+        ]);
 
-                $colIndex++;
-            }
-            $rowIndex++;
+        // Zebra striping dengan conditional formatting
+        $conditionalStyles = $sheet->getStyle($bodyRange)->getConditionalStyles();
+
+        $evenRowCondition = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $evenRowCondition->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $evenRowCondition->addCondition('MOD(ROW(),2)=0');
+        $evenRowCondition->getStyle()->getFill()->setFillType(
+            \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID
+        )->getStartColor()->setRGB('FFFFFF');
+
+        $oddRowCondition = new \PhpOffice\PhpSpreadsheet\Style\Conditional();
+        $oddRowCondition->setConditionType(\PhpOffice\PhpSpreadsheet\Style\Conditional::CONDITION_EXPRESSION);
+        $oddRowCondition->addCondition('MOD(ROW(),2)=1');
+        $oddRowCondition->getStyle()->getFill()->setFillType(
+            \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID
+        )->getStartColor()->setRGB('E0E0E0');
+
+        $conditionalStyles[] = $evenRowCondition;
+        $conditionalStyles[] = $oddRowCondition;
+
+        $sheet->getStyle($bodyRange)->setConditionalStyles($conditionalStyles);
+
+        foreach (range(1, count($header)) as $colIndex) {
+            $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
+            $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
         }
 
+        // Save to temp file
+        $cleanDate = str_replace(['/', ':', ' '], '_', $dvs_formattedDate);
+        $tempFile = tempnam(sys_get_temp_dir(), 'planning_' . $cleanDate . '_') . '.xlsx';
         $writer = new Xlsx($spreadsheet);
-        $tempFile = tempnam(sys_get_temp_dir(), 'planning_') . '.xlsx';
         $writer->save($tempFile);
 
-        Mail::raw('Berikut terlampir hasil upload Refueling Planning.', function ($message) use ($tempFile) {
-            $message->to('marulihtgl12@gmail.com') // oilmgt@spil.co.id
+        return $tempFile;
+    }
+
+    public function show(Request $request)
+    {   
+        $reportDate = $request->input('report_date', date('Y-m-d'));
+        
+        $dvs_formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
+
+        $dvs_basePayload = [
+            "tanggal" => $dvs_formattedDate,
+            "voyage" => "-",
+        ];
+
+        $all_dvs_Reports = [];
+
+        $dvs_payload = $dvs_basePayload;
+        
+        $response = Http::timeout(120)
+        ->withHeaders([
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->withBody(json_encode($dvs_payload), 'application/json')
+        ->get('http://nanika.spil.co.id:3021/get-data-dvs');
+
+        if (!$response->successful()) {
+            return view('po.planning', [
+                'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
+            ]);
+        }
+
+        $dvs_data = $response->json();
+        $dvs_reports = $dvs_data['data'] ?? [];
+
+        \Log::info("\n");
+        \Log::info(str_repeat('-', 50) . PHP_EOL);
+        \Log::info("\n");
+
+        ////////////////////////////////////////////////////////////////////////
+
+        $noon_report_formattedDate = \Carbon\Carbon::now()->subDay()->format('d/m/Y');
+
+        $noon_report_basePayload = [
+            "tanggal" => $noon_report_formattedDate,
+        ];
+
+        $reportIds = [14, 16];
+        $noon_report_allReports = [];
+
+        foreach ($reportIds as $reportId) {
+            $rob_payload = $noon_report_basePayload;
+            $rob_payload['report_id'] = (string)$reportId;
+
+            $response = Http::timeout(120)
+            ->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->withBody(json_encode($rob_payload), 'application/json')
+            ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
+
+            if (!$response->successful()) {
+                return view('po.planning', [
+                    'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
+                    'report14' => [],
+                    'report16' => [],
+                ]);
+            }
+
+            $rob_data = $response->json();
+            $rob_reports = $rob_data['data'] ?? [];
+            $noon_report_allReports = array_merge($noon_report_allReports, $rob_reports);
+        }
+
+        // Kelompokkan dan ambil data terakhir per vesselid berdasarkan tanggal
+        $noon_report_groupedByVessel = [];
+
+        foreach ($noon_report_allReports as $row) {
+            $vesselid = $row['vesselid'] ?? null;
+            $tanggal = $row['tanggal'] ?? null;
+
+            if ($vesselid && $tanggal) {
+                $row['tanggal_obj'] = \Carbon\Carbon::parse($tanggal); // simpan objek Carbon untuk sorting
+
+                if (!isset($noon_report_groupedByVessel[$vesselid])) {
+                    $noon_report_groupedByVessel[$vesselid] = [];
+                }
+
+                $noon_report_groupedByVessel[$vesselid][] = $row;
+            }
+        }
+
+        // Ambil hanya 1 data terakhir per vessel
+        $noon_report_groupedByVessel = collect($noon_report_groupedByVessel)->map(function ($reports) {
+            return collect($reports)
+                ->sortByDesc(fn($r) => $r['tanggal_obj'])
+                ->map(fn($r) => [
+                    'rob_hsd' => $r['rob_hsd'] ?? null,
+                    'rob_mfo' => $r['rob_mfo'] ?? null,
+                    'distance_to_go' => $r['distance_to_go'] ?? null,
+                    'departure' => isset($r['departure']) ? strtoupper($r['departure']) : null,
+                    'destination' => isset($r['destination']) ? strtoupper($r['destination']) : null,
+                ])
+                ->first();
+        })->toArray();
+
+        ///////////////////////////////////////////////////////////////////////////
+
+        $l_nm_map = $this->loadLnmMap();
+
+        ///////////////////////////////////////////////////////////////////////////
+
+        $port_id_basePayload = [
+            "load_port" => "-",
+            "disc_port" => "-",
+        ];
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->withBody(json_encode($port_id_basePayload), 'application/json')
+        ->get('http://nanika.spil.co.id:3021/get-master-route');
+
+        if (!$response->successful()) {
+            return view('po.planning', [
+                'error' => 'Gagal ambil data API (status: '.$response->status().')',
+            ]);
+        }
+
+        $port_id_data = $response->json();
+        $port_id_map = [];
+
+        foreach ($port_id_data['data'] as $port) {
+            $discportname = trim($port['discportname'] ?? '');
+            $discport_unportid = trim($port['discport_unportid'] ?? '');
+
+            $loadportname = trim($port['loadportname'] ?? '');
+            $loadport_unportid = trim($port['loadport_unportid'] ?? '');
+
+            if ($discportname !== '') {
+                $port_id_map[$discportname] = $discport_unportid;
+            }
+
+            if ($loadportname !== '') {
+                $port_id_map[$loadportname] = $loadport_unportid;
+            }
+
+        }
+
+        $port_id_map['BAUBAU'] = 'IDBUW';
+        $port_id_map['SAMARINDA'] = 'IDSRI';
+        $port_id_map['BALIKPAPAN'] = 'IDBPN';
+        $port_id_map['CILEGON'] = 'IDCGN';
+        $port_id_map['LAMPUNG'] = 'IDTKG';
+        $port_id_map['PALEMBANG'] = 'IDPLM';
+
+        //////////////////////////////////////////////////////////////////////
+
+        $jarak_basePayload = [
+            "load_port" => "-",
+            "disc_port" => "-",
+        ];
+
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->withBody(json_encode($jarak_basePayload), 'application/json')
+        ->get('http://nanika.spil.co.id:3021/get-master-route');
+
+        if (!$response->successful()) {
+            return view('po.planning', [
+                'error' => 'Gagal ambil data API (status: '.$response->status().')',
+            ]);
+        }
+
+        $jarak_data = $response->json();
+        $jarak_map = [];
+
+        foreach ($jarak_data['data'] as $route) {
+            $from = trim($route['loadport_unportid'] ?? '');
+            $to   = trim($route['discport_unportid'] ?? '');
+            $dist = floatval($route['nmile'] ?? 0);
+
+            $from_name = trim($route['loadportname'] ?? '');
+            $to_name   = trim($route['discportname'] ?? '');
+
+            if ($from !== '' && $to !== '') {
+                if (!isset($jarak_map[$from][$to]) || $jarak_map[$from][$to] < $dist) {
+                    $jarak_map[$from][$to] = $dist;
+                }
+            }
+        }
+
+        /////////////////////////////////////////////////////////////////////
+
+        // Pass ke reorderReport
+        $normalized = array_map(
+            fn($grouped) => $this->reorderReport($grouped, $noon_report_groupedByVessel, $l_nm_map, $port_id_map, $jarak_map),
+            $dvs_reports
+        );
+
+        $all_dvs_Reports = $normalized;
+
+        //////////////////////////////////////////////////////////////////////////
+
+        $filePath = $this->generatePlanningExcel($all_dvs_Reports, $dvs_formattedDate);
+
+        Mail::raw('Berikut terlampir hasil Refueling Planning untuk tanggal ' . $dvs_formattedDate . '.', function ($message) use ($filePath, $dvs_formattedDate) {
+            $cleanDate = str_replace(['/', ':', ' '], '_', $dvs_formattedDate);
+            $message->to('marulihtgl12@gmail.com')
                     ->subject('Refueling Planning Excel')
-                    ->attach($tempFile, [
-                        'as' => 'refueling_planning.xlsx',
+                    ->attach($filePath, [
+                        'as' => 'refueling_planning_' . $cleanDate . '.xlsx',
                         'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     ]);
         });
 
+        session([
+            'planning_reports' => $all_dvs_Reports,
+            'planning_date' => $dvs_formattedDate,
+        ]);
+
         return view('po.planning', [
-            'tanggal' => $tanggal,
-            'headerRows' => $filteredHeaderRows,
-            'tableRows' => $enhancedTableRows,
-            'extraColumns' => $extraColumns
-        ]);
-
-    }
-
-    public function download(Request $request)
-    {
-        $headerRows = json_decode($request->input('headerRows'), true);
-        $tableRows = json_decode($request->input('tableRows'), true);
-
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        $rowIndex = 1;
-
-        foreach ($headerRows as $headerRow) {
-            $colIndex = 1;
-            
-            if ($rowIndex === 2) { 
-                $headerRow[] = 'Koreksi';
-            }
-
-            foreach ($headerRow as $cell) {
-                $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
-                $sheet->setCellValue($columnLetter . $rowIndex, $cell);
-
-                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
-                    'font' => [
-                        'bold' => true,
-                    ],
-                    'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'd0d0d0'],
-                    ],
-                    'alignment' => [
-                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                        'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['rgb' => '000000'],
-                        ],
-                    ],
-                ]);
-                $colIndex++;
-            }
-            $rowIndex++;
-        }
-
-
-        foreach ($tableRows as $tableRow) {
-            $colIndex = 1;
-            foreach ($tableRow as $cell) {
-                $columnLetter = Coordinate::stringFromColumnIndex($colIndex);
-                $sheet->setCellValue($columnLetter . $rowIndex, $cell);
-
-                $fillColor = ($rowIndex % 2 == 0) ? 'e0e0e0' : 'FFFFFF';
-                $sheet->getStyle($columnLetter . $rowIndex)->applyFromArray([
-                    'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => $fillColor],
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['rgb' => '000000'],
-                        ],
-                    ],
-                ]);
-                $colIndex++;
-            }
-            $rowIndex++;
-        }
-
-
-        $writer = new Xlsx($spreadsheet);
-
-        return new StreamedResponse(function () use ($writer) {
-            $writer->save('php://output');
-        }, 200, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="refueling_planning.xlsx"',
+            'reportDate' => $dvs_formattedDate,
+            'headerRows' => $all_dvs_Reports ? array_keys($all_dvs_Reports[0]) : [],
+            'report' => $all_dvs_Reports,
         ]);
     }
 
-
-    public function show()
+    public function download()
     {
-        session()->reflash();
-        return view('po.planning');
+        $reports = session('planning_reports');
+        $date = session('planning_date');
+
+        $filePath = $this->generatePlanningExcel($reports, $date);
+        $filename = 'refueling_planning_' . str_replace(['/', ':', ' '], '_', $date) . '.xlsx';
+
+        return response()->download($filePath, $filename)->deleteFileAfterSend(true);
     }
+
 }
