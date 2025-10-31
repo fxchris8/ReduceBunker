@@ -17,15 +17,38 @@
                         </div>
                     @endif
 
-                    <div class="px-4 py-2 rounded-md text-lg mb-4">
-                        <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
-                            Tanggal Laporan
-                        </label>
-                        <input type="date" id="report_date" name="report_date"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                            value="{{ request('report_date', date('Y-m-d')) }}"
-                            onchange="window.location='{{ route('po.planning') }}?report_date='+this.value">
+                    <div class="flex space-x-4 mb-4">
+                        <!-- Tanggal Awal -->
+                        <div class="px-4 py-2 rounded-md text-lg">
+                            <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
+                                Tanggal Awal
+                            </label>
+                            <input type="date" id="report_date" name="report_date"
+                                class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                                value="{{ request('report_date', date('Y-m-d')) }}"
+                                onchange="updateDates()">
+                        </div>
+
+                        <!-- Tanggal Akhir -->
+                        <div class="px-4 py-2 rounded-md text-lg">
+                            <label for="next_week_date" class="block text-sm font-medium text-gray-700 mb-1">
+                                Tanggal Akhir
+                            </label>
+                            <input type="date" id="next_week_date" name="next_week_date"
+                                class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                                value="{{ request('next_week_date', date('Y-m-d', strtotime('+7 days'))) }}"
+                                onchange="updateDates()">
+                        </div>
                     </div>
+
+                    <script>
+                        function updateDates() {
+                            const start = document.getElementById('report_date').value;
+                            const end = document.getElementById('next_week_date').value;
+                            const url = `{{ route('po.planning') }}?report_date=${start}&next_week_date=${end}`;
+                            window.location.href = url;
+                        }
+                    </script>
 
                     @if(is_array($headerRows) && count($headerRows) > 0)
                         <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">

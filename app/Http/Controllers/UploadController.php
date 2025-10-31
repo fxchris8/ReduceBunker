@@ -65,15 +65,17 @@ class UploadController extends Controller
             'GENSET CONSUMPTION - HSD' => $grouped['genset_consum_hsd'] ?? null,
             'EMERGENCY GENERATOR CONSUMPTION' => $grouped['emg'] ?? null,
 
+            'TOTAL CRANE' => $grouped['total_crane'] ?? null, 
+            'CRANE DURATION' => $grouped['crane_duration'] ?? null,
+
             'LOAD A/E 1 (KW)' => $grouped['load_ae_1'] ?? null,
             'LOAD A/E 2 (KW)' => $grouped['load_ae_2'] ?? null,
             'LOAD A/E 3 (KW)' => $grouped['load_ae_3'] ?? null,
             'LOAD A/E 4 (KW)' => $grouped['load_ae_4'] ?? null,
 
-            'REEFER 20"' => $grouped['reefer20'] ?? null,
-            'CRANE DURATION' => $grouped['crane_duration'] ?? null,
-            'TOTAL CRANE' => $grouped['total_crane'] ?? null, 
             'AE PARAREL DURATION' => $grouped['ae_pararel_duration'] ?? null,
+
+            'REEFER 20"' => $grouped['reefer20'] ?? null,
             'REEFER 40"' => $grouped['reefer40'] ?? null,
             
             'BL M/E' => $grouped['bl_me_hsd'] ?? null,
@@ -123,7 +125,8 @@ class UploadController extends Controller
             $payload = $basePayload;
             $payload['report_id'] = (string)$reportId;
 
-            $response = Http::withHeaders([
+            $response = Http::timeout(120)
+            ->withHeaders([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ])->withBody(json_encode($payload), 'application/json')
@@ -170,39 +173,66 @@ class UploadController extends Controller
         $greenColumns = ['BL M/E', 'BL A/E (L/Day)', 'BL L/NM'];
         $analysisColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME MFO L/NM (%)'];
 
-        $anomaly_port = array_filter($port_data, function ($row) use ($greenColumns, $analysisColumns) {
-            $meHsd = $row['M/E HSD'] ?? null;
-            $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-            $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
-            $crane_dur = $row['CRANE DURATION'] ?? null;
+        // $anomaly_port = array_filter($port_data, function ($row) use ($greenColumns, $analysisColumns) {
+        //     $meHsd = $row['M/E HSD'] ?? null;
+        //     $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
+        //     $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
+        //     $crane_dur = $row['CRANE DURATION'] ?? null;
 
-            foreach ($analysisColumns as $col) {
-                if (isset($row[$col]) && is_numeric($row[$col]) && $row[$col] < 0) {
-                    return true;
-                }
-            }
+        //     foreach ($analysisColumns as $col) {
+        //         if (isset($row[$col]) && is_numeric($row[$col]) && $row[$col] < 0) {
+        //             return true;
+        //         }
+        //     }
 
-            if (is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0) {
-                return true;
-            }
+        //     if (is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0) {
+        //         return true;
+        //     }
 
-            if (is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-                $ae_pararel - $maneuvering - $crane_dur > 3) {
-                return true;
-            }
+        //     if (is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
+        //         $ae_pararel - $maneuvering - $crane_dur > 3) {
+        //         return true;
+        //     }
 
-            return false;
-        });
+        //     return false;
+        // });
 
         $colored_port = array_map(function ($row) use ($greenColumns, $analysisColumns) {
             $meHsd = $row['M/E HSD'] ?? null;
             $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-            $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
             $crane_dur = $row['CRANE DURATION'] ?? null;
 
-            $isYellowCondition = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
-            $isBlueCondition = is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-                            ($ae_pararel - $maneuvering - $crane_dur > 3);
+            $load_1 = $row['LOAD A/E 1 (KW)'] ?? null;
+            $load_2 = $row['LOAD A/E 2 (KW)'] ?? null;
+            $load_3 = $row['LOAD A/E 3 (KW)'] ?? null;
+            $load_4 = $row['LOAD A/E 4 (KW)'] ?? null;
+
+            $ae_par_dur = $row['AE PARAREL DURATION'] ?? null;
+
+            $me_without_manuev_Condition = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
+            
+            $excess_ae_par_dur_Condition = is_numeric($ae_par_dur) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
+                            ($ae_par_dur - $maneuvering - $crane_dur > 3);
+
+            // Condition untuk multiple loads dengan AE PARAREL DURATION = 0
+            $loads = [$load_1, $load_2, $load_3, $load_4];
+            $activeLoads = array_filter($loads, fn($v) => is_numeric($v) && $v > 0);
+            $isLoadCondition = count($activeLoads) > 1 && is_numeric($ae_par_dur) && $ae_par_dur == 0;
+
+            // Condition untuk multiple loads dengan nilai berbeda
+            $isLoadDifferentCondition = false;
+            if (count($activeLoads) > 1) {
+                $uniqueValues = array_unique($activeLoads);
+                if (count($uniqueValues) > 1) {
+                    $isLoadDifferentCondition = true;
+                }
+            }
+
+            // Condition untuk single load dengan AE PARAREL DURATION != 0
+            $isSingleLoadCondition = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
+
+            // Condition untuk AE Pararel Duration = 24
+            $is24HoursAePararelCondition = is_numeric($ae_par_dur) && $ae_par_dur == 24;
 
             $newRow = [];
             foreach ($row as $key => $value) {
@@ -216,11 +246,27 @@ class UploadController extends Controller
                     $class .= ' bg-red-200 font-semibold';
                 }
 
-                if ($isYellowCondition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
+                if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
 
-                if ($isBlueCondition && in_array($key, ['AE PARAREL DURATION', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION'])) {
+                if ($excess_ae_par_dur_Condition && in_array($key, ['AE PARAREL DURATION', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION'])) {
+                    $class .= ' bg-blue-200 font-semibold';
+                }
+
+                if ($isLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                    $class .= ' bg-yellow-200 font-semibold';
+                }
+
+                if ($isLoadDifferentCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                    $class .= ' bg-yellow-200 font-semibold';
+                }
+
+                if ($isSingleLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                    $class .= ' bg-yellow-200 font-semibold';
+                }
+
+                if ($is24HoursAePararelCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
 
@@ -231,41 +277,68 @@ class UploadController extends Controller
             }
 
             return $newRow;
-        }, $anomaly_port);
+        }, $port_data);
 
-        $anomaly_sea = array_filter($sea_data, function ($row) use ($greenColumns, $analysisColumns) {
-            $meHsd = $row['M/E HSD'] ?? null;
-            $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-            $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
-            $crane_dur = $row['CRANE DURATION'] ?? null;
+        // $anomaly_sea = array_filter($sea_data, function ($row) use ($greenColumns, $analysisColumns) {
+        //     $meHsd = $row['M/E HSD'] ?? null;
+        //     $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
+        //     $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
+        //     $crane_dur = $row['CRANE DURATION'] ?? null;
 
-            foreach ($analysisColumns as $col) {
-                if (isset($row[$col]) && is_numeric($row[$col]) && $row[$col] < 0) {
-                    return true;
-                }
-            }
+        //     foreach ($analysisColumns as $col) {
+        //         if (isset($row[$col]) && is_numeric($row[$col]) && $row[$col] < 0) {
+        //             return true;
+        //         }
+        //     }
 
-            if (is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0) {
-                return true;
-            }
+        //     if (is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0) {
+        //         return true;
+        //     }
 
-            if (is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-                $ae_pararel - $maneuvering - $crane_dur > 3) {
-                return true;
-            }
+        //     if (is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
+        //         $ae_pararel - $maneuvering - $crane_dur > 3) {
+        //         return true;
+        //     }
 
-            return false;
-        });
+        //     return false;
+        // });
 
         $colored_sea = array_map(function ($row) use ($greenColumns, $analysisColumns) {
             $meHsd = $row['M/E HSD'] ?? null;
             $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-            $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
             $crane_dur = $row['CRANE DURATION'] ?? null;
 
-            $isYellowCondition = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
-            $isBlueCondition = is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-                            ($ae_pararel - $maneuvering - $crane_dur > 3);
+            $load_1 = $row['LOAD A/E 1 (KW)'] ?? null;
+            $load_2 = $row['LOAD A/E 2 (KW)'] ?? null;
+            $load_3 = $row['LOAD A/E 3 (KW)'] ?? null;
+            $load_4 = $row['LOAD A/E 4 (KW)'] ?? null;
+            
+            $ae_par_dur = $row['AE PARAREL DURATION'] ?? null;
+
+            $me_without_manuev_Condition = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
+            
+            $excess_ae_par_dur_Condition = is_numeric($ae_par_dur) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
+                            ($ae_par_dur - $maneuvering - $crane_dur > 3);
+
+            // Condition untuk multiple loads dengan AE PARAREL DURATION = 0
+            $loads = [$load_1, $load_2, $load_3, $load_4];
+            $activeLoads = array_filter($loads, fn($v) => is_numeric($v) && $v > 0);
+            $isLoadCondition = count($activeLoads) > 1 && is_numeric($ae_par_dur) && $ae_par_dur == 0;
+
+            // Condition untuk multiple loads dengan nilai berbeda
+            $isLoadDifferentCondition = false;
+            if (count($activeLoads) > 1) {
+                $uniqueValues = array_unique($activeLoads);
+                if (count($uniqueValues) > 1) {
+                    $isLoadDifferentCondition = true;
+                }
+            }
+
+            // Condition untuk single load dengan AE PARAREL DURATION != 0
+            $isSingleLoadCondition = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
+
+            // Condition untuk AE Pararel Duration = 24
+            $is24HoursAePararelCondition = is_numeric($ae_par_dur) && $ae_par_dur == 24;
 
             $newRow = [];
             foreach ($row as $key => $value) {
@@ -279,11 +352,27 @@ class UploadController extends Controller
                     $class .= ' bg-red-200 font-semibold';
                 }
 
-                if ($isYellowCondition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
+                if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
 
-                if ($isBlueCondition && in_array($key, ['AE PARAREL DURATION', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION'])) {
+                if ($excess_ae_par_dur_Condition && in_array($key, ['AE PARAREL DURATION', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION'])) {
+                    $class .= ' bg-blue-200 font-semibold';
+                }
+
+                if ($isLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                    $class .= ' bg-yellow-200 font-semibold';
+                }
+
+                if ($isLoadDifferentCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                    $class .= ' bg-yellow-200 font-semibold';
+                }
+
+                if ($isSingleLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                    $class .= ' bg-yellow-200 font-semibold';
+                }
+
+                if ($is24HoursAePararelCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
 
@@ -294,14 +383,14 @@ class UploadController extends Controller
             }
 
             return $newRow;
-        }, $anomaly_sea);
+        }, $sea_data);
 
         $headers_port = [
             'Vessel ID', 'Tanggal', 'POSITION', 'M/E MFO', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'MANEUVERING TIME (HOURS)',
             'BOILER HSD', 'BOILER MFO', 'GENSET CONSUMPTION - HSD',
-            'EMERGENCY GENERATOR CONSUMPTION', 'LOAD A/E 1 (KW)',
-            'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'REEFER 20"', 'CRANE DURATION',
-            'TOTAL CRANE', 'AE PARAREL DURATION', 'REEFER 40"', 'BL M/E (L/H)',
+            'EMERGENCY GENERATOR CONSUMPTION', 'TOTAL CRANE OPERATED', 'CRANE DURATION', 'LOAD A/E 1 (KW)',
+            'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 
+            'REEFER 20"', 'REEFER 40"', 'BL M/E (L/H)',
             'ME Maneuvering Cons. (L/H)', 'SELISIH ME Maneuvering', 'BL A/E', 'AE Consumption', 'EXCESS AE'
         ];
 
@@ -309,9 +398,9 @@ class UploadController extends Controller
             'Vessel ID', 'Tanggal', 'DEPARTURE', 'DESTINATION', 'Steam Distance (Miles)',
             'Steam Time (Hour)', 'Ship Speed (Knots)', 'PROP SLIP', 'ME RPM',
             'M/E MFO', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'MANEUVERING TIME (HOURS)', 'BOILER HSD',
-            'BOILER MFO', 'GENSET CONSUMPTION - HSD', 'EMERGENCY GENERATOR CONSUMPTION',
+            'BOILER MFO', 'GENSET CONSUMPTION - HSD', 'EMERGENCY GENERATOR CONSUMPTION', 'TOTAL CRANE OPERATED', 'CRANE DURATION', 
             'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)',
-            'LOAD A/E 4 (KW)', 'REEFER 20"', 'CRANE DURATION', 'TOTAL CRANE OPERATED', 'AE PARAREL DURATION',
+            'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"',
             'REEFER 40"', 'BL M/E', 'ME Maneuvering Cons. (L/H)',
             'SELISIH ME Maneuvering', 'BL L/NM', 'L/NM', 'Excess ME MFO L/NM (%)', 'BL A/E', 'AE Consumption', 'EXCESS AE'
         ];
@@ -369,12 +458,29 @@ class UploadController extends Controller
         $ae_pararel_val = floatval($row['AE PARAREL DURATION']['value'] ?? 0);
         $crane_duration_val = floatval($row['CRANE DURATION']['value'] ?? 0);
 
+        $loads = [
+            'LOAD A/E 1 (KW)' => floatval($row['LOAD A/E 1 (KW)']['value'] ?? 0),
+            'LOAD A/E 2 (KW)' => floatval($row['LOAD A/E 2 (KW)']['value'] ?? 0),
+            'LOAD A/E 3 (KW)' => floatval($row['LOAD A/E 3 (KW)']['value'] ?? 0),
+            'LOAD A/E 4 (KW)' => floatval($row['LOAD A/E 4 (KW)']['value'] ?? 0),
+        ];
+
+        $refer20 = floatval($row['REEFER 20"']['value'] ?? 0);
+        $refer40 = floatval($row['REEFER 40"']['value'] ?? 0);
+
+        $activeLoads = array_filter($loads, fn($v) => $v > 0);
+
+        $isMultipleLoadNoPararel = count($activeLoads) > 1 && $ae_pararel_val == 0;
+        $isLoadDifferent         = count(array_unique($activeLoads)) > 1 && count($activeLoads) > 1;
+        $isSingleLoadWithPararel = count($activeLoads) === 1 && $ae_pararel_val != 0;
+        $is24HoursPararel        = $ae_pararel_val == 24;
+
         $htmlBody = "Dear Capt/KKM <br><br>";
         $htmlBody .= "Terlampir di noon report<br>";
         $htmlBody .= "<b>{$date_val} {$sheetName}:</b><br>";
 
         if ($sheetName === 'At PORT') {
-            $htmlBody .= "<br>Posisi: {$pos_val}<br><br>";
+            $htmlBody .= "<br>Posisi: {$pos_val}<br>";
         }
 
         if ($sheetName === 'At SEA') {
@@ -382,11 +488,117 @@ class UploadController extends Controller
         }
 
         if ($me_hsd_val != 0 && $manuvering_time_val == 0) {
-            $htmlBody .= "<br>Terdapat pemakaian <b>ME HSD sebanyak {$me_hsd_val} liter tanpa adanya manuvering</b><br><br>";
+            $htmlBody .= "<br>Terdapat pemakaian <b>ME HSD sebanyak {$me_hsd_val} liter tanpa adanya manuvering</b><br>";
         }
 
         if (($ae_pararel_val - $crane_duration_val - $manuvering_time_val) > 3) {
-            $htmlBody .= "<br>Terdapat durasi pemakaian <b>AE Pararel berlebih selama {$ae_pararel_val} jam</b> yang disertai <b>pemakaian Crane selama {$crane_duration_val} jam</b> dan <b>durasi manuvering selama {$manuvering_time_val} jam</b>.<br><br>";
+            $htmlBody .= "<br>Terdapat durasi pemakaian <b>AE Pararel berlebih selama {$ae_pararel_val} jam</b> yang disertai <b>pemakaian Crane selama {$crane_duration_val} jam</b> dan <b>durasi manuvering selama {$manuvering_time_val} jam</b>.<br>";
+        }
+
+        if ($isMultipleLoadNoPararel || $isLoadDifferent || $isSingleLoadWithPararel || $is24HoursPararel) {
+            if ($isMultipleLoadNoPararel) {
+                $htmlBody .= "<br>Terdapat lebih dari 1 LOAD A/E aktif tetapi <b>tidak ada durasi A/E Pararel</b>.<br>";
+                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
+                $htmlBody .= '<thead><tr>
+                    <th>LOAD A/E 1 (KW)</th>
+                    <th>LOAD A/E 2 (KW)</th>
+                    <th>LOAD A/E 3 (KW)</th>
+                    <th>LOAD A/E 4 (KW)</th>
+                    <th>AE PARAREL DURATION</th>
+                    <th>REEFER 20"</th>
+                    <th>REEFER 40"</th>
+                </tr></thead><tbody>';
+
+                $htmlBody .= "<tr>
+                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
+                    <td>" . number_format($ae_pararel_val, 2) . "</td>
+                    <td>" . number_format($refer20, 2) . "</td>
+                    <td>" . number_format($refer40, 2) . "</td>
+                </tr>";
+
+                $htmlBody .= '</tbody></table>';
+            }
+
+            if ($isLoadDifferent) {
+                $htmlBody .= "<br>Terdapat lebih dari 1 LOAD A/E aktif dengan <b>nilai berbeda</b>.<br>";
+                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
+                $htmlBody .= '<thead><tr>
+                    <th>LOAD A/E 1 (KW)</th>
+                    <th>LOAD A/E 2 (KW)</th>
+                    <th>LOAD A/E 3 (KW)</th>
+                    <th>LOAD A/E 4 (KW)</th>
+                    <th>AE PARAREL DURATION</th>
+                    <th>REEFER 20"</th>
+                    <th>REEFER 40"</th>
+                </tr></thead><tbody>';
+
+                $htmlBody .= "<tr>
+                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
+                    <td>" . number_format($ae_pararel_val, 2) . "</td>
+                    <td>" . number_format($refer20, 2) . "</td>
+                    <td>" . number_format($refer40, 2) . "</td>
+                </tr>";
+
+                $htmlBody .= '</tbody></table>';
+            }
+
+            if ($isSingleLoadWithPararel) {
+                $htmlBody .= "<br>Terdapat hanya 1 LOAD A/E aktif tetapi <b>Durasi AE PARAREL ≠ 0</b>.<br>";
+                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
+                $htmlBody .= '<thead><tr>
+                    <th>LOAD A/E 1 (KW)</th>
+                    <th>LOAD A/E 2 (KW)</th>
+                    <th>LOAD A/E 3 (KW)</th>
+                    <th>LOAD A/E 4 (KW)</th>
+                    <th>AE PARAREL DURATION</th>
+                    <th>REEFER 20"</th>
+                    <th>REEFER 40"</th>
+                </tr></thead><tbody>';
+
+                $htmlBody .= "<tr>
+                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
+                    <td>" . number_format($ae_pararel_val, 2) . "</td>
+                    <td>" . number_format($refer20, 2) . "</td>
+                    <td>" . number_format($refer40, 2) . "</td>
+                </tr>";
+
+                $htmlBody .= '</tbody></table>';
+            }
+
+            if ($is24HoursPararel) {
+                $htmlBody .= "<br>Terdapat <b>Durasi AE PARAREL selama 24 jam</b>.<br>";
+                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
+                $htmlBody .= '<thead><tr>
+                    <th>LOAD A/E 1 (KW)</th>
+                    <th>LOAD A/E 2 (KW)</th>
+                    <th>LOAD A/E 3 (KW)</th>
+                    <th>LOAD A/E 4 (KW)</th>
+                    <th>AE PARAREL DURATION</th>
+                    <th>REEFER 20"</th>
+                    <th>REEFER 40"</th>
+                </tr></thead><tbody>';
+
+                $htmlBody .= "<tr>
+                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
+                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
+                    <td>" . number_format($ae_pararel_val, 2) . "</td>
+                    <td>" . number_format($refer20, 2) . "</td>
+                    <td>" . number_format($refer40, 2) . "</td>
+                </tr>";
+
+                $htmlBody .= '</tbody></table>';
+            }
         }
 
         // Cek nilai negatif
@@ -401,7 +613,7 @@ class UploadController extends Controller
             [$columnName, $value] = explode(': ', $entry);
             switch (trim($columnName)) {
                 case 'SELISIH ME Maneuvering':
-                    $htmlBody .= "<br>Terdapat pemakaian ME berlebih untuk manuevering.<br>";
+                    $htmlBody .= "<br>Terdapat <b>pemakaian ME berlebih untuk manuevering</b>.<br><br>";
                     $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center;">';
                     $htmlBody .= '<thead><tr>
                         <th>ME HSD</th>
@@ -426,7 +638,7 @@ class UploadController extends Controller
                     break;
 
                 case 'EXCESS AE':
-                    $htmlBody .= "<br>Terdapat pemakaian AE berlebih.<br>";
+                    $htmlBody .= "<br>Terdapat <b>pemakaian AE berlebih</b>.<br>";
                     $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
                     $htmlBody .= '<thead><tr>
                         <th>A/E MFO</th>
@@ -454,7 +666,7 @@ class UploadController extends Controller
                     break;
 
                 case 'EXCESS ME MFO L/NM (%)':
-                    $htmlBody .= "<br>Terdapat pemakaian ME MFO berlebih.<br>";
+                    $htmlBody .= "<br>Terdapat <b>pemakaian ME MFO berlebih</b>.<br>";
                     $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
                     $htmlBody .= '<thead><tr>
                         <th>Steam Distance (Miles)</th>
