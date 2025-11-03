@@ -154,6 +154,12 @@ class PlanningController extends Controller
 
         $rob_hsd_sebelumnya = null;
         $rob_mfo_sebelumnya = null;
+        $rob_hsd_berthing = null;
+        $rob_mfo_berthing = null;
+        $kebutuhan_hsd_next_route = null;
+        $kebutuhan_mfo_next_route = null;
+        $pengisian_hsd = null;
+        $pengisian_mfo = null;
         $dtg = null;
         $departureName = '';
         $destinationName = '';
@@ -176,12 +182,23 @@ class PlanningController extends Controller
             $departureName = strtoupper(trim($robRow['departure'] ?? ''));
             $destinationName = strtoupper(trim($robRow['destination'] ?? ''));
 
+            $pos_port = strtoupper(trim($robRow['pos'] ?? ''));
+            $parts = preg_split('/[\s,.\-]+/', $pos_port, -1, PREG_SPLIT_NO_EMPTY);
+            $last_pos = end($parts);
+
+            \Log::info("Vessel: $vesselKey, Pos: $pos_port, Last Pos: $last_pos");
+
             $departurePort = $port_id_map[$departureName] ?? null;
             $destinationPort = $port_id_map[$destinationName] ?? null;
+            $last_pos_id = $port_id_map[$last_pos] ?? null;
 
             if ($departurePort || $destinationPort) {
                 $position = $departurePort . '.' . $destinationPort;
             } 
+
+            if ($pos_port !== '') {
+                $position = $last_pos_id ?? '';
+            }
         }
 
         $total_current_route = count(explode('.', $currentRouteWithNext));
@@ -209,8 +226,42 @@ class PlanningController extends Controller
             }
         } 
         // port
-        else {
-            $distanceCurrent = 0;
+        if ($dtg === null && $rob_hsd_sebelumnya !== null) {
+            $dtg = 'AT PORT';
+            $etb = $dvs_formattedDate;
+            $noonReport = $noon_report_formattedDate;          
+
+            list($part1, $part2) = $this->splitRouteByPosition($currentRouteWithNext, $position, $etb, $noonReport);
+        
+            $total_part2_route = count(explode('.', $part2));
+
+            if ($part2 !== ''){
+                $part1_array = explode('.', $part1);
+                $last_of_part1 = end($part1_array);
+                $part2 = $last_of_part1 . '.' . $part2;
+
+                if ($total_part2_route == 1) {
+                    $part2_distance = $calculateDistance($part2);
+                    $distanceCurrent = $part2_distance;
+                }
+
+                if ($total_part2_route > 1) {
+                    $part2_distance = $calculateDistance($part2);
+                    $distanceCurrent = $part2_distance;
+                }
+            } 
+            else {
+                if (strpos($currentRouteWithNext, $position) === false) {
+                    $distanceCurrent = null;
+                }
+                else {
+                    $distanceCurrent = 0;
+                }
+            }
+
+            if ($position == '') {
+                $distanceCurrent = null;
+            }  
         }
 
         //////////////////////////////////////////////////////////////////////////
@@ -241,18 +292,10 @@ class PlanningController extends Controller
             } else {
                 $pengisian_mfo = 0;
             }
-        } else {
-            $rob_hsd_berthing = null;
-            $rob_mfo_berthing = null;
-            $kebutuhan_hsd_next_route = null;
-            $kebutuhan_mfo_next_route = null;
-            $pengisian_hsd = null;
-            $pengisian_mfo = null;
-            // $distanceNext = null;
-            // $rob_hsd_sebelumnya = null;
-            // $rob_mfo_sebelumnya = null;
-        }
-                        
+        } 
+        
+        /////////////////////////////////////////////////////////////////////////
+
         $ordered = [
             'Vessel ID' => $grouped['vesselid'] ?? null,
             'Voyage' => $grouped['voyage'] ?? null,
@@ -451,11 +494,31 @@ class PlanningController extends Controller
         }
 
         $dvs_data = $response->json();
-        $dvs_reports = $dvs_data['data'] ?? [];
+        $dvs_reports_raw = $dvs_data['data'] ?? [];
 
-        $dvs_reports = array_filter($dvs_reports, function ($row) {
-            return isset($row['vesselid']) && trim($row['vesselid']) !== '';
+        $dvs_reports = array_filter($dvs_reports_raw, function ($row) {
+            return isset($row['vesselid']) && trim($row['vesselid']) !== '' && trim($row['etb']) !== '';
         });
+
+        $grouped = [];
+        foreach ($dvs_reports as $report) {
+            $vesselid = $report['vesselid'];
+            $grouped[$vesselid][] = $report;
+        }
+
+        ksort($grouped);
+
+        foreach ($grouped as &$reports) {
+            usort($reports, function ($a, $b) {
+                $etbA = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $a['etb']);
+                $etbB = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $b['etb']);
+                return $etbA->lt($etbB) ? -1 : 1;
+            });
+        }
+
+        unset($reports);
+
+        $dvs_reports = array_merge(...array_values($grouped));
 
         \Log::info("\n");
         \Log::info(str_repeat('-', 50) . PHP_EOL);
@@ -524,6 +587,7 @@ class PlanningController extends Controller
                     'distance_to_go' => $r['distance_to_go'] ?? null,
                     'departure' => isset($r['departure']) ? strtoupper($r['departure']) : null,
                     'destination' => isset($r['destination']) ? strtoupper($r['destination']) : null,
+                    'pos' => isset($r['pos']) ? strtoupper($r['pos']) : null,
                 ])
                 ->first();
         })->toArray();
@@ -579,6 +643,8 @@ class PlanningController extends Controller
         $port_id_map['PALEMBANG'] = 'IDPLM';
         $port_id_map['BOMBANA'] = 'IDBOE';
         $port_id_map['MAKASAR'] = 'IDMAK';
+        $port_id_map['SBY'] = 'IDSUB';
+        $port_id_map['BAU BAU'] = 'IDBUW';
 
         //////////////////////////////////////////////////////////////////////
 
@@ -625,20 +691,12 @@ class PlanningController extends Controller
             $dvs_reports
         );
 
-        $all_dvs_Reports = array_filter($all_dvs_Reports, fn($r) => !empty($r['ETB']));
-
-        usort($all_dvs_Reports, function ($a, $b) {
-            $etbA = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $a['ETB'] ?? '01/01/1900 00:00');
-            $etbB = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $b['ETB'] ?? '01/01/1900 00:00');
-            return $etbA->lt($etbB) ? -1 : ($etbA->gt($etbB) ? 1 : 0);
-        });
-
-
         //////////////////////////////////////////////////////////////////////////
 
         $filePath = $this->generatePlanningExcel($all_dvs_Reports, $dvs_formattedDate, $dvs_formattedNextWeekDate);
 
-        Mail::raw('Berikut terlampir hasil Refueling Planning untuk tanggal ' . $dvs_formattedDate . ' hingga tanggal ' . $dvs_formattedNextWeekDate . '.', function ($message) use ($filePath, $dvs_formattedDate, $dvs_formattedNextWeekDate) {
+        Mail::raw('Berikut terlampir hasil Refueling Planning untuk tanggal ' . $dvs_formattedDate . ' hingga tanggal ' . $dvs_formattedNextWeekDate . "\nTanggal Noon Report: " . $noon_report_formattedDate . '.', 
+        function ($message) use ($filePath, $dvs_formattedDate, $dvs_formattedNextWeekDate) {
             $cleanDate = str_replace(['/', ':', ' '], '_', $dvs_formattedDate);
             $cleannextWeekDate = str_replace(['/', ':', ' '], '_', $dvs_formattedNextWeekDate);
             $message->to('marulihtgl12@gmail.com')
@@ -653,6 +711,7 @@ class PlanningController extends Controller
             'planning_reports' => $all_dvs_Reports,
             'planning_date' => $dvs_formattedDate,
             'planning_next_week_date' => $dvs_formattedNextWeekDate,
+            'noon_report_formattedDate' => $noon_report_formattedDate,
         ]);
 
         return view('po.planning', [
@@ -660,6 +719,7 @@ class PlanningController extends Controller
             'nextWeekDate' => $dvs_formattedNextWeekDate,
             'headerRows' => $all_dvs_Reports ? array_keys($all_dvs_Reports[0]) : [],
             'report' => $all_dvs_Reports,
+            'noon_report_formattedDate' => $noon_report_formattedDate,
         ]);
     }
 

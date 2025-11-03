@@ -50,6 +50,10 @@
                         }
                     </script>
 
+                    <div class="flex space-x-4 mb-4">
+                        <h3 class="text-lg">Tanggal Noon Report: {{ $noon_report_formattedDate }}</h1>
+                    </div>
+
                     @if(is_array($headerRows) && count($headerRows) > 0)
                         <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">
                             <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
