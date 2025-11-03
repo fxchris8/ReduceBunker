@@ -744,7 +744,7 @@ class UploadController extends Controller
             $this->processEmailRow($row, 'At SEA', $vesselEmails);
         }
 
-        return redirect('/send-email')
+        return redirect('/consumption-analysis')
             ->with('success_email', 'All e-mails sent successfully.');
     }
 }

@@ -7,10 +7,11 @@ use App\Http\Controllers\SummaryController;
 use App\Http\Controllers\DetailController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\POController;
+use App\Http\Controllers\BaselineController;
 
 Route::get('/menu', [BunkerController::class, 'index'])->name('menu');
 
-Route::any('/send-email', [UploadController::class, 'show'])->name('po.upload');
+Route::any('/consumption-analysis', [UploadController::class, 'show'])->name('po.upload');
 // Route::post('/send-email/upload', [UploadController::class, 'upload'])->name('upload.file');
 Route::post('/send-email/send', [UploadController::class, 'sendEmail'])->name('send.email');
 
@@ -25,7 +26,7 @@ Route::get('/details/bl-me-hsd-maneuvering/{sessionType}', [DetailController::cl
 Route::get('/details/bl-me-mfo/{sessionType}', [DetailController::class, 'bl_memfo'])->name('details.bl_memfo');
 Route::get('/details/bl-ae/{sessionType}', [DetailController::class, 'bl_ae'])->name('details.bl_ae');
 
-Route::any('/planning', [PlanningController::class, 'show'])->name('po.planning');
+Route::any('/refueling-planning', [PlanningController::class, 'show'])->name('po.planning');
 Route::post('/refueling/download', [PlanningController::class, 'download'])->name('file.refueling.download');
 
 Route::get('/po', [POController::class, 'index'])->name('po.po_dashboard');
@@ -40,3 +41,5 @@ Route::post('/po/monitoring/update', [POController::class, 'update'])->name('po.
 Route::get('/search', [POController::class, 'search'])->name('dashboard.search');
 
 Route::post('/upload-file', [POController::class, 'uploadFile'])->name('upload.file');
+
+Route::any('/baseline-analysis', [BaselineController::class, 'show'])->name('po.baseline');

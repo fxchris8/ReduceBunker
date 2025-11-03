@@ -14,7 +14,7 @@
             </a>
         </div>
         <div class="bg-gray-50 px-4 py-4 flex justify-center">
-            <a href="/send-email">
+            <a href="/consumption-analysis">
                 <button
                     class="w-[250px] py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
                     Consumption Analysis
@@ -22,7 +22,7 @@
             </a>
         </div>
         <div class="bg-gray-50 px-4 py-4 flex justify-center">
-            <a href="/planning">
+            <a href="/refueling-planning">
                 <button
                     class="w-[250px] py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
                     Refueling Planning 
@@ -34,6 +34,14 @@
                 <button
                     class="w-[250px] py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
                     PO 
+                </button>
+            </a>
+        </div>
+        <div class="bg-gray-50 px-4 py-4 flex justify-center">
+            <a href="/baseline-analysis">
+                <button
+                    class="w-[250px] py-4 px-6 text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition">
+                    Baseline Analysis 
                 </button>
             </a>
         </div>
