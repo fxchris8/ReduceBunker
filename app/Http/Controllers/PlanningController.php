@@ -182,15 +182,30 @@ class PlanningController extends Controller
             $departureName = strtoupper(trim($robRow['departure'] ?? ''));
             $destinationName = strtoupper(trim($robRow['destination'] ?? ''));
 
-            $pos_port = strtoupper(trim($robRow['pos'] ?? ''));
-            $parts = preg_split('/[\s,.\-]+/', $pos_port, -1, PREG_SPLIT_NO_EMPTY);
-            $last_pos = end($parts);
-
-            \Log::info("Vessel: $vesselKey, Pos: $pos_port, Last Pos: $last_pos");
-
             $departurePort = $port_id_map[$departureName] ?? null;
             $destinationPort = $port_id_map[$destinationName] ?? null;
-            $last_pos_id = $port_id_map[$last_pos] ?? null;
+
+            //// at port ////
+
+            $pos_port = strtoupper(trim($robRow['pos'] ?? ''));
+            $parts = preg_split('/[\s,.\-]+/', $pos_port, -1, PREG_SPLIT_NO_EMPTY);
+
+            $last_two_parts = array_slice($parts, -2);
+            $last_two_combined = trim(implode(' ', $last_two_parts));
+
+            $last_pos = !empty($parts) ? end($parts) : null;
+
+            $last_pos_id = $port_id_map[$last_two_combined] ?? null;
+
+            if ($last_pos_id !== null) {
+                $last_pos = $last_two_combined;
+            }
+
+            if ($last_pos_id === null && $last_pos !== null) {
+                $last_pos_id = $port_id_map[$last_pos] ?? null;
+            }
+
+            \Log::info("Vessel: $vesselKey, Pos: $pos_port, Last Pos: $last_pos");
 
             if ($departurePort || $destinationPort) {
                 $position = $departurePort . '.' . $destinationPort;
@@ -228,6 +243,9 @@ class PlanningController extends Controller
         // port
         if ($dtg === null && $rob_hsd_sebelumnya !== null) {
             $dtg = 'AT PORT';
+            $departureName = $pos_port;
+            $departurePort = $last_pos;
+
             $etb = $dvs_formattedDate;
             $noonReport = $noon_report_formattedDate;          
 
@@ -300,13 +318,13 @@ class PlanningController extends Controller
             'Vessel ID' => $grouped['vesselid'] ?? null,
             'Voyage' => $grouped['voyage'] ?? null,
 
-            'New Current Route (FROM)' => $currentRouteWithNext,
+            'New Current Voyage (FROM)' => $currentRouteWithNext,
 
             'ETA' => $grouped['eta'] ?? null,
             'ETB' => $grouped['etb'] ?? null,
             'ETD' => $grouped['etd'] ?? null,
 
-            'Next Route (Sailing Route)' => $grouped['sailing_route'] ?? null,
+            'Next Voyage (Sailing Route)' => $grouped['sailing_route'] ?? null,
 
             'Distance to Go' => $dtg,
 
@@ -318,15 +336,15 @@ class PlanningController extends Controller
 
             'Position' => $position,
 
-            'Part 1' => $part1,
-            'Part 2' => $part2,
+            'Rute yang Sudah dilewati' => $part1,
+            'Sisa Rute' => $part2,
 
-            'Part 2 Distance' => $part2_distance,
+            'Jarak Sisa Rute' => $part2_distance,
 
-            'Jarak Sisa Current Route' => $distanceCurrent,
+            'Total Jarak Sisa Voyage' => $distanceCurrent,
             // 'Total jarak voyage' => $calculateDistance($currentRouteWithNext),
 
-            'Jarak Next Route' => $distanceNext,
+            'Jarak Next Voyage' => $distanceNext,
 
             'ROB HSD Sebelumnya' => $rob_hsd_sebelumnya,
             'ROB MFO Sebelumnya' => $rob_mfo_sebelumnya,

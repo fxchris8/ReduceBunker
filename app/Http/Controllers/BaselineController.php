@@ -12,13 +12,17 @@ class BaselineController extends Controller
 {
     public function show(Request $request)
     { 
-        $selectedVessel = $request->input('vessel') ?? 'ABBRW';
+        $selectedVessel = $request->input('vessel') ?? 'HSA';
         $density = $request->input('density') ?? 950;
 
         $power_kw = $request->input('power_kw');
+        $power_bhp = $power_kw / 0.7457;
+
         $steam_time = $request->input('steam_time');
 
-        $vesselMap = ['HSA', 'OGO'];
+        ///// markdown //////
+
+        $vesselMap = [];
         // $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/fleet.xlsx'))->getActiveSheet();
         
         // foreach (array_slice($sheet->toArray(null, true, true, true), 1) as $row) {
@@ -28,7 +32,18 @@ class BaselineController extends Controller
         //     }
         // }
 
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Koefisien Grafik BHP (Original).xlsx'))->getActiveSheet();
+        
+        foreach (array_slice($sheet->toArray(null, true, true, true), 1) as $row) {
+            $vessel = strtoupper(trim($row['A']));
+            if ($vessel !== '') {
+                $vesselMap[] = $vessel;
+            }
+        }
+
         sort($vesselMap);
+
+        ///// koefisien /////
 
         $koefisienMap = [];
         $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Koefisien Grafik BHP (Original).xlsx'))->getActiveSheet();
@@ -54,6 +69,9 @@ class BaselineController extends Controller
         $grafikData_kw = [];
 
         if ($selectedKoefisien) {
+
+            ////// koefisien bhp //////
+
             $a = $selectedKoefisien['koefisien1'];
             $b = $selectedKoefisien['koefisien2'];
             $c = $selectedKoefisien['koefisien3'];
@@ -61,6 +79,8 @@ class BaselineController extends Controller
             $aFormatted = number_format($a, 15, '.', ''); // 12 digit desimal
             $bFormatted = number_format($b, 11, '.', '');
             $cFormatted = number_format($c, 6, '.', '');
+
+            //// grafik /////
 
             for ($x = 4000; $x <= 16000; $x += 100) {
                 $y_bhp = $aFormatted * $x * $x + $bFormatted * $x + $cFormatted;
@@ -75,7 +95,12 @@ class BaselineController extends Controller
         $labelKurva_kw = null;
 
         if (isset($aFormatted, $bFormatted, $cFormatted)) {
+
+            //// persamaan grafik bhp ////
+
             $labelKurva_bhp = "y = {$aFormatted}x² + ({$bFormatted})x + {$cFormatted}";
+
+            //// persamaan grafik kw ////
 
             $a_kw = $aFormatted / (0.7457 / $density);
             $b_kw = $bFormatted / (0.7457 / $density);
@@ -87,11 +112,13 @@ class BaselineController extends Controller
 
             $labelKurva_kw = "y = {$a_kw_formatted}x² + ({$b_kw_formatted})x + {$c_kw_formatted}";
 
-            $sfoc_kw_raw = $aFormatted * ($power_kw ** 2) + $bFormatted * $power_kw + $cFormatted;
-            $sfoc_kw = $sfoc_kw_raw / 0.7457 / $density;
+            //// perhitungan sfoc dan konsumsi dari grafik bhp ////
+
+            $sfoc_bhp = $aFormatted * ($power_bhp ** 2) + $bFormatted * $power_bhp + $cFormatted;
+            $sfoc_kw = $sfoc_bhp / 0.7457 / $density;
 
             $konsumsi = $sfoc_kw * $power_kw * $steam_time;
-            $konsumsi = round($konsumsi, 0); // in kg
+            $konsumsi = round($konsumsi, 0); 
         }
 
         return view('po.baseline', [
