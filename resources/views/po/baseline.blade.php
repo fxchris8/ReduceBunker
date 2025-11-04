@@ -82,8 +82,6 @@
                                         }
                                     },
                                     y: {
-                                        min: 120,
-                                        max: 130,
                                         title: {
                                             display: true,
                                             text: 'g/BHP/hr'

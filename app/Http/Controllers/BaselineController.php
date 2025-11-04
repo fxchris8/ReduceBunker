@@ -68,6 +68,8 @@ class BaselineController extends Controller
         $grafikData_bhp = [];
         $grafikData_kw = [];
 
+        $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL'];
+
         if ($selectedKoefisien) {
 
             ////// koefisien bhp //////
@@ -76,23 +78,35 @@ class BaselineController extends Controller
             $b = $selectedKoefisien['koefisien2'];
             $c = $selectedKoefisien['koefisien3'];
 
-            $aFormatted = number_format($a, 15, '.', ''); // 12 digit desimal
-            $bFormatted = number_format($b, 11, '.', '');
-            $cFormatted = number_format($c, 6, '.', '');
-
             //// grafik /////
-
-            for ($x = 4000; $x <= 16000; $x += 100) {
-                $y_bhp = $aFormatted * $x * $x + $bFormatted * $x + $cFormatted;
+            for ($x = 10; $x <= 16000; $x += 100) {
+                $y_bhp = $a * $x * $x + $b * $x + $c;
                 $grafikData_bhp[] = ['x' => $x, 'y' => round($y_bhp, 6)];
 
                 $y_kw = $y_bhp / 0.7457 / $density;
                 $grafikData_kw[] = ['x' => $x, 'y' => round($y_kw, 6)];
             }
+
+            if (in_array($selectedVessel, $kapal_kecil)){
+                $grafikData_bhp = [];
+                $grafikData_kw  = [];
+
+                for ($x = 10; $x <= 16000; $x += 100) {
+                    $y_kw = ($a * $x * $x + $b * $x + $c) / $density;
+                    $grafikData_kw[] = ['x' => $x, 'y' => round($y_kw, 6)];
+
+                    $y_bhp = $y_kw * 0.7457 * $density;
+                    $grafikData_bhp[] = ['x' => $x, 'y' => round($y_bhp, 6)];
+                }
+            }
         }
 
         $labelKurva_bhp = null;
         $labelKurva_kw = null;
+
+        $aFormatted = number_format($a, 19, '.', '');
+        $bFormatted = number_format($b, 11, '.', '');
+        $cFormatted = number_format($c, 6, '.', '');
 
         if (isset($aFormatted, $bFormatted, $cFormatted)) {
 
@@ -106,19 +120,40 @@ class BaselineController extends Controller
             $b_kw = $bFormatted / (0.7457 / $density);
             $c_kw = $cFormatted / (0.7457 / $density);
 
-            $a_kw_formatted = number_format($a_kw, 15, '.', '');
-            $b_kw_formatted = number_format($b_kw, 11, '.', '');
-            $c_kw_formatted = number_format($c_kw, 6, '.', '');
-
-            $labelKurva_kw = "y = {$a_kw_formatted}x² + ({$b_kw_formatted})x + {$c_kw_formatted}";
+            $labelKurva_kw = "y = {$a_kw}x² + ({$b_kw})x + {$c_kw}";
 
             //// perhitungan sfoc dan konsumsi dari grafik bhp ////
 
-            $sfoc_bhp = $aFormatted * ($power_bhp ** 2) + $bFormatted * $power_bhp + $cFormatted;
+            $sfoc_bhp = $a * ($power_bhp ** 2) + $b * $power_bhp + $c;
             $sfoc_kw = $sfoc_bhp / 0.7457 / $density;
 
             $konsumsi = $sfoc_kw * $power_kw * $steam_time;
-            $konsumsi = round($konsumsi, 0); 
+            $konsumsi = round($konsumsi, 0);
+
+            if (in_array($selectedVessel, $kapal_kecil)){
+                $a_kw = $aFormatted / ($density);
+                $b_kw = $bFormatted / ($density);
+                $c_kw = $cFormatted / ($density);
+
+                $a_kw_formatted = number_format($a_kw, 22, '.', '');
+                $b_kw_formatted = number_format($b_kw, 11, '.', '');
+                $c_kw_formatted = number_format($c_kw, 6, '.', '');
+
+                $labelKurva_kw = "y = {$a_kw_formatted}x² + ({$b_kw_formatted})x + {$c_kw_formatted}";
+
+                $a_bhp = $a_kw * 0.7457 * $density;
+                $b_bhp = $b_kw * 0.7457 * $density;
+                $c_bhp = $c_kw * 0.7457 * $density;
+
+                $a_bhp_formated = number_format($a_bhp, 22, '.', '');
+                $b_bhp_formated = number_format($b_bhp, 11, '.', '');
+                $c_bhp_formated = number_format($c_bhp, 6, '.', '');
+
+                $labelKurva_bhp = "y = {$a_bhp_formated}x² + ({$b_bhp_formated})x + {$c_bhp_formated}";
+
+                $sfoc_bhp = $a * ($power_kw ** 2) + $b * $power_kw + $c;
+                $sfoc_kw = $sfoc_bhp / $density;
+            }        
         }
 
         return view('po.baseline', [
