@@ -10,6 +10,82 @@ use Illuminate\Support\Facades\Log;
 
 class BaselineController extends Controller
 {
+    function polyfitQuadratic(array $x, array $y) {
+        $n = count($x);
+
+        // Hitung jumlah-sum yang diperlukan
+        $sumX = $sumX2 = $sumX3 = $sumX4 = 0;
+        $sumY = $sumXY = $sumX2Y = 0;
+
+        for ($i = 0; $i < $n; $i++) {
+            $xi = $x[$i];
+            $yi = $y[$i];
+
+            $sumX   += $xi;
+            $sumX2  += $xi**2;
+            $sumX3  += $xi**3;
+            $sumX4  += $xi**4;
+
+            $sumY   += $yi;
+            $sumXY  += $xi * $yi;
+            $sumX2Y += ($xi**2) * $yi;
+        }
+
+        // Matriks normal equations:
+        // [sumX4 sumX3 sumX2] [a]   [sumX2Y]
+        // [sumX3 sumX2 sumX ] [b] = [sumXY ]
+        // [sumX2 sumX  n    ] [c]   [sumY  ]
+
+        $A = [
+            [$sumX4, $sumX3, $sumX2],
+            [$sumX3, $sumX2, $sumX ],
+            [$sumX2, $sumX , $n    ]
+        ];
+        $B = [$sumX2Y, $sumXY, $sumY];
+
+        // Selesaikan sistem persamaan linear A*[a,b,c] = B
+        $coeff = $this->solveLinearSystem($A, $B);
+
+        return $coeff; // [a, b, c]
+    }
+
+    function solveLinearSystem(array $A, array $B) {
+        // Gunakan eliminasi Gauss sederhana
+        $n = count($B);
+        for ($i = 0; $i < $n; $i++) {
+            // Pivot
+            $maxRow = $i;
+            for ($k = $i+1; $k < $n; $k++) {
+                if (abs($A[$k][$i]) > abs($A[$maxRow][$i])) {
+                    $maxRow = $k;
+                }
+            }
+            // Tukar baris
+            [$A[$i], $A[$maxRow]] = [$A[$maxRow], $A[$i]];
+            [$B[$i], $B[$maxRow]] = [$B[$maxRow], $B[$i]];
+
+            // Eliminasi
+            for ($k = $i+1; $k < $n; $k++) {
+                $c = $A[$k][$i] / $A[$i][$i];
+                for ($j = $i; $j < $n; $j++) {
+                    $A[$k][$j] -= $c * $A[$i][$j];
+                }
+                $B[$k] -= $c * $B[$i];
+            }
+        }
+
+        // Back substitution
+        $x = array_fill(0, $n, 0);
+        for ($i = $n-1; $i >= 0; $i--) {
+            $sum = $B[$i];
+            for ($j = $i+1; $j < $n; $j++) {
+                $sum -= $A[$i][$j] * $x[$j];
+            }
+            $x[$i] = $sum / $A[$i][$i];
+        }
+        return $x;
+    }
+
     public function show(Request $request)
     { 
         $selectedVessel = $request->input('vessel') ?? 'HSA';
@@ -20,28 +96,32 @@ class BaselineController extends Controller
 
         $steam_time = $request->input('steam_time');
 
-        ///// markdown //////
+        ///// markdown dan titik //////
 
-        $vesselMap = [];
-        // $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/fleet.xlsx'))->getActiveSheet();
-        
-        // foreach (array_slice($sheet->toArray(null, true, true, true), 1) as $row) {
-        //     $vessel = strtoupper(trim($row['B']));
-        //     if ($vessel !== '') {
-        //         $vesselMap[] = $vessel;
-        //     }
-        // }
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Titik Ori Grafik.xlsx'))->getActiveSheet();
+        $data = $sheet->toArray(null, true, true, true);
 
-        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Koefisien Grafik BHP (Original).xlsx'))->getActiveSheet();
-        
-        foreach (array_slice($sheet->toArray(null, true, true, true), 1) as $row) {
-            $vessel = strtoupper(trim($row['A']));
-            if ($vessel !== '') {
-                $vesselMap[] = $vessel;
+        $headers = $data[1];
+
+        $titik = [];
+
+        foreach ($headers as $col => $header) {
+            $parts = explode(' ', trim($header));
+            if (count($parts) == 2) {
+                [$vessel, $axis] = $parts;
+
+                $values = [];
+                foreach (array_slice($data, 1) as $row) {
+                    if (isset($row[$col]) && $row[$col] !== null) {
+                        $values[] = $row[$col];
+                    }
+                }
+
+                $titik[$vessel][$axis] = $values;
             }
         }
 
-        sort($vesselMap);
+        $vesselMap = array_keys($titik);
 
         ///// koefisien /////
 
@@ -50,116 +130,97 @@ class BaselineController extends Controller
         
         foreach (array_slice($sheet->toArray(null, true, true, true), 1) as $row) {
             $vessel = strtoupper(trim($row['A']));
-            $koefisien1 = floatval(trim($row['B']));
-            $koefisien2 = floatval(trim($row['C']));
-            $koefisien3 = floatval(trim($row['D']));
+            $koefisien_1_ori = floatval(trim($row['B']));
+            $koefisien_2_ori = floatval(trim($row['C']));
+            $koefisien_3_ori = floatval(trim($row['D']));
+
+            $koefisien_1_convert = floatval(trim($row['E']));
+            $koefisien_2_convert = floatval(trim($row['F']));
+            $koefisien_3_convert = floatval(trim($row['G']));
 
             if ($vessel !== '') {
                 $koefisienMap[$vessel] = [
-                    'koefisien1' => $koefisien1,
-                    'koefisien2' => $koefisien2,
-                    'koefisien3' => $koefisien3,
+                    'koefisien_1_ori' => $koefisien_1_ori,
+                    'koefisien_2_ori' => $koefisien_2_ori,
+                    'koefisien_3_ori' => $koefisien_3_ori,
+                    'koefisien_1_convert' => $koefisien_1_convert,
+                    'koefisien_2_convert' => $koefisien_2_convert,
+                    'koefisien_3_convert' => $koefisien_3_convert,
                 ];
             }
         }
 
-        $selectedKoefisien = $koefisienMap[$selectedVessel] ?? null;
+        ///// convert titik //////
+
+        $titik_x_ori = array_map('floatval', $titik[$selectedVessel]['X'] ?? []);
+        $titik_y_ori = array_map('floatval', $titik[$selectedVessel]['Y'] ?? []);
+
+        $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL'];
+
+        if (in_array($selectedVessel, $kapal_kecil)){
+            $titik_x_convert = array_map(fn($x) => $x, $titik_x_ori);
+            $titik_y_convert = array_map(fn($y) => $y / $density, $titik_y_ori);
+        } 
+        else {
+            $titik_x_convert = array_map(fn($x) => $x / 0.7457, $titik_x_ori);
+            $titik_y_convert = array_map(fn($y) => $y / 0.7457 / $density, $titik_y_ori);
+        }
+
+        ///// cari koefisien //////
+
+        $koefisien_ori = $this->polyfitQuadratic($titik_x_ori, $titik_y_ori);
+        $koefisien_convert = $this->polyfitQuadratic($titik_x_convert, $titik_y_convert);
+
+        list($a, $b, $c) = $koefisien_ori;
+        list($d, $e, $f) = $koefisien_convert;
+
+        ///// persamaan untuk label //////
+
+        $persamaan_ori = "y = {$a} * x^2 + {$b} * x + {$c}";
+
+        $persamaan_convert = "y = {$d} * x^2 + {$e} * x + {$f}";
 
         $grafikData_bhp = [];
         $grafikData_kw = [];
 
-        $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL'];
-
-        if ($selectedKoefisien) {
-
-            ////// koefisien bhp //////
-
-            $a = $selectedKoefisien['koefisien1'];
-            $b = $selectedKoefisien['koefisien2'];
-            $c = $selectedKoefisien['koefisien3'];
-
-            //// grafik /////
-            for ($x = 10; $x <= 16000; $x += 100) {
-                $y_bhp = $a * $x * $x + $b * $x + $c;
-                $grafikData_bhp[] = ['x' => $x, 'y' => round($y_bhp, 6)];
-
-                $y_kw = $y_bhp / 0.7457 / $density;
-                $grafikData_kw[] = ['x' => $x, 'y' => round($y_kw, 6)];
-            }
-
-            if (in_array($selectedVessel, $kapal_kecil)){
-                $grafikData_bhp = [];
-                $grafikData_kw  = [];
-
-                for ($x = 10; $x <= 16000; $x += 100) {
-                    $y_kw = ($a * $x * $x + $b * $x + $c) / $density;
-                    $grafikData_kw[] = ['x' => $x, 'y' => round($y_kw, 6)];
-
-                    $y_bhp = $y_kw * 0.7457 * $density;
-                    $grafikData_bhp[] = ['x' => $x, 'y' => round($y_bhp, 6)];
-                }
-            }
-        }
-
         $labelKurva_bhp = null;
         $labelKurva_kw = null;
 
-        $aFormatted = number_format($a, 19, '.', '');
-        $bFormatted = number_format($b, 11, '.', '');
-        $cFormatted = number_format($c, 6, '.', '');
+        if (isset($persamaan_ori, $persamaan_convert)) {
 
-        if (isset($aFormatted, $bFormatted, $cFormatted)) {
+            for ($x = 10; $x <= 16000; $x += 100) {
+                //// grafik ori ////
 
-            //// persamaan grafik bhp ////
+                $y_bhp = $a * ($x ** 2) + $b * $x + $c;
+                $grafikData_bhp[] = ['x' => $x, 'y' => round($y_bhp, 6)];
 
-            $labelKurva_bhp = "y = {$aFormatted}x² + ({$bFormatted})x + {$cFormatted}";
+                //// grafik convert ////
 
-            //// persamaan grafik kw ////
+                $y_kw = $d * ($x ** 2) + $e * $x + $f;
+                $grafikData_kw[] = ['x' => $x, 'y' => round($y_kw, 6)];
+            }
 
-            $a_kw = $aFormatted / (0.7457 / $density);
-            $b_kw = $bFormatted / (0.7457 / $density);
-            $c_kw = $cFormatted / (0.7457 / $density);
+            //// persamaan grafik ori ////
 
-            $labelKurva_kw = "y = {$a_kw}x² + ({$b_kw})x + {$c_kw}";
+            $labelKurva_bhp = $persamaan_ori;
+
+            //// persamaan grafik convert ////
+
+            $labelKurva_kw = $persamaan_convert;
 
             //// perhitungan sfoc dan konsumsi dari grafik bhp ////
 
             $sfoc_bhp = $a * ($power_bhp ** 2) + $b * $power_bhp + $c;
-            $sfoc_kw = $sfoc_bhp / 0.7457 / $density;
+            $sfoc_kw = $d * ($power_kw ** 2) + $e * $power_kw + $f;
 
             $konsumsi = $sfoc_kw * $power_kw * $steam_time;
             $konsumsi = round($konsumsi, 0);
 
-            if (in_array($selectedVessel, $kapal_kecil)){
-                $a_kw = $aFormatted / ($density);
-                $b_kw = $bFormatted / ($density);
-                $c_kw = $cFormatted / ($density);
-
-                $a_kw_formatted = number_format($a_kw, 22, '.', '');
-                $b_kw_formatted = number_format($b_kw, 11, '.', '');
-                $c_kw_formatted = number_format($c_kw, 6, '.', '');
-
-                $labelKurva_kw = "y = {$a_kw_formatted}x² + ({$b_kw_formatted})x + {$c_kw_formatted}";
-
-                $a_bhp = $a_kw * 0.7457 * $density;
-                $b_bhp = $b_kw * 0.7457 * $density;
-                $c_bhp = $c_kw * 0.7457 * $density;
-
-                $a_bhp_formated = number_format($a_bhp, 22, '.', '');
-                $b_bhp_formated = number_format($b_bhp, 11, '.', '');
-                $c_bhp_formated = number_format($c_bhp, 6, '.', '');
-
-                $labelKurva_bhp = "y = {$a_bhp_formated}x² + ({$b_bhp_formated})x + {$c_bhp_formated}";
-
-                $sfoc_bhp = $a * ($power_kw ** 2) + $b * $power_kw + $c;
-                $sfoc_kw = $sfoc_bhp / $density;
-            }        
         }
 
         return view('po.baseline', [
             'vessels' => $vesselMap,
             'selectedVessel' => $selectedVessel,
-            'selectedKoefisien' => $selectedKoefisien,
             'grafikData_bhp' => $grafikData_bhp,
             'labelKurva_bhp' => $labelKurva_bhp,
             'grafikData_kw' => $grafikData_kw,

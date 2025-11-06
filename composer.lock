@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "26ef53f8e9deb840fdda50e78f1b1c5c",
+    "content-hash": "bcc2b685e8a820d0b7d48619c36fee62",
     "packages": [
         {
             "name": "brick/math",
@@ -455,6 +455,53 @@
                 }
             ],
             "time": "2024-02-05T11:56:58+00:00"
+        },
+        {
+            "name": "dr-que/polynomial-regression",
+            "version": "v1.2.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jbboehr/PolynomialRegression.php.git",
+                "reference": "b2db8c03221428b7cfab94231fc09348fb9392eb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jbboehr/PolynomialRegression.php/zipball/b2db8c03221428b7cfab94231fc09348fb9392eb",
+                "reference": "b2db8c03221428b7cfab94231fc09348fb9392eb",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "DrQue\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Andrew Que",
+                    "homepage": "http://www.DrQue.net/"
+                }
+            ],
+            "description": "Calculates and returns coefficients for polynomial regression.",
+            "homepage": "http://www.drque.net/Projects/PolynomialRegression/",
+            "keywords": [
+                "math",
+                "polynomial",
+                "polynomial regression",
+                "regression"
+            ],
+            "support": {
+                "issues": "https://github.com/jbboehr/PolynomialRegression.php/issues",
+                "source": "https://github.com/jbboehr/PolynomialRegression.php/tree/master"
+            },
+            "time": "2016-11-04T17:50:00+00:00"
         },
         {
             "name": "dragonmantank/cron-expression",
@@ -2336,6 +2383,81 @@
                 "source": "https://github.com/MarkBaker/PHPMatrix/tree/3.0.1"
             },
             "time": "2022-12-02T22:17:43+00:00"
+        },
+        {
+            "name": "markrogoyski/math-php",
+            "version": "v2.13.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/markrogoyski/math-php.git",
+                "reference": "c064e80bfc4039b812f6b29bacebb07dfb5a049f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/markrogoyski/math-php/zipball/c064e80bfc4039b812f6b29bacebb07dfb5a049f",
+                "reference": "c064e80bfc4039b812f6b29bacebb07dfb5a049f",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "php": ">=7.2.0"
+            },
+            "require-dev": {
+                "php-coveralls/php-coveralls": "^2.0",
+                "php-parallel-lint/php-parallel-lint": "^1.2",
+                "phploc/phploc": "*",
+                "phpmd/phpmd": "^2.6",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^8.5",
+                "squizlabs/php_codesniffer": "3.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MathPHP\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mark Rogoyski",
+                    "email": "mark@rogoyski.com",
+                    "homepage": "https://github.com/markrogoyski",
+                    "role": "Lead developer"
+                },
+                {
+                    "name": "Kevin Nowaczyk",
+                    "homepage": "https://github.com/Beakerboy",
+                    "role": "Developer"
+                },
+                {
+                    "name": "MathPHP Community of Contributors",
+                    "homepage": "https://github.com/markrogoyski/math-php/graphs/contributors"
+                }
+            ],
+            "description": "Math Library for PHP. Features descriptive statistics and regressions; Continuous and discrete probability distributions; Linear algebra with matrices and vectors, Numerical analysis; special mathematical functions; Algebra",
+            "homepage": "https://github.com/markrogoyski/math-php/",
+            "keywords": [
+                "algebra",
+                "combinatorics",
+                "distributions",
+                "linear algebra",
+                "math",
+                "mathematics",
+                "matrix",
+                "numerical analysis",
+                "probability",
+                "regressions",
+                "statistics"
+            ],
+            "support": {
+                "issues": "https://github.com/markrogoyski/math-php/issues",
+                "source": "https://github.com/markrogoyski/math-php/tree/v2.13.0"
+            },
+            "time": "2025-10-24T05:40:38+00:00"
         },
         {
             "name": "monolog/monolog",

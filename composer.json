@@ -6,10 +6,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "dr-que/polynomial-regression": "^1.2",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "markrogoyski/math-php": "^2.13",
         "phpoffice/phpspreadsheet": "^5.0",
         "shuchkin/simplexlsx": "^1.1"
     },
