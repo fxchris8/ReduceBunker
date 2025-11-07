@@ -123,33 +123,6 @@ class BaselineController extends Controller
 
         $vesselMap = array_keys($titik);
 
-        ///// koefisien /////
-
-        $koefisienMap = [];
-        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Koefisien Grafik BHP (Original).xlsx'))->getActiveSheet();
-        
-        foreach (array_slice($sheet->toArray(null, true, true, true), 1) as $row) {
-            $vessel = strtoupper(trim($row['A']));
-            $koefisien_1_ori = floatval(trim($row['B']));
-            $koefisien_2_ori = floatval(trim($row['C']));
-            $koefisien_3_ori = floatval(trim($row['D']));
-
-            $koefisien_1_convert = floatval(trim($row['E']));
-            $koefisien_2_convert = floatval(trim($row['F']));
-            $koefisien_3_convert = floatval(trim($row['G']));
-
-            if ($vessel !== '') {
-                $koefisienMap[$vessel] = [
-                    'koefisien_1_ori' => $koefisien_1_ori,
-                    'koefisien_2_ori' => $koefisien_2_ori,
-                    'koefisien_3_ori' => $koefisien_3_ori,
-                    'koefisien_1_convert' => $koefisien_1_convert,
-                    'koefisien_2_convert' => $koefisien_2_convert,
-                    'koefisien_3_convert' => $koefisien_3_convert,
-                ];
-            }
-        }
-
         ///// convert titik //////
 
         $titik_x_ori = array_map('floatval', $titik[$selectedVessel]['X'] ?? []);
@@ -160,6 +133,9 @@ class BaselineController extends Controller
         if (in_array($selectedVessel, $kapal_kecil)){
             $titik_x_convert = array_map(fn($x) => $x, $titik_x_ori);
             $titik_y_convert = array_map(fn($y) => $y / $density, $titik_y_ori);
+
+            $titik_x_ori = array_map(fn($x) => $x / 0.7457, $titik_x_ori);
+            $titik_y_ori = array_map(fn($y) => $y * 0.7457, $titik_y_ori);
         } 
         else {
             $titik_x_convert = array_map(fn($x) => $x / 0.7457, $titik_x_ori);
