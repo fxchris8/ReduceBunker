@@ -75,6 +75,8 @@
                             options: {
                                 scales: {
                                     x: {
+                                        min: {{ $ori_x_min }}, 
+                                        max: {{ $ori_x_max }}, 
                                         type: 'linear',
                                         title: {
                                             display: true,
@@ -82,6 +84,8 @@
                                         }
                                     },
                                     y: {
+                                        min: {{ $ori_y_min }}, 
+                                        max: {{ $ori_y_max }}, 
                                         title: {
                                             display: true,
                                             text: 'g/BHP/hr'
@@ -117,6 +121,8 @@
                             options: {
                                 scales: {
                                     x: {
+                                        min: {{ $convert_x_min }}, 
+                                        max: {{ $convert_x_max }}, 
                                         type: 'linear',
                                         title: {
                                             display: true,
@@ -124,6 +130,8 @@
                                         }
                                     },
                                     y: {
+                                        min: {{ $convert_y_min }}, 
+                                        max: {{ $convert_y_max }}, 
                                         title: {
                                             display: true,
                                             text: 'L/kW/hr'

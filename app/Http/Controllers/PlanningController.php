@@ -52,11 +52,20 @@ class PlanningController extends Controller
 
         $etb = $etbDate ? \Carbon\Carbon::createFromFormat('d/m/Y', $etbDate) : null;
         $noon = \Carbon\Carbon::createFromFormat('d/m/Y', $noonReportDate);
-        $dayDiff = $etb ? $etb->diffInDays($noon, false) : null;
+        $dayDiff = $etb ? $noon->diffInDays($etb, false) : null;
+
+        \Log::info('splitRouteByPosition called', [
+            'currentRouteWithNext' => $currentRouteWithNext,
+            'position'             => $position,
+            'etbDate'              => $etbDate,
+            'noonReportDate'       => $noonReportDate,
+            'etb'                  => $etb ? $etb->toDateString() : null,
+            'noon'                 => $noon->toDateString(),
+            'dayDiff'              => $dayDiff,
+        ]);
 
         $matchIndexes = [];
 
-        // Cari index pertama dari $positionArray dalam $routeArray
         for ($i = 0; $i <= count($routeArray) - $positionLength; $i++) {
             $slice = array_slice($routeArray, $i, $positionLength);
             if ($slice === $positionArray) {
@@ -64,18 +73,41 @@ class PlanningController extends Controller
             }
         }
 
+        \Log::info('Match indexes found', ['matchIndexes' => $matchIndexes]);
+
         if (empty($matchIndexes)) {
+            \Log::info('No match found, returning original route');
             return [$currentRouteWithNext, ''];
         }
 
-        $useLastMatch = $dayDiff !== null && $dayDiff <= 2;
-        $matchIndex = $useLastMatch ? end($matchIndexes) : $matchIndexes[0];
+        if ($dayDiff !== null) {
+            if ($dayDiff <= 2) {
+                // ambil match terakhir
+                $matchIndex = end($matchIndexes);
+            } elseif ($dayDiff == 3 || $dayDiff == 4) {
+                // ambil match kedua terakhir (jika ada)
+                $count = count($matchIndexes);
+                $matchIndex = $count >= 2 ? $matchIndexes[$count - 2] : end($matchIndexes);
+            } else {
+                // default: ambil match pertama
+                $matchIndex = $matchIndexes[0];
+            }
+        } else {
+            $matchIndex = $matchIndexes[0];
+        }
 
-        // Bagi array menjadi dua bagian
-        $firstPart = array_slice($routeArray, 0, $matchIndex + 1); // +1 agar posisi awal ikut
+        \Log::info('Match decision', [
+            'chosenIndex'  => $matchIndex,
+        ]);
+
+        $firstPart = array_slice($routeArray, 0, $matchIndex + 1);
         $secondPart = array_slice($routeArray, $matchIndex + 1);
 
-        return [implode('.', $firstPart), implode('.', $secondPart)];
+        $result = [implode('.', $firstPart), implode('.', $secondPart)];
+
+        \Log::info('Final split result', ['result' => $result]);
+
+        return $result;
     }
 
 
@@ -218,9 +250,11 @@ class PlanningController extends Controller
 
         $total_current_route = count(explode('.', $currentRouteWithNext));
 
+        $etbArray = explode(' ', $grouped['etb']);
+
         // sea
         if ($dtg !== null) {
-            $etb = $dvs_formattedDate;
+            $etb = $etbArray[0] ?? null;
             $noonReport = $noon_report_formattedDate;
 
             list($part1, $part2) = $this->splitRouteByPosition($currentRouteWithNext, $position, $etb, $noonReport);
@@ -246,7 +280,7 @@ class PlanningController extends Controller
             $departureName = $pos_port;
             $departurePort = $last_pos;
 
-            $etb = $dvs_formattedDate;
+            $etb = $etbArray[0] ?? null;
             $noonReport = $noon_report_formattedDate;          
 
             list($part1, $part2) = $this->splitRouteByPosition($currentRouteWithNext, $position, $etb, $noonReport);
@@ -663,6 +697,8 @@ class PlanningController extends Controller
         $port_id_map['MAKASAR'] = 'IDMAK';
         $port_id_map['SBY'] = 'IDSUB';
         $port_id_map['BAU BAU'] = 'IDBUW';
+        $port_id_map['KUALATANJUNG'] = 'IDKTJ';
+        $port_id_map['KUALA TANJUNG'] = 'IDKTJ';
 
         //////////////////////////////////////////////////////////////////////
 

@@ -121,7 +121,8 @@ class SummaryController extends Controller
             $payload = $basePayload;
             $payload['report_id'] = (string)$reportId;
 
-            $response = Http::withHeaders([
+            $response = Http::timeout(120)
+            ->withHeaders([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ])->withBody(json_encode($payload), 'application/json')

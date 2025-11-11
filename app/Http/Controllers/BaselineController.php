@@ -123,6 +123,31 @@ class BaselineController extends Controller
 
         $vesselMap = array_keys($titik);
 
+        ////// sumbu kurva ///////
+
+        $sumbu_sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Sumbu Grafik.xlsx'))->getActiveSheet();
+        $sumbu_data = $sumbu_sheet->toArray(null, true, true, true);
+
+        $sumbu_kurva = [];
+        foreach (array_slice($sumbu_data, 1) as $row) {
+            $vessel = strtoupper(trim($row['A']));
+
+            if ($vessel) {
+                $sumbu_kurva[$vessel] = [
+                    'Ori X Min' => trim($row['B'] ?? ''),
+                    'Ori X Max' => trim($row['C'] ?? ''),
+                    'Ori Y Min' => trim($row['D'] ?? ''),
+                    'Ori Y Max' => trim($row['E'] ?? ''),
+                ];
+            }
+        }
+
+        $ori_x_min = $sumbu_kurva[$selectedVessel]['Ori X Min'] ?? [];
+        $ori_x_max = $sumbu_kurva[$selectedVessel]['Ori X Max'] ?? [];
+
+        $ori_y_min = $sumbu_kurva[$selectedVessel]['Ori Y Min'] ?? [];
+        $ori_y_max = $sumbu_kurva[$selectedVessel]['Ori Y Max'] ?? [];
+
         ///// convert titik //////
 
         $titik_x_ori = array_map('floatval', $titik[$selectedVessel]['X'] ?? []);
@@ -136,10 +161,30 @@ class BaselineController extends Controller
 
             $titik_x_ori = array_map(fn($x) => $x / 0.7457, $titik_x_ori);
             $titik_y_ori = array_map(fn($y) => $y * 0.7457, $titik_y_ori);
+
+            $convert_x_min = $ori_x_min;
+            $convert_x_max = $ori_x_max;
+            $convert_y_min = $ori_y_min / $density;
+            $convert_y_max = $ori_y_max / $density;
+
+            $ori_x_min = $ori_x_min / 0.7457;
+            $ori_x_max = $ori_x_max / 0.7457;
+            $ori_y_min = $ori_y_min * 0.7457;
+            $ori_y_max = $ori_y_max * 0.7457;
         } 
         else {
-            $titik_x_convert = array_map(fn($x) => $x / 0.7457, $titik_x_ori);
+            $titik_x_convert = array_map(fn($x) => $x * 0.7457, $titik_x_ori);
             $titik_y_convert = array_map(fn($y) => $y / 0.7457 / $density, $titik_y_ori);
+
+            $ori_x_min = $ori_x_min;
+            $ori_x_max = $ori_x_max;
+            $ori_y_min = $ori_y_min;
+            $ori_y_max = $ori_y_max;
+
+            $convert_x_min = $ori_x_min * 0.7457;
+            $convert_x_max = $ori_x_max * 0.7457;
+            $convert_y_min = $ori_y_min / 0.7457 / $density;
+            $convert_y_max = $ori_y_max / 0.7457 / $density;
         }
 
         ///// cari koefisien //////
@@ -186,13 +231,13 @@ class BaselineController extends Controller
 
             //// perhitungan sfoc dan konsumsi dari grafik bhp ////
 
-            $sfoc_bhp = $a * ($power_bhp ** 2) + $b * $power_bhp + $c;
             $sfoc_kw = $d * ($power_kw ** 2) + $e * $power_kw + $f;
 
             $konsumsi = $sfoc_kw * $power_kw * $steam_time;
             $konsumsi = round($konsumsi, 0);
-
         }
+
+        print_r($labelKurva_kw);
 
         return view('po.baseline', [
             'vessels' => $vesselMap,
@@ -206,6 +251,14 @@ class BaselineController extends Controller
             'steam_time' => $steam_time,
             'konsumsi' => $konsumsi ?? null,
             'sfoc_kw' => $sfoc_kw ?? null,
+            'ori_x_min' => $ori_x_min,
+            'ori_x_max' => $ori_x_max,
+            'ori_y_min' => $ori_y_min,
+            'ori_y_max' => $ori_y_max,
+            'convert_x_min' => $convert_x_min,
+            'convert_x_max' => $convert_x_max,
+            'convert_y_min' => $convert_y_min,
+            'convert_y_max' => $convert_y_max,
         ]);
     }
 }
