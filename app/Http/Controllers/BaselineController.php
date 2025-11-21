@@ -92,8 +92,6 @@ class BaselineController extends Controller
         $density = $request->input('density') ?? 950;
 
         $power_kw = $request->input('power_kw');
-        $power_bhp = $power_kw / 0.7457;
-
         $steam_time = $request->input('steam_time');
 
         ///// markdown dan titik //////
@@ -122,6 +120,7 @@ class BaselineController extends Controller
         }
 
         $vesselMap = array_keys($titik);
+        sort($vesselMap);
 
         ////// sumbu kurva ///////
 
@@ -142,49 +141,89 @@ class BaselineController extends Controller
             }
         }
 
-        $ori_x_min = $sumbu_kurva[$selectedVessel]['Ori X Min'] ?? [];
-        $ori_x_max = $sumbu_kurva[$selectedVessel]['Ori X Max'] ?? [];
+        $ori_sumbu_x_min_raw = $sumbu_kurva[$selectedVessel]['Ori X Min'] ?? [];
+        $ori_sumbu_x_max_raw = $sumbu_kurva[$selectedVessel]['Ori X Max'] ?? [];
 
-        $ori_y_min = $sumbu_kurva[$selectedVessel]['Ori Y Min'] ?? [];
-        $ori_y_max = $sumbu_kurva[$selectedVessel]['Ori Y Max'] ?? [];
+        $ori_sumbu_y_min_raw = $sumbu_kurva[$selectedVessel]['Ori Y Min'] ?? [];
+        $ori_sumbu_y_max_raw = $sumbu_kurva[$selectedVessel]['Ori Y Max'] ?? [];
 
-        ///// convert titik //////
+        ///// titik kurva //////
 
-        $titik_x_ori = array_map('floatval', $titik[$selectedVessel]['X'] ?? []);
-        $titik_y_ori = array_map('floatval', $titik[$selectedVessel]['Y'] ?? []);
+        $titik_x_ori_raw = array_map('floatval', $titik[$selectedVessel]['X'] ?? []);
+        $titik_y_ori_raw = array_map('floatval', $titik[$selectedVessel]['Y'] ?? []);
 
-        $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL'];
+        $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL', 'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 'PRA'];
+        $kapal_osi_oem = ['OSI', 'OEM'];    
 
         if (in_array($selectedVessel, $kapal_kecil)){
-            $titik_x_convert = array_map(fn($x) => $x, $titik_x_ori);
-            $titik_y_convert = array_map(fn($y) => $y / $density, $titik_y_ori);
+            ///// X = kW //////////
+            ///// Y = g/Kw/hr //////
 
-            $titik_x_ori = array_map(fn($x) => $x / 0.7457, $titik_x_ori);
-            $titik_y_ori = array_map(fn($y) => $y * 0.7457, $titik_y_ori);
+            //////// convert titik ///////////
 
-            $convert_x_min = $ori_x_min;
-            $convert_x_max = $ori_x_max;
-            $convert_y_min = $ori_y_min / $density;
-            $convert_y_max = $ori_y_max / $density;
+            $titik_x_ori = array_map(fn($x) => $x / 0.7457, $titik_x_ori_raw);
+            $titik_y_ori = array_map(fn($y) => $y * 0.7457, $titik_y_ori_raw);
 
-            $ori_x_min = $ori_x_min / 0.7457;
-            $ori_x_max = $ori_x_max / 0.7457;
-            $ori_y_min = $ori_y_min * 0.7457;
-            $ori_y_max = $ori_y_max * 0.7457;
+            $titik_x_convert = array_map(fn($x) => $x, $titik_x_ori_raw);
+            $titik_y_convert = array_map(fn($y) => $y / $density, $titik_y_ori_raw);
+
+            /////// convert sumbu ///////
+
+            $ori_sumbu_x_min = $ori_sumbu_x_min_raw / 0.7457;
+            $ori_sumbu_x_max = $ori_sumbu_x_max_raw / 0.7457;
+            $ori_sumbu_y_min = $ori_sumbu_y_min_raw * 0.7457;
+            $ori_sumbu_y_max = $ori_sumbu_y_max_raw * 0.7457;
+
+            $convert_sumbu_x_min = $ori_sumbu_x_min_raw;
+            $convert_sumbu_x_max = $ori_sumbu_x_max_raw;
+            $convert_sumbu_y_min = $ori_sumbu_y_min_raw / $density;
+            $convert_sumbu_y_max = $ori_sumbu_y_max_raw / $density;
         } 
+        elseif (in_array($selectedVessel, $kapal_osi_oem)){
+            ///// X = kW //////
+            ///// Y = g/BHP/hr //////
+
+            $titik_x_ori = array_map(fn($x) => $x / 0.7457, $titik_x_ori_raw);
+            $titik_y_ori = $titik_y_ori_raw;
+
+            $titik_x_convert = $titik_x_ori_raw;
+            $titik_y_convert = array_map(fn($y) => $y / 0.7457 / $density, $titik_y_ori_raw);
+
+            /////// convert sumbu ///////
+
+            $ori_sumbu_x_min = $ori_sumbu_x_min_raw / 0.7457;
+            $ori_sumbu_x_max = $ori_sumbu_x_max_raw / 0.7457;
+            $ori_sumbu_y_min = $ori_sumbu_y_min_raw;
+            $ori_sumbu_y_max = $ori_sumbu_y_max_raw;
+
+            $convert_sumbu_x_min = $ori_sumbu_x_min_raw;
+            $convert_sumbu_x_max = $ori_sumbu_x_max_raw;
+            $convert_sumbu_y_min = $ori_sumbu_y_min_raw / 0.7457 / $density;
+            $convert_sumbu_y_max = $ori_sumbu_y_max_raw / 0.7457 / $density;
+        }
         else {
-            $titik_x_convert = array_map(fn($x) => $x * 0.7457, $titik_x_ori);
-            $titik_y_convert = array_map(fn($y) => $y / 0.7457 / $density, $titik_y_ori);
+            ////// X = BHP //////
+            ////// Y = g/BHP/hr ////
 
-            $ori_x_min = $ori_x_min;
-            $ori_x_max = $ori_x_max;
-            $ori_y_min = $ori_y_min;
-            $ori_y_max = $ori_y_max;
+            //////// convert titik ///////////
 
-            $convert_x_min = $ori_x_min * 0.7457;
-            $convert_x_max = $ori_x_max * 0.7457;
-            $convert_y_min = $ori_y_min / 0.7457 / $density;
-            $convert_y_max = $ori_y_max / 0.7457 / $density;
+            $titik_x_ori = $titik_x_ori_raw;
+            $titik_y_ori = $titik_y_ori_raw;
+
+            $titik_x_convert = array_map(fn($x) => $x * 0.7457, $titik_x_ori_raw);
+            $titik_y_convert = array_map(fn($y) => $y / 0.7457 / $density, $titik_y_ori_raw);
+
+            /////// convert sumbu ///////
+
+            $ori_sumbu_x_min = $ori_sumbu_x_min_raw;
+            $ori_sumbu_x_max = $ori_sumbu_x_max_raw;
+            $ori_sumbu_y_min = $ori_sumbu_y_min_raw;
+            $ori_sumbu_y_max = $ori_sumbu_y_max_raw;
+
+            $convert_sumbu_x_min = $ori_sumbu_x_min_raw * 0.7457;
+            $convert_sumbu_x_max = $ori_sumbu_x_max_raw * 0.7457;
+            $convert_sumbu_y_min = $ori_sumbu_y_min_raw / 0.7457 / $density;
+            $convert_sumbu_y_max = $ori_sumbu_y_max_raw / 0.7457 / $density;
         }
 
         ///// cari koefisien //////
@@ -197,9 +236,9 @@ class BaselineController extends Controller
 
         ///// persamaan untuk label //////
 
-        $persamaan_ori = "y = {$a} * x^2 + {$b} * x + {$c}";
+        $persamaan_ori = "y = {$a} * x² + {$b} * x + {$c}";
 
-        $persamaan_convert = "y = {$d} * x^2 + {$e} * x + {$f}";
+        $persamaan_convert = "y = {$d} * x² + {$e} * x + {$f}";
 
         $grafikData_bhp = [];
         $grafikData_kw = [];
@@ -234,10 +273,13 @@ class BaselineController extends Controller
             $sfoc_kw = $d * ($power_kw ** 2) + $e * $power_kw + $f;
 
             $konsumsi = $sfoc_kw * $power_kw * $steam_time;
-            $konsumsi = round($konsumsi, 0);
-        }
+            $konsumsi = ceil($konsumsi);
 
-        print_r($labelKurva_kw);
+            if ($power_kw == 0){
+                $sfoc_kw = 0;
+                $konsumsi = 0;
+            }
+        }
 
         return view('po.baseline', [
             'vessels' => $vesselMap,
@@ -251,14 +293,14 @@ class BaselineController extends Controller
             'steam_time' => $steam_time,
             'konsumsi' => $konsumsi ?? null,
             'sfoc_kw' => $sfoc_kw ?? null,
-            'ori_x_min' => $ori_x_min,
-            'ori_x_max' => $ori_x_max,
-            'ori_y_min' => $ori_y_min,
-            'ori_y_max' => $ori_y_max,
-            'convert_x_min' => $convert_x_min,
-            'convert_x_max' => $convert_x_max,
-            'convert_y_min' => $convert_y_min,
-            'convert_y_max' => $convert_y_max,
+            'ori_x_min' => $ori_sumbu_x_min,
+            'ori_x_max' => $ori_sumbu_x_max,
+            'ori_y_min' => $ori_sumbu_y_min,
+            'ori_y_max' => $ori_sumbu_y_max,
+            'convert_x_min' => $convert_sumbu_x_min,
+            'convert_x_max' => $convert_sumbu_x_max,
+            'convert_y_min' => $convert_sumbu_y_min,
+            'convert_y_max' => $convert_sumbu_y_max,
         ]);
     }
 }

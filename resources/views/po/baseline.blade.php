@@ -32,7 +32,7 @@
                         </select>
 
                         <div class="mt-6">
-                            <label for="density" class="block text-sm font-medium text-gray-700 mb-2">Masukkan Density (kg/m³):</label>
+                            <label for="density" class="block text-sm font-medium text-gray-700 mb-2">Masukkan Density (g/L):</label>
                             <input type="number" step="any" name="density" id="density"
                                 value="{{ request('density', 950) }}"
                                 class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
@@ -48,7 +48,7 @@
                                 <canvas id="grafikKurvaBHP" height="100"></canvas>
                             </div>
                             <div class="flex-1 min-w-[300px]">
-                                <h3 class="text-md font-semibold mb-2">Grafik KW</h3>
+                                <h3 class="text-md font-semibold mb-2">Grafik kW</h3>
                                 <canvas id="grafikKurvaKW" height="100"></canvas>
                             </div>
                         </div>
@@ -147,6 +147,10 @@
                         });
                     </script>
 
+                    <div class="flex space-x-4 mt-6 mb-4 font-bold">
+                        <h3 class="text-lg">Persamaan Kurva kW: <span class="text-red-800">{{ $labelKurva_kw }}</span></h3>
+                    </div>
+
                     <div>
                         <div class="mt-6">
                             <label for="power_kw" class="block text-sm font-medium text-gray-700 mb-2">Power (kW):</label>
@@ -165,7 +169,7 @@
                         </div>
 
                         <div class="flex space-x-4 mt-6 mb-4 font-bold">
-                            <h3 class="text-lg">SFOC: <span class="text-red-800">{{ $sfoc_kw }}</span> L/kw/hr</h3>
+                            <h3 class="text-lg">SFOC: <span class="text-red-800">{{ $sfoc_kw }}</span> L/kW/hr</h3>
                         </div>
 
                         <div class="flex space-x-4 mb-4 font-bold   ">
