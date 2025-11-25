@@ -141,18 +141,22 @@ class BaselineController extends Controller
             }
         }
 
+        print_r($sumbu_kurva);
+
         $ori_sumbu_x_min_raw = $sumbu_kurva[$selectedVessel]['Ori X Min'] ?? [];
         $ori_sumbu_x_max_raw = $sumbu_kurva[$selectedVessel]['Ori X Max'] ?? [];
 
         $ori_sumbu_y_min_raw = $sumbu_kurva[$selectedVessel]['Ori Y Min'] ?? [];
         $ori_sumbu_y_max_raw = $sumbu_kurva[$selectedVessel]['Ori Y Max'] ?? [];
 
+        print_r($ori_sumbu_x_min_raw);
+
         ///// titik kurva //////
 
         $titik_x_ori_raw = array_map('floatval', $titik[$selectedVessel]['X'] ?? []);
         $titik_y_ori_raw = array_map('floatval', $titik[$selectedVessel]['Y'] ?? []);
 
-        $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL', 'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 'PRA'];
+        $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL', 'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 'PRA', 'HAN', 'HAP', 'HAS', 'HAY'];
         $kapal_osi_oem = ['OSI', 'OEM'];    
 
         if (in_array($selectedVessel, $kapal_kecil)){
