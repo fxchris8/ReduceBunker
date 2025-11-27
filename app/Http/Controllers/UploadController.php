@@ -12,7 +12,7 @@ use DateTime;
 class UploadController extends Controller
 {   
     function reorderReport($grouped) {
-        $bl_l_nm_FilePath = storage_path('app\BL for Analysis.xlsx');
+        $bl_l_nm_FilePath = storage_path('app/BL for Analysis.xlsx');
         $spreadsheet_bl_l_nm = IOFactory::load($bl_l_nm_FilePath);
         $sheet_bl_l_nm = $spreadsheet_bl_l_nm->getActiveSheet();
         $bl_l_nm_Data = $sheet_bl_l_nm->toArray(null, true, true, true);
