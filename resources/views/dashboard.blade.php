@@ -21,7 +21,7 @@
                 </label>
                 <input type="date" id="report_date" name="report_date"
                     class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                    value="{{ request('report_date', date('Y-m-d')) }}"
+                    value="{{ request('report_date', date('Y-m-d', strtotime('-1 day'))) }}"
                     onchange="window.location='{{ route('dashboard') }}?report_date='+this.value">
             </div>
 

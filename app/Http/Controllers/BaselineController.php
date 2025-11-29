@@ -94,7 +94,7 @@ class BaselineController extends Controller
         $power_kw = $request->input('power_kw');
         $steam_time = $request->input('steam_time');
 
-        ///// markdown dan titik //////
+        ///// dropdown dan titik //////
 
         $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Titik Ori Grafik.xlsx'))->getActiveSheet();
         $data = $sheet->toArray(null, true, true, true);
@@ -119,9 +119,6 @@ class BaselineController extends Controller
             }
         }
 
-        $vesselMap = array_keys($titik);
-        sort($vesselMap);
-
         ////// sumbu kurva ///////
 
         $sumbu_sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Sumbu Grafik.xlsx'))->getActiveSheet();
@@ -141,11 +138,14 @@ class BaselineController extends Controller
             }
         }
 
-        $ori_sumbu_x_min_raw = $sumbu_kurva[$selectedVessel]['Ori X Min'] ?? [];
-        $ori_sumbu_x_max_raw = $sumbu_kurva[$selectedVessel]['Ori X Max'] ?? [];
+        $vesselMap = array_keys($sumbu_kurva);
+        sort($vesselMap);
 
-        $ori_sumbu_y_min_raw = $sumbu_kurva[$selectedVessel]['Ori Y Min'] ?? [];
-        $ori_sumbu_y_max_raw = $sumbu_kurva[$selectedVessel]['Ori Y Max'] ?? [];
+        $ori_sumbu_x_min_raw = $sumbu_kurva[$selectedVessel]['Ori X Min'] ?? null;
+        $ori_sumbu_x_max_raw = $sumbu_kurva[$selectedVessel]['Ori X Max'] ?? null;
+
+        $ori_sumbu_y_min_raw = $sumbu_kurva[$selectedVessel]['Ori Y Min'] ?? null;
+        $ori_sumbu_y_max_raw = $sumbu_kurva[$selectedVessel]['Ori Y Max'] ?? null;
 
         ///// titik kurva //////
 
@@ -154,9 +154,13 @@ class BaselineController extends Controller
 
         $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL', 
                         'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 
-                        'PRA', 'HAN', 'HAP', 'HAS', 'HAY',
-                        'FOR', 'AKA', 'DER', 'MAG', 'KAA'];
+                        'PRA', 'HAN', 'HAP', 'HAS', 'HAY', 'FOR',
+                        'AKA', 'DER', 'MAG', 'KAA', 'OJA', 'ORU',
+                        'REN', 'PBE', 'LUZ', 'PSM', 'PNN'];
+
         $kapal_osi_oem = ['OSI', 'OEM'];    
+
+        $kapal_konstan = ['ASR', 'ASN', 'ASG', 'APE', 'PFA', 'PRI', 'ODI'];
 
         if (in_array($selectedVessel, $kapal_kecil)){
             ///// X = kW //////////
@@ -204,6 +208,27 @@ class BaselineController extends Controller
             $convert_sumbu_y_min = $ori_sumbu_y_min_raw / 0.7457 / $density;
             $convert_sumbu_y_max = $ori_sumbu_y_max_raw / 0.7457 / $density;
         }
+        elseif (in_array($selectedVessel, $kapal_konstan)){
+            ///// KONSTAN /////
+
+            $titik_x_ori = null;
+            $titik_y_ori = null;
+
+            $titik_x_convert = null;
+            $titik_y_convert = null;
+
+            /////// convert sumbu ///////
+
+            $ori_sumbu_x_min = null;
+            $ori_sumbu_x_max = null;
+            $ori_sumbu_y_min = null;
+            $ori_sumbu_y_max = null;
+
+            $convert_sumbu_x_min = null;
+            $convert_sumbu_x_max = null;
+            $convert_sumbu_y_min = null;
+            $convert_sumbu_y_max = null;
+        }
         else {
             ////// X = BHP //////
             ////// Y = g/BHP/hr ////
@@ -231,57 +256,93 @@ class BaselineController extends Controller
 
         ///// cari koefisien //////
 
-        $koefisien_ori = $this->polyfitQuadratic($titik_x_ori, $titik_y_ori);
-        $koefisien_convert = $this->polyfitQuadratic($titik_x_convert, $titik_y_convert);
+        if ($titik_x_ori !== null && $titik_y_ori !== null &&
+            $titik_x_convert !== null && $titik_y_convert !== null) {
 
-        list($a, $b, $c) = $koefisien_ori;
-        list($d, $e, $f) = $koefisien_convert;
+                $koefisien_ori = $this->polyfitQuadratic($titik_x_ori, $titik_y_ori);
+                $koefisien_convert = $this->polyfitQuadratic($titik_x_convert, $titik_y_convert);
 
-        ///// persamaan untuk label //////
+                list($a, $b, $c) = $koefisien_ori;
+                list($d, $e, $f) = $koefisien_convert;
 
-        $persamaan_ori = "y = {$a} * x² + {$b} * x + {$c}";
+                ///// persamaan untuk label //////
 
-        $persamaan_convert = "y = {$d} * x² + {$e} * x + {$f}";
+                $persamaan_ori = "y = {$a} * x² + {$b} * x + {$c}";
 
-        $grafikData_bhp = [];
-        $grafikData_kw = [];
+                $persamaan_convert = "y = {$d} * x² + {$e} * x + {$f}";
 
-        $labelKurva_bhp = null;
-        $labelKurva_kw = null;
+                $grafikData_bhp = [];
+                $grafikData_kw = [];
 
-        if (isset($persamaan_ori, $persamaan_convert)) {
+                $labelKurva_bhp = null;
+                $labelKurva_kw = null;
 
-            for ($x = 10; $x <= 16000; $x += 100) {
-                //// grafik ori ////
+                if (isset($persamaan_ori, $persamaan_convert)) {
 
-                $y_bhp = $a * ($x ** 2) + $b * $x + $c;
-                $grafikData_bhp[] = ['x' => $x, 'y' => round($y_bhp, 6)];
+                    for ($x = 10; $x <= 16000; $x += 100) {
+                        //// grafik ori ////
 
-                //// grafik convert ////
+                        $y_bhp = $a * ($x ** 2) + $b * $x + $c;
+                        $grafikData_bhp[] = ['x' => $x, 'y' => round($y_bhp, 6)];
 
-                $y_kw = $d * ($x ** 2) + $e * $x + $f;
-                $grafikData_kw[] = ['x' => $x, 'y' => round($y_kw, 6)];
+                        //// grafik convert ////
+
+                        $y_kw = $d * ($x ** 2) + $e * $x + $f;
+                        $grafikData_kw[] = ['x' => $x, 'y' => round($y_kw, 6)];
+                    }
+
+                    //// persamaan grafik ori ////
+
+                    $labelKurva_bhp = $persamaan_ori;
+
+                    //// persamaan grafik convert ////
+
+                    $labelKurva_kw = $persamaan_convert;
+
+                    //// perhitungan sfoc dan konsumsi dari grafik bhp ////
+
+                    $sfoc_kw = $d * ($power_kw ** 2) + $e * $power_kw + $f;
+
+                    $konsumsi = $sfoc_kw * $power_kw * $steam_time;
+                    $konsumsi = ceil($konsumsi);
+
+                    if ($power_kw == 0){
+                        $sfoc_kw = 0;
+                        $konsumsi = 0;
+                    }
+                }
+        } 
+        else {
+            $konstan_sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/SFOC Konstan.xlsx'))->getActiveSheet();
+            $konstan_data = $konstan_sheet->toArray(null, true, true, true);
+
+            $konstan_kurva = [];
+            foreach (array_slice($konstan_data, 1) as $row) {
+                $vessel = strtoupper(trim($row['A']));
+
+                if ($vessel) {
+                    $konstan_kurva[$vessel] = [
+                        'SFOC' => trim($row['B'] ?? ''),
+                        'SATUAN' => trim($row['C'] ?? ''),
+                    ];
+                }
             }
 
-            //// persamaan grafik ori ////
+            $sfoc_konstan_bhp = ['APE', 'ODI'];
 
-            $labelKurva_bhp = $persamaan_ori;
-
-            //// persamaan grafik convert ////
-
-            $labelKurva_kw = $persamaan_convert;
-
-            //// perhitungan sfoc dan konsumsi dari grafik bhp ////
-
-            $sfoc_kw = $d * ($power_kw ** 2) + $e * $power_kw + $f;
+            if (in_array($selectedVessel, $sfoc_konstan_bhp)){
+                $sfoc_kw = $konstan_kurva[$selectedVessel]['SFOC'] / 0.7457 / $density;
+            }
+            else {
+                $sfoc_kw = $konstan_kurva[$selectedVessel]['SFOC'] / $density ?? null;
+            }
 
             $konsumsi = $sfoc_kw * $power_kw * $steam_time;
-            $konsumsi = ceil($konsumsi);
 
-            if ($power_kw == 0){
-                $sfoc_kw = 0;
-                $konsumsi = 0;
-            }
+            $grafikData_bhp = 0; 
+            $grafikData_kw = 0;
+            $labelKurva_bhp = null;
+            $labelKurva_kw = 'SFOC Konstan di' . ' ' . $konstan_kurva[$selectedVessel]['SFOC'] . ' ' . $konstan_kurva[$selectedVessel]['SATUAN'];
         }
 
         return view('po.baseline', [

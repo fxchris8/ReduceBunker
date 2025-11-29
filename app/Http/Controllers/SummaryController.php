@@ -107,7 +107,7 @@ class SummaryController extends Controller
     public function show(Request $request)
     {   
         // api
-        $reportDate = $request->input('report_date', date('Y-m-d'));
+        $reportDate = $request->input('report_date', date('Y-m-d', strtotime('-1 day')));
         $formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
 
         $basePayload = [

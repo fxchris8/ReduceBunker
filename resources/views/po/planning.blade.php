@@ -60,7 +60,8 @@
                                 <thead class="bg-gray-300 sticky top-0 z-10">
                                     <tr>
                                         @foreach($headerRows as $header)
-                                            <th class="px-4 py-2 text-center border-2 border-black">
+                                            <th class="px-4 py-2 text-center border-2 border-black 
+                                                {{ in_array($header, ['Pengisian HSD', 'Pengisian MFO']) ? 'bg-green-500 text-white' : '' }}">
                                                 {{ ucfirst($header) }}
                                             </th>
                                         @endforeach

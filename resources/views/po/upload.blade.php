@@ -1,12 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Consumption Analysis')
+@section('title', 'Consumption Analysis Statis')
+
+@section('loader')
+<div id="loader" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 hidden">
+    <div class="w-16 h-16 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+    <p class="mt-4 text-blue-600 font-semibold">Loading Consumption Analysis...</p>
+</div>
+@endsection
 
 @section('content')
 <div class="container mx-auto py-6 px-4">
     <div class="bg-white rounded-lg shadow-md">
         <div class="bg-gray-50 px-4 py-4 border-b">
-            <h1 class="text-xl font-bold">Consumption Analysis</h1>
+            <h1 class="text-xl font-bold">Consumption Analysis Statis</h1>
         </div>
 
         <div class="border rounded-md p-6">
@@ -16,13 +23,39 @@
                 </div>
             @endif
 
+            <div class="px-4 py-4 grid grid-cols-2 gap-4">
+                <!-- Kolom Statis -->
+                <div>
+                    <a href="{{ url('/consumption-analysis/statis') }}"
+                       class="w-full py-4 px-6 text-lg text-center block
+                              {{ request()->is('consumption-analysis/statis') 
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'bg-blue-300 text-gray-700' }}
+                              font-semibold rounded-md transition">
+                        Statis
+                    </a>
+                </div>
+
+                <!-- Kolom Dinamis -->
+                <div>
+                    <a href="{{ url('/consumption-analysis/dinamis') }}"
+                       class="w-full py-4 px-6 text-lg text-center block
+                              {{ request()->is('consumption-analysis/dinamis') 
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'bg-blue-300 text-gray-700' }}
+                              font-semibold rounded-md transition">
+                        Dinamis
+                    </a>
+                </div>
+            </div>
+
             <div class="px-4 py-2 rounded-md text-lg">
                 <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
                     Tanggal Laporan
                 </label>
                 <input type="date" id="report_date" name="report_date"
                     class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                    value="{{ request('report_date', date('Y-m-d')) }}"
+                    value="{{ request('report_date', date('Y-m-d', strtotime('-1 day'))) }}"
                     onchange="window.location='{{ route('po.upload') }}?report_date='+this.value">
             </div>
             
@@ -126,7 +159,6 @@
                         @endif
                     </div>
 
-
                     <div class="mt-6 flex justify-end">
                         <button type="submit" class="py-2 px-4 bg-green-600 text-white rounded-md">
                             Send Email
@@ -147,4 +179,37 @@
         }
     </script>
 @endif
+
+<script>
+    function showLoader() {
+        document.getElementById("loader").classList.remove("hidden");
+    }
+    function hideLoader() {
+        document.getElementById("loader").classList.add("hidden");
+    }
+
+    window.addEventListener("load", hideLoader);
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Loader untuk semua link
+        document.querySelectorAll("a").forEach(function(link) {
+            link.addEventListener("click", function(e) {
+                if (link.target === "_blank" || link.getAttribute("href").startsWith("#") || link.hostname !== window.location.hostname) {
+                    return;
+                }
+                e.preventDefault();
+                showLoader();
+                window.location = link.href;
+            });
+        });
+
+        // Loader untuk form submit
+        const form = document.getElementById("emailForm");
+        if (form) {
+            form.addEventListener("submit", function() {
+                showLoader();
+            });
+        }
+    });
+</script>
 @endsection

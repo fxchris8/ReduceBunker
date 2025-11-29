@@ -552,25 +552,37 @@ class PlanningController extends Controller
             return isset($row['vesselid']) && trim($row['vesselid']) !== '' && trim($row['etb']) !== '';
         });
 
-        $grouped = [];
-        foreach ($dvs_reports as $report) {
-            $vesselid = $report['vesselid'];
-            $grouped[$vesselid][] = $report;
-        }
+        // $grouped = [];
+        // foreach ($dvs_reports as $report) {
+        //     $vesselid = $report['vesselid'];
+        //     $grouped[$vesselid][] = $report;
+        // }
 
-        ksort($grouped);
+        // ksort($grouped);
 
-        foreach ($grouped as &$reports) {
-            usort($reports, function ($a, $b) {
-                $etbA = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $a['etb']);
-                $etbB = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $b['etb']);
-                return $etbA->lt($etbB) ? -1 : 1;
-            });
-        }
+        // foreach ($grouped as &$reports) {
+        //     usort($reports, function ($a, $b) {
+        //         $etbA = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $a['etb']);
+        //         $etbB = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $b['etb']);
+        //         return $etbA->lt($etbB) ? -1 : 1;
+        //     });
+        // }
 
-        unset($reports);
+        // unset($reports);
 
-        $dvs_reports = array_merge(...array_values($grouped));
+        // $dvs_reports = array_merge(...array_values($grouped));
+
+        // filter data valid
+        $dvs_reports = array_filter($dvs_reports_raw, function ($row) {
+            return isset($row['vesselid']) && trim($row['vesselid']) !== '' && trim($row['etb']) !== '';
+        });
+
+        // langsung sort berdasarkan etb
+        usort($dvs_reports, function ($a, $b) {
+            $etbA = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $a['etb']);
+            $etbB = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $b['etb']);
+            return $etbA->lt($etbB) ? -1 : 1;
+        });
 
         \Log::info("\n");
         \Log::info(str_repeat('-', 50) . PHP_EOL);
