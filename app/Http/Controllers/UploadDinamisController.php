@@ -87,7 +87,7 @@ class UploadDinamisController extends Controller
         return $x;
     }
 
-    private function hitungKonsumsi(array $report, array $titik, float $density)
+    private function hitungKonsumsi(array $report, array $titik, float $density, array $konstan_kurva, array $all_vessels)
     {
         $selectedVessel = strtoupper($report['Vessel ID']);
         $power_kw = floatval($report['DAYA ME (KW)'] ?? 0);
@@ -96,11 +96,6 @@ class UploadDinamisController extends Controller
         // ambil titik dari Excel
         $titik_x_ori_raw = array_map('floatval', $titik[$selectedVessel]['X'] ?? []);
         $titik_y_ori_raw = array_map('floatval', $titik[$selectedVessel]['Y'] ?? []);
-
-        // kalau tidak ada titik, return null
-        if (empty($titik_x_ori_raw) || empty($titik_y_ori_raw)) {
-            return null;
-        }
 
         $kapal_kecil = ['PHK', 'PLA', 'PWE', 'TBE', 'TBI', 'TFL', 
                         'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 
@@ -111,6 +106,11 @@ class UploadDinamisController extends Controller
         $kapal_osi_oem = ['OSI', 'OEM'];    
 
         $kapal_konstan = ['ASR', 'ASN', 'ASG', 'APE', 'PFA', 'PRI', 'ODI'];
+        $sfoc_konstan_bhp = ['APE', 'ODI'];
+
+        if(!in_array($selectedVessel, $all_vessels)){
+            return null;
+        }
 
         if (in_array($selectedVessel, $kapal_kecil)){
             ///// X = kW //////////
@@ -145,7 +145,7 @@ class UploadDinamisController extends Controller
 
         ///// cari koefisien //////
 
-        if ($titik_x_convert !== null && $titik_y_convert !== null) {
+        if (!in_array($selectedVessel, $kapal_konstan)){ 
 
             $koefisien_convert = $this->polyfitQuadratic($titik_x_convert, $titik_y_convert);
 
@@ -164,23 +164,6 @@ class UploadDinamisController extends Controller
             }
         } 
         else {
-            $konstan_sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/SFOC Konstan.xlsx'))->getActiveSheet();
-            $konstan_data = $konstan_sheet->toArray(null, true, true, true);
-
-            $konstan_kurva = [];
-            foreach (array_slice($konstan_data, 1) as $row) {
-                $vessel = strtoupper(trim($row['A']));
-
-                if ($vessel) {
-                    $konstan_kurva[$vessel] = [
-                        'SFOC' => trim($row['B'] ?? ''),
-                        'SATUAN' => trim($row['C'] ?? ''),
-                    ];
-                }
-            }
-
-            $sfoc_konstan_bhp = ['APE', 'ODI'];
-
             if (in_array($selectedVessel, $sfoc_konstan_bhp)){
                 $sfoc_kw = $konstan_kurva[$selectedVessel]['SFOC'] / 0.7457 / $density;
             }
@@ -284,6 +267,7 @@ class UploadDinamisController extends Controller
         $headers = $data[1];
 
         $titik = [];
+        $vessels_titik = [];
 
         foreach ($headers as $col => $header) {
             $parts = explode(' ', trim($header));
@@ -297,14 +281,39 @@ class UploadDinamisController extends Controller
                     }
                 }
 
+                if (!in_array($vessel, $vessels_titik)) {
+                    $vessels_titik[] = strtoupper($vessel);
+                }
+
                 $titik[$vessel][$axis] = $values;
+            }
+        }
+
+        $konstan_sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/SFOC Konstan.xlsx'))->getActiveSheet();
+        $konstan_data = $konstan_sheet->toArray(null, true, true, true);
+
+        $konstan_kurva = [];
+        $vessels_konstan = [];
+
+        foreach (array_slice($konstan_data, 1) as $row) {
+            $vessel = strtoupper(trim($row['A']));
+
+            if ($vessel && !in_array($vessel, $vessels_konstan)) {
+                $konstan_kurva[$vessel] = [
+                    'SFOC' => trim($row['B'] ?? ''),
+                    'SATUAN' => trim($row['C'] ?? ''),
+                ];
+
+                $vessels_konstan[] = $vessel;
             }
         }
 
         $sea_data  = deduplicateByVesselId($normalized);
 
+        $all_vessels = array_unique(array_merge($vessels_titik, $vessels_konstan));
+
         foreach ($sea_data as &$report) {
-            $konsumsi_perhitungan = $this->hitungKonsumsi($report, $titik, $density);
+            $konsumsi_perhitungan = $this->hitungKonsumsi($report, $titik, $density, $konstan_kurva, $all_vessels);
             $report['Konsumsi M/E MFO Perhitungan'] = $konsumsi_perhitungan ?? 'N/A';
             $report['Gap'] = is_numeric($report['Konsumsi M/E MFO Aktual']) && is_numeric($konsumsi_perhitungan) 
                 ? $konsumsi_perhitungan - $report['Konsumsi M/E MFO Aktual']
