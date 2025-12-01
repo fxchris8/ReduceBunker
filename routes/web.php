@@ -8,10 +8,13 @@ use App\Http\Controllers\DetailController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\POController;
 use App\Http\Controllers\BaselineController;
+use App\Http\Controllers\UploadDinamisController;
 
 Route::get('/menu', [BunkerController::class, 'index'])->name('menu');
 
-Route::any('/consumption-analysis', [UploadController::class, 'show'])->name('po.upload');
+Route::any('/consumption-analysis/statis', [UploadController::class, 'show'])->name('po.upload');
+Route::any('/consumption-analysis/dinamis', [UploadDinamisController::class, 'show'])->name('po.upload_dinamis');
+
 // Route::post('/send-email/upload', [UploadController::class, 'upload'])->name('upload.file');
 Route::post('/send-email/send', [UploadController::class, 'sendEmail'])->name('send.email');
 

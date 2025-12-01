@@ -106,13 +106,8 @@ class SummaryController extends Controller
 
     public function show(Request $request)
     {   
-        // Default H-1 dari hari ini
-        $defaultDate = now()->subDay()->format('Y-m-d');
-
-        // Gunakan tanggal dari request kalau ada, kalau tidak pakai default H-1
-        $reportDate = $request->input('report_date', $defaultDate);
-
-        // Format tanggal ke d/m/Y
+        // api
+        $reportDate = $request->input('report_date', date('Y-m-d', strtotime('-1 day')));
         $formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
 
         $basePayload = [

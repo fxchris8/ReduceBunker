@@ -23,7 +23,7 @@
                         <label for="vessel" class="block text-sm font-medium text-gray-700 mb-2">Pilih Vessel:</label>
                         <select id="vessel" name="vessel"
                             class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                            onchange="location.href='{{ route('po.baseline') }}?vessel=' + this.value + '&density={{ request('desnity') }}&power_kw={{ request('power_kw') }}&steam_time={{ request('steam_time') }}'">
+                            onchange="location.href='{{ route('po.baseline') }}?vessel=' + this.value + '&density={{ request('density') }}&power_kw={{ request('power_kw') }}&steam_time={{ request('steam_time') }}'">
                             @foreach($vessels as $vessel)
                                 <option value="{{ $vessel }}" {{ $vessel === $selectedVessel ? 'selected' : '' }}>
                                     {{ $vessel }}
