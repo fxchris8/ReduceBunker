@@ -2,6 +2,13 @@
 
 @section('title', 'Baseline Analysis')
 
+@section('loader')
+<div id="loader" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 hidden">
+    <div class="w-16 h-16 border-4 border-gray-300 border-t-red-300 rounded-full animate-spin"></div>
+    <p class="mt-4 text-red-600 font-semibold">Loading...</p>
+</div>
+@endsection
+
 @section('content')
 
 <div class="container mx-auto py-6 px-4">

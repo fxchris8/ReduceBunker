@@ -88,7 +88,7 @@ class BaselineController extends Controller
 
     public function show(Request $request)
     { 
-        $selectedVessel = $request->input('vessel') ?? 'HSA';
+        $selectedVessel = $request->input('vessel') ?? 'AKA';
         $density = $request->input('density') ?? 950;
 
         $power_kw = $request->input('power_kw');

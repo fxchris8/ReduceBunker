@@ -4,8 +4,8 @@
 
 @section('loader')
 <div id="loader" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 hidden">
-    <div class="w-16 h-16 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-    <p class="mt-4 text-blue-600 font-semibold">Loading Consumption Analysis...</p>
+    <div class="w-16 h-16 border-4 border-gray-300 border-t-red-600 rounded-full animate-spin"></div>
+    <p class="mt-4 text-red-600 font-semibold">Loading Consumption Analysis...</p>
 </div>
 @endsection
 

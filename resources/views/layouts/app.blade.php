@@ -6,14 +6,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard')</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body class="bg-gray-100">
-    @yield('loader')
+    <!-- Loader -->
     @if (View::hasSection('loader'))
         @yield('loader')
     @else
-        <div id="loader" class="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 hidden">
+        <div id="loader" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 hidden">
             <div class="w-16 h-16 border-4 border-gray-300 border-t-red-600 rounded-full animate-spin"></div>
+            <p class="mt-4 text-red-600 font-semibold">Loading...</p>
         </div>
     @endif
 
@@ -39,8 +42,8 @@
         </footer>
     </div>
 
+    <!-- Script Loader Global -->
     <script>
-        // Fungsi global untuk loader
         function showLoader() {
             document.getElementById("loader").classList.remove("hidden");
         }
@@ -51,27 +54,36 @@
         // Loader otomatis hilang setelah page load
         window.addEventListener("load", hideLoader);
 
-        // Contoh penggunaan dengan jQuery AJAX
-        $(document).on("submit", "#myForm", function(e) {
-            e.preventDefault();
+        window.addEventListener("beforeunload", function() {
             showLoader();
-            $.ajax({
-                url: "/submit",
-                method: "POST",
-                data: $(this).serialize(),
-                success: function(response) {
-                    console.log("Success:", response);
-                },
-                error: function(err) {
-                    console.error("Error:", err);
-                },
-                complete: function() {
-                    hideLoader();
-                }
+        });
+
+        window.addEventListener("pageshow", function() {
+            hideLoader();
+        });
+
+        // Loader untuk semua link internal
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll("a").forEach(function(link) {
+                link.addEventListener("click", function(e) {
+                    if (link.target === "_blank" || link.getAttribute("href").startsWith("#") || link.hostname !== window.location.hostname) {
+                        return;
+                    }
+                    e.preventDefault();
+                    showLoader();
+                    window.location = link.href;
+                });
             });
         });
 
-        // Contoh penggunaan dengan Axios
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll("form").forEach(function(form) {
+                form.addEventListener("submit", function() {
+                    showLoader();
+                });
+            });
+        });
+
         document.addEventListener("DOMContentLoaded", function() {
             const btn = document.getElementById("fetchBtn");
             if (btn) {
@@ -89,19 +101,6 @@
                         });
                 });
             }
-        });
-
-        document.addEventListener("DOMContentLoaded", function() {
-            document.querySelectorAll("a").forEach(function(link) {
-                link.addEventListener("click", function(e) {
-                    if (link.target === "_blank" || link.getAttribute("href").startsWith("#") || link.hostname !== window.location.hostname) {
-                        return;
-                    }
-                    e.preventDefault();
-                    showLoader();
-                    window.location = link.href;
-                });
-            });
         });
     </script>
 </body>
