@@ -168,33 +168,35 @@ class UploadController extends Controller
         $port_data = deduplicateByVesselId($port_data);
         $sea_data  = deduplicateByVesselId($sea_data);
 
+        $sea_index = [];
+        foreach ($sea_data as $sea) {
+            $sea_index[$sea['Vessel ID']] = $sea;
+        }
+
+        $port_sea_data = [];
+        foreach ($port_data as $port) {
+            $vesselId = $port['Vessel ID'];
+            if (isset($sea_index[$vesselId])) {
+                $merged = [];
+
+                // gabungkan port dan sea
+                foreach ($port as $key => $val) {
+                    $merged[$key] = ['port' => $val, 'sea' => $sea_index[$vesselId][$key] ?? null];
+                }
+
+                // tambahkan key yang hanya ada di sea
+                foreach ($sea_index[$vesselId] as $key => $val) {
+                    if (!isset($merged[$key])) {
+                        $merged[$key] = ['port' => null, 'sea' => $val];
+                    }
+                }
+
+                $port_sea_data[] = $merged;
+            }
+        }
 
         $greenColumns = ['BL M/E', 'BL A/E (L/Day)', 'BL L/NM'];
         $analysisColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME MFO L/NM (%)'];
-
-        // $anomaly_port = array_filter($port_data, function ($row) use ($greenColumns, $analysisColumns) {
-        //     $meHsd = $row['M/E HSD'] ?? null;
-        //     $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-        //     $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
-        //     $crane_dur = $row['CRANE DURATION'] ?? null;
-
-        //     foreach ($analysisColumns as $col) {
-        //         if (isset($row[$col]) && is_numeric($row[$col]) && $row[$col] < 0) {
-        //             return true;
-        //         }
-        //     }
-
-        //     if (is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0) {
-        //         return true;
-        //     }
-
-        //     if (is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-        //         $ae_pararel - $maneuvering - $crane_dur > 3) {
-        //         return true;
-        //     }
-
-        //     return false;
-        // });
 
         $colored_port = array_map(function ($row) use ($greenColumns, $analysisColumns) {
             $meHsd = $row['M/E HSD'] ?? null;
@@ -278,30 +280,6 @@ class UploadController extends Controller
             return $newRow;
         }, $port_data);
 
-        // $anomaly_sea = array_filter($sea_data, function ($row) use ($greenColumns, $analysisColumns) {
-        //     $meHsd = $row['M/E HSD'] ?? null;
-        //     $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-        //     $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
-        //     $crane_dur = $row['CRANE DURATION'] ?? null;
-
-        //     foreach ($analysisColumns as $col) {
-        //         if (isset($row[$col]) && is_numeric($row[$col]) && $row[$col] < 0) {
-        //             return true;
-        //         }
-        //     }
-
-        //     if (is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0) {
-        //         return true;
-        //     }
-
-        //     if (is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-        //         $ae_pararel - $maneuvering - $crane_dur > 3) {
-        //         return true;
-        //     }
-
-        //     return false;
-        // });
-
         $colored_sea = array_map(function ($row) use ($greenColumns, $analysisColumns) {
             $meHsd = $row['M/E HSD'] ?? null;
             $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
@@ -384,33 +362,16 @@ class UploadController extends Controller
             return $newRow;
         }, $sea_data);
 
-        $headers_port = [
-            'Vessel ID', 'Tanggal', 'POSITION', 'M/E MFO', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'MANEUVERING TIME (HOURS)',
-            'BOILER HSD', 'BOILER MFO', 'GENSET CONSUMPTION - HSD',
-            'EMERGENCY GENERATOR CONSUMPTION', 'TOTAL CRANE OPERATED', 'CRANE DURATION', 'LOAD A/E 1 (KW)',
-            'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 
-            'REEFER 20"', 'REEFER 40"', 'BL M/E (L/H)',
-            'ME Maneuvering Cons. (L/H)', 'SELISIH ME Maneuvering', 'BL A/E', 'AE Consumption', 'EXCESS AE'
-        ];
 
-        $headers_sea = [
-            'Vessel ID', 'Tanggal', 'DEPARTURE', 'DESTINATION', 'Steam Distance (Miles)',
-            'Steam Time (Hour)', 'Ship Speed (Knots)', 'PROP SLIP', 'ME RPM',
-            'M/E MFO', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'MANEUVERING TIME (HOURS)', 'BOILER HSD',
-            'BOILER MFO', 'GENSET CONSUMPTION - HSD', 'EMERGENCY GENERATOR CONSUMPTION', 'TOTAL CRANE OPERATED', 'CRANE DURATION', 
-            'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)',
-            'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"',
-            'REEFER 40"', 'BL M/E', 'ME Maneuvering Cons. (L/H)',
-            'SELISIH ME Maneuvering', 'BL L/NM', 'L/NM', 'Excess ME MFO L/NM (%)', 'BL A/E', 'AE Consumption', 'EXCESS AE'
-        ];
-
-        session(['headers_port' => $headers_port, 'port_anomaly' => $colored_port, 'headers_sea' => $headers_sea, 'sea_anomaly' => $colored_sea]);
+        session(['port_anomaly' => $colored_port, 'sea_anomaly' => $colored_sea, 'port_sea_data' => $port_sea_data]);
 
         return view('po.upload', [
-            'headers_port' => $headers_port,
+            'headers_port' => array_keys($colored_port[0] ?? []),
             'report14' => $colored_port,
-            'headers_sea' => $headers_sea,
+            'headers_sea' => array_keys($colored_sea[0] ?? []),
             'report16' => $colored_sea,
+            'port_sea_header' => array_keys($port_sea_data[0] ?? []),
+            'port_sea_data' => $port_sea_data
         ]);
     }
 

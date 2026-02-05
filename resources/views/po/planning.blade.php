@@ -57,23 +57,33 @@
                     @if(is_array($headerRows) && count($headerRows) > 0)
                         <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">
                             <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
-                                <thead class="bg-gray-300 sticky top-0 z-10">
+                                <thead class="bg-gray-300 sticky top-0 z-30">
                                     <tr>
+                                        <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                            Vessel ID
+                                        </th>
                                         @foreach($headerRows as $header)
-                                            <th class="px-4 py-2 text-center border-2 border-black 
-                                                {{ in_array($header, ['Pengisian HSD', 'Pengisian MFO']) ? 'bg-green-500 text-white' : '' }}">
-                                                {{ ucfirst($header) }}
-                                            </th>
+                                            @if($header !== 'Vessel ID')
+                                                <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30 
+                                                    {{ in_array($header, ['Pengisian HSD', 'Pengisian MFO']) ? 'bg-green-500 text-white' : '' }}">
+                                                    {{ ucfirst($header) }}
+                                                </th>
+                                            @endif
                                         @endforeach
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="divide-y divide-gray-200">
                                     @foreach($report as $index => $row)
                                         <tr class="text-center odd:bg-white even:bg-gray-200">
-                                            @foreach($headerRows as $header)
-                                                <td class="px-4 py-2 text-center border-2 border-black">
-                                                    {{ is_numeric($row[$header] ?? null) ? number_format($row[$header], 2, '.', ',') : ($row[$header] ?? '') }}
-                                                </td>
+                                            <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                                {{ $row['Vessel ID'] }}
+                                            </td>
+                                            @foreach($headerRows as $colIndex => $header)
+                                                @if($header !== 'Vessel ID')
+                                                    <td class="px-4 py-2 text-center border border-black">
+                                                        {{ is_numeric($row[$header] ?? null) ? number_format($row[$header], 2, '.', ',') : ($row[$header] ?? '') }}
+                                                    </td>
+                                                @endif
                                             @endforeach
                                         </tr>
                                     @endforeach

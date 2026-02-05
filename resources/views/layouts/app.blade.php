@@ -8,9 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-100">
-    <!-- Loader -->
+
     @if (View::hasSection('loader'))
         @yield('loader')
     @else
@@ -20,24 +22,47 @@
         </div>
     @endif
 
-    <div class="min-h-screen flex flex-col">
-        <!-- Navbar -->
-        <nav class="bg-red-600 text-white py-4">
-            <div class="container mx-auto px-4 flex justify-between items-center">
-                <a href="{{ url('/') }}" class="text-lg font-bold">Bunker App</a>
-                <div>
-                    <a href="/menu" class="px-4 py-2 hover:underline font-bold">Menu</a>
-                </div>
-            </div>
-        </nav>
+    <aside class="hidden md:flex fixed top-0 left-0 w-64 h-screen bg-gray-200 flex-col py-6 overflow-y-auto z-40">
+        <!-- Logo -->
+        <div class="px-6 mb-10">
+            <a href="{{ url('/') }}" class="flex items-center gap-3 w-full overflow-hidden">
+                <img src="{{ asset('images/logo.svg') }}" alt="Logo" class="w-10 h-10 flex-shrink-0">
+                <span class="text-xl font-bold text-red-600 truncate">Bunker App</span>
+            </a>
+        </div>
 
+        <!-- Menu -->
+        <nav class="flex-1 px-6 space-y-4">
+            <p class="text-sm text-gray-500 uppercase">Menu</p>
+
+            <a href="{{ url('/') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->is('/') ? 'font-bold underline' : '' }}">
+               <i class="fas fa-tachometer-alt"></i> Home / Dashboard
+            </a>
+            <a href="{{ url('consumption-analysis/statis') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->is('consumption-analysis/*') ? 'font-bold underline' : '' }}">
+               <i class="fas fa-chart-line"></i> Consumption Analysis
+            </a>
+            <a href="{{ url('refueling-planning') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->is('refueling-planning') ? 'font-bold underline' : '' }}">
+               <i class="fas fa-gas-pump"></i> Refueling Planning
+            </a>
+            <a href="{{ url('baseline-analysis') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->is('baseline-analysis') ? 'font-bold underline' : '' }}">
+               <i class="fas fa-balance-scale"></i> Baseline Analysis
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Layout -->
+    <div class="min-h-screen flex flex-col ml-64">
         <!-- Content -->
-        <main class="flex-1">
+        <main class="flex-1 p-6">
             @yield('content')
         </main>
 
         <!-- Footer -->
-        <footer class="bg-gray-200 text-center py-4 mt-6 text-gray-600">
+        <footer class="bg-gray-200 text-center py-4 text-gray-600 mt-auto">
             &copy; {{ date('Y') }} Bunker App. All Rights Reserved.
         </footer>
     </div>
@@ -51,18 +76,10 @@
             document.getElementById("loader").classList.add("hidden");
         }
 
-        // Loader otomatis hilang setelah page load
         window.addEventListener("load", hideLoader);
+        window.addEventListener("beforeunload", function() { showLoader(); });
+        window.addEventListener("pageshow", function() { hideLoader(); });
 
-        window.addEventListener("beforeunload", function() {
-            showLoader();
-        });
-
-        window.addEventListener("pageshow", function() {
-            hideLoader();
-        });
-
-        // Loader untuk semua link internal
         document.addEventListener("DOMContentLoaded", function() {
             document.querySelectorAll("a").forEach(function(link) {
                 link.addEventListener("click", function(e) {
@@ -74,33 +91,12 @@
                     window.location = link.href;
                 });
             });
-        });
 
-        document.addEventListener("DOMContentLoaded", function() {
             document.querySelectorAll("form").forEach(function(form) {
                 form.addEventListener("submit", function() {
                     showLoader();
                 });
             });
-        });
-
-        document.addEventListener("DOMContentLoaded", function() {
-            const btn = document.getElementById("fetchBtn");
-            if (btn) {
-                btn.addEventListener("click", function() {
-                    showLoader();
-                    axios.get("/api/data")
-                        .then(function(response) {
-                            console.log("Data:", response.data);
-                        })
-                        .catch(function(error) {
-                            console.error("Error:", error);
-                        })
-                        .finally(function() {
-                            hideLoader();
-                        });
-                });
-            }
         });
     </script>
 </body>

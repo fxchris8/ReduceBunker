@@ -183,9 +183,19 @@ class SummaryController extends Controller
         }
 
         $fleetCounts = [];
+        foreach ($fleetMap as $vessel => $fleet) {
+            $fleetCounts[$fleet] = 0;
+        }
+
+        $unknownVessels = [];
+
         foreach ($uniqueVesselIds as $vessel) {
             $fleet = $fleetMap[$vessel] ?? 'UNKNOWN';
             $fleetCounts[$fleet] = ($fleetCounts[$fleet] ?? 0) + 1;
+
+            if ($fleet === 'UNKNOWN') {
+                $unknownVessels[] = $vessel; 
+            }
         }
         ksort($fleetCounts);
 
@@ -427,6 +437,7 @@ class SummaryController extends Controller
             'details_time_sea'                => $getExcessTimeDetails($sea_data),
             'details_minus_port'              => $details_minus_port,
             'details_minus_sea'               => $details_minus_sea,
+            'unknown_vessels'                 => $unknownVessels,
         ]);
 
         return view('dashboard', compact(
@@ -440,6 +451,7 @@ class SummaryController extends Controller
             'count_time_sea',
             'count_minus_port',
             'count_minus_sea',
+            'unknownVessels',
         ));
     }
 }

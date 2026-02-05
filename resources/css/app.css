@@ -32,3 +32,25 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Freeze header (thead) */
+table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f3f4f6; /* warna latar agar tidak transparan */
+    z-index: 20; /* pastikan di atas body */
+}
+
+/* Freeze kolom pertama (Vessel ID) */
+table th:first-child,
+table td:first-child {
+    position: sticky;
+    left: 0;
+    background-color: #fff; /* warna latar agar tidak transparan */
+    z-index: 10; /* agar tidak tertutup kolom lain */
+}
+
+/* Jika ingin kolom pertama header lebih kuat */
+table thead th:first-child {
+    z-index: 30;
+}

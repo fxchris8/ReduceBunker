@@ -23,30 +23,23 @@
                 </div>
             @endif
 
-            <div class="px-4 py-4 grid grid-cols-2 gap-4">
-                <!-- Kolom Statis -->
-                <div>
-                    <a href="{{ url('/consumption-analysis/statis') }}"
-                       class="w-full py-4 px-6 text-lg text-center block
-                              {{ request()->is('consumption-analysis/statis') 
-                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                  : 'bg-blue-300 text-gray-700' }}
-                              font-semibold rounded-md transition">
-                        Statis
-                    </a>
-                </div>
-
-                <!-- Kolom Dinamis -->
-                <div>
-                    <a href="{{ url('/consumption-analysis/dinamis') }}"
-                       class="w-full py-4 px-6 text-lg text-center block
-                              {{ request()->is('consumption-analysis/dinamis') 
-                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                  : 'bg-blue-300 text-gray-700' }}
-                              font-semibold rounded-md transition">
-                        Dinamis
-                    </a>
-                </div>
+            <div class="px-4 py-2 rounded-md text-lg">
+                <label for="analysis_type" class="block text-sm font-medium text-gray-700 mb-1">    
+                    Baseline
+                </label>
+                <select id="analysis_type"
+                        class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                        onchange="if(this.value) window.location.href=this.value;">
+                    <option value="">-- Pilih Jenis Baseline --</option>
+                    <option value="{{ url('/consumption-analysis/statis') }}"
+                        {{ request()->is('consumption-analysis/statis') ? 'selected' : '' }}>
+                        Baseline Statis
+                    </option>
+                    <option value="{{ url('/consumption-analysis/dinamis') }}"
+                        {{ request()->is('consumption-analysis/dinamis') ? 'selected' : '' }}>
+                        Baseline Dinamis
+                    </option>
+                </select>
             </div>
 
             <div class="px-4 py-2 rounded-md text-lg">
@@ -62,101 +55,261 @@
             @if((is_array($report14)) || is_array($report16))
                 <form action="{{ route('send.email') }}" method="POST">
                     @csrf
-                    <div class="mt-3 px-4 py-2 rounded-md text-lg font-bold mb-4">
-                        <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">At PORT</h2>
-                    </div>
+                    <div x-data="{ compact: true }">
+                        <div class="mt-3 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
+                            <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
+                                At PORT
+                            </h2>
+                            <!-- Switch -->
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-gray-700">Ringkas</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" x-model="compact" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
+                                                peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                                after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
+                                                peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                </label>
+                            </div>
+                        </div>
 
-                    <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                        @if(!empty($report14))
-                            @php
-                                $excludedHeaders_port = [
-                                    'DEPARTURE PORT',
-                                    'DESTINATION',
-                                    'STEAM. DIST.',
-                                    'STEAM TIME (HOUR : MINUTE)',
-                                    'SHIP SPEED',
-                                    'PROPELLER SLIP',
-                                    'ME RPM',
-                                    'BL L/NM',
-                                    'L/NM',
-                                    'EXCESS ME MFO L/NM (%)'
-                                ];
-                            @endphp
+                        <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
+                            @if(!empty($report14))
+                                @php
+                                    $excludedHeaders_port = [
+                                        'DEPARTURE PORT','DESTINATION','STEAM. DIST.','STEAM TIME (HOUR : MINUTE)',
+                                        'SHIP SPEED','PROPELLER SLIP','ME RPM','BL L/NM','L/NM','EXCESS ME MFO L/NM (%)'
+                                    ];
+                                    $compactHeaders_port = ['tanggal','POSITION', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'GENSET CONSUMPTION - HSD', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION', 
+                                                            'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)',
+                                                            'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"', 'BL M/E', 'ME Maneuvering Cons. (L/H)',
+                                                            'SELISIH ME Maneuvering', 'BL A/E (L/Day)', 'AE Consumption', 'EXCESS AE'
+                                    ];
+                                @endphp
 
-                            <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
-                                <thead class="bg-gray-300 sticky top-0 z-10">
-                                    <tr>
-                                        @foreach($headers_port as $header)
-                                            @if(!in_array($header, $excludedHeaders_port))
-                                                <th class="px-4 py-2 text-center border-2 border-black">{{ ucfirst($header) }}</th>
-                                            @endif
-                                        @endforeach
-                                        <th class="px-4 py-2 text-center border-2 border-black">Pilih</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($report14 as $index => $row)
-                                        <tr class="text-center odd:bg-white even:bg-gray-200">
-                                            @foreach ($row as $colIndex => $cell)
-                                                @if(!in_array($colIndex, $excludedHeaders_port))
-                                                    <td class="px-4 py-2 text-center border-2 border-black {{ $cell['class'] }}">
-                                                        {{ $colIndex === 0 ? $cell['value'] : (is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value']) }}
-                                                    </td>
+                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                    <thead class="bg-gray-300 sticky top-0 z-30">
+                                        <tr>
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                                Vessel ID
+                                            </th>
+                                            @foreach($headers_port as $header)
+                                                @if($header !== 'Vessel ID' && !in_array($header, $excludedHeaders_port))
+                                                    @php $isCompact = in_array($header, $compactHeaders_port); @endphp
+                                                    <th x-show="!compact || $el.dataset.compact === 'true'"
+                                                        data-compact="{{ $isCompact ? 'true' : 'false' }}"
+                                                        class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                                        {{ ucfirst($header) }}
+                                                    </th>
                                                 @endif
                                             @endforeach
-                                            <td class="px-4 py-2 text-center border-2 border-black">
-                                                <input type="checkbox" name="selected_rows_port[]" value="{{ $index }}" class="form-checkbox">
-                                            </td>
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">Pilih</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        @else
-                            <p class="text-center py-4">Tidak ada data untuk At Port.</p>
-                        @endif
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach($report14 as $index => $row)
+                                            <tr class="text-center odd:bg-white even:bg-gray-200">
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                                    {{ $row['Vessel ID']['value'] }}
+                                                </td>
+                                                @foreach ($row as $colIndex => $cell)
+                                                    @if($colIndex !== 'Vessel ID' && !in_array($colIndex, $excludedHeaders_port))
+                                                        @php $isCompact = in_array($colIndex, $compactHeaders_port); @endphp
+                                                        <td x-show="!compact || $el.dataset.compact === 'true'"
+                                                            data-compact="{{ $isCompact ? 'true' : 'false' }}"
+                                                            class="px-4 py-2 text-center border border-black {{ $cell['class'] }}">
+                                                            {{ is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value'] }}
+                                                        </td>
+                                                    @endif
+                                                @endforeach
+                                                <td class="px-4 py-2 text-center border border-black">
+                                                    <input type="checkbox" name="selected_rows_port[]" value="{{ $index }}" class="form-checkbox">
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @else
+                                <p class="text-center py-4">Tidak ada data untuk At Port.</p>
+                            @endif
+                        </div>
                     </div>
 
-                    <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4">
-                        <h2 class="text-xl font-semibold text-blue-700 bg-blue-100 inline-block px-2 rounded">At SEA</h2>
-                    </div>
-                    <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                        @if(!empty($report16))
-                            @php
-                                $excludedHeaders_sea = [
-                                    'POSITION'
-                                ];
-                            @endphp
-                            <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
-                                <thead class="bg-gray-300 sticky top-0 z-10">
-                                    <tr>
-                                        @foreach($headers_sea as $header)
-                                            @if(!in_array($header, $excludedHeaders_sea))
-                                                <th class="px-4 py-2 text-center border-2 border-black">{{ ucfirst($header) }}</th>
-                                            @endif
-                                        @endforeach
-                                        <th class="px-4 py-2 text-center border-2 border-black">Pilih</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($report16 as $index => $row)
-                                        <tr class="text-center odd:bg-white even:bg-gray-200">
-                                            @foreach ($row as $colIndex => $cell)
-                                                @if(!in_array($colIndex, $excludedHeaders_sea))
-                                                    <td class="px-4 py-2 text-center border-2 border-black {{ $cell['class'] }}">
-                                                        {{ $colIndex === 0 ? $cell['value'] : (is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value']) }}
-                                                    </td>
+                    <div x-data="{ compact: true }">
+                        <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
+                            <h2 class="text-xl font-semibold text-blue-700 bg-blue-100 inline-block px-2 rounded">
+                                At SEA
+                            </h2>
+                            <!-- Switch -->
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-gray-700">Ringkas</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" x-model="compact" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
+                                                peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                                after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
+                                                peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
+                            @if(!empty($report16))
+                                @php
+                                    // kolom yang selalu di-exclude
+                                    $excludedHeaders_sea = ['POSITION'];
+
+                                    // kolom tambahan yang hanya ditampilkan saat compact = true
+                                    $compactHeaders_sea = ['tanggal','DEPARTURE PORT', 'DESTINATION', 'STEAM. DIST.', 'STEAM TIME (HOUR : MINUTE)', 
+                                                            'M/E MFO', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'GENSET CONSUMPTION - HSD', 'MANEUVERING TIME (HOURS)', 
+                                                            'CRANE DURATION', 'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)',
+                                                            'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"', 'BL M/E', 'ME Maneuvering Cons. (L/H)',
+                                                            'SELISIH ME Maneuvering', 'BL L/NM', 'L/NM', 'EXCESS ME MFO L/NM (%)',
+                                                            'BL A/E (L/Day)', 'AE Consumption', 'EXCESS AE',
+                                    ];
+                                @endphp
+
+                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                    <thead class="bg-gray-300 sticky top-0 z-30">
+                                        <tr>
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                                Vessel ID
+                                            </th>
+                                            @foreach($headers_sea as $header)
+                                                @if($header !== 'Vessel ID' && !in_array($header, $excludedHeaders_sea))
+                                                    @php $isCompact = in_array($header, $compactHeaders_sea); @endphp
+                                                    <th x-show="!compact || $el.dataset.compact === 'true'"
+                                                        data-compact="{{ $isCompact ? 'true' : 'false' }}"
+                                                        class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                                        {{ ucfirst($header) }}
+                                                    </th>
                                                 @endif
                                             @endforeach
-                                            <td class="px-4 py-2 text-center border-2 border-black">
-                                                <input type="checkbox" name="selected_rows_sea[]" value="{{ $index }}" class="form-checkbox">
-                                            </td>
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">Pilih</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        @else
-                            <p class="text-center py-4">Tidak ada data untuk At Sea.</p>
-                        @endif
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach($report16 as $index => $row)
+                                            <tr class="text-center odd:bg-white even:bg-gray-200">
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                                    {{ $row['Vessel ID']['value'] }}
+                                                </td>
+                                                @foreach ($row as $colIndex => $cell)
+                                                    @if($colIndex !== 'Vessel ID' && !in_array($colIndex, $excludedHeaders_sea))
+                                                        @php $isCompact = in_array($colIndex, $compactHeaders_sea); @endphp
+                                                        <td x-show="!compact || $el.dataset.compact === 'true'"
+                                                            data-compact="{{ $isCompact ? 'true' : 'false' }}"
+                                                            class="px-4 py-2 text-center border border-black {{ $cell['class'] }}">
+                                                            {{ is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value'] }}
+                                                        </td>
+                                                    @endif
+                                                @endforeach
+                                                <td class="px-4 py-2 text-center border border-black">
+                                                    <input type="checkbox" name="selected_rows_sea[]" value="{{ $index }}" class="form-checkbox">
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @else
+                                <p class="text-center py-4">Tidak ada data untuk At Sea.</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div x-data="{ compact: true }">
+                        <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
+                            <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
+                                Port & Sea
+                            </h2>
+                            <!-- Switch -->
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-gray-700">Ringkas</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" x-model="compact" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
+                                                peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                                after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
+                                                peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
+                            @if(!empty($port_sea_data))
+                                @php
+                                    $compactHeaders_port_sea = array_values(array_unique(array_merge($compactHeaders_port, $compactHeaders_sea)));
+                                @endphp
+
+                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                    <thead class="bg-gray-300 sticky top-0 z-30">
+                                        <tr>
+                                            <!-- Freeze Vessel ID -->
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                                Vessel ID
+                                            </th>
+                                            @foreach($port_sea_header as $header)
+                                                @if($header !== 'Vessel ID')
+                                                    @php $isCompact = in_array($header, $compactHeaders_port_sea); @endphp
+                                                    <th x-show="!compact || $el.dataset.compact === 'true'"
+                                                        data-compact="{{ $isCompact ? 'true' : 'false' }}"
+                                                        class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                                        {{ ucfirst($header) }}
+                                                    </th>
+                                                @endif
+                                            @endforeach
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">Pilih</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach($port_sea_data as $index => $row)
+                                            {{-- Baris Port --}}
+                                            <tr class="text-center odd:bg-white even:bg-gray-200">
+                                                <!-- Freeze Vessel ID -->
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                                    {{ $row['Vessel ID']['port'] ?? '' }}
+                                                </td>
+                                                @foreach ($row as $colIndex => $cell)
+                                                    @if($colIndex !== 'Vessel ID')
+                                                        @php $isCompact = in_array($colIndex, $compactHeaders_port_sea); @endphp
+                                                        <td x-show="!compact || $el.dataset.compact === 'true'"
+                                                            data-compact="{{ $isCompact ? 'true' : 'false' }}"
+                                                            class="px-4 py-2 text-center border border-black">
+                                                            {{ is_numeric($cell['port']) ? number_format($cell['port'], 2, '.', ',') : $cell['port'] }}
+                                                        </td>
+                                                    @endif
+                                                @endforeach
+                                                <td class="px-4 py-2 text-center border border-black">
+                                                    <input type="checkbox" name="selected_rows_port_sea_port[]" value="{{ $index }}" class="form-checkbox">
+                                                </td>
+                                            </tr>
+                                            {{-- Baris Sea --}}
+                                            <tr class="text-center odd:bg-white even:bg-gray-200">
+                                                <!-- Freeze Vessel ID -->
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                                    {{ $row['Vessel ID']['sea'] ?? '' }}
+                                                </td>
+                                                @foreach ($row as $colIndex => $cell)
+                                                    @if($colIndex !== 'Vessel ID')
+                                                        @php $isCompact = in_array($colIndex, $compactHeaders_port_sea); @endphp
+                                                        <td x-show="!compact || $el.dataset.compact === 'true'"
+                                                            data-compact="{{ $isCompact ? 'true' : 'false' }}"
+                                                            class="px-4 py-2 text-center border border-black">
+                                                            {{ is_numeric($cell['sea']) ? number_format($cell['sea'], 2, '.', ',') : $cell['sea'] }}
+                                                        </td>
+                                                    @endif
+                                                @endforeach
+                                                <td class="px-4 py-2 text-center border border-black">
+                                                    <input type="checkbox" name="selected_rows_port_sea_sea[]" value="{{ $index }}" class="form-checkbox">
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            @else
+                                <p class="text-center py-4">Tidak ada data untuk Port & Sea.</p>
+                            @endif
+                        </div>
                     </div>
 
                     <div class="mt-6 flex justify-end">

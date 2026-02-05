@@ -128,9 +128,6 @@ class UploadDinamisController extends Controller
             $titik_y_convert = array_map(fn($y) => $y / 0.7457 / $density, $titik_y_ori_raw);
         }
         elseif (in_array($selectedVessel, $kapal_konstan)){
-            ///// X = kW //////
-            ///// Y = g/BHP/hr //////
-
             $titik_x_convert = null;
             $titik_y_convert = null;
         }
@@ -168,22 +165,11 @@ class UploadDinamisController extends Controller
                 $sfoc_kw = $konstan_kurva[$selectedVessel]['SFOC'] / 0.7457 / $density;
             }
             else {
-                $sfoc_kw = $konstan_kurva[$selectedVessel]['SFOC'] / $density ?? null;
+                $sfoc_kw = $konstan_kurva[$selectedVessel]['SFOC'] / $density;
             }
 
             $konsumsi = $sfoc_kw * $power_kw * $steam_time;
         }
-
-        // // fitting kurva
-        // $koef = $this->polyfitQuadratic($titik_x_convert, $titik_y_convert);
-        // [$a, $b, $c] = $koef;
-
-        // // hitung sfoc pada power_kw
-        // $sfoc_kw = $a * ($power_kw ** 2) + $b * $power_kw + $c;
-
-        // // hitung konsumsi
-        // $konsumsi = ceil($sfoc_kw * $power_kw * $steam_time);
-
         return $konsumsi;
     }
 
@@ -308,129 +294,106 @@ class UploadDinamisController extends Controller
             }
         }
 
+        $power_sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/power.xlsx'))->getActiveSheet();
+        $power_data = $power_sheet->toArray(null, true, true, true);
+
+        $power = [];
+
+        foreach (array_slice($power_data, 1) as $row) {
+            $vessel = strtoupper(trim($row['A']));
+
+            if ($vessel) {
+                $power[$vessel] = [
+                    'RPM' => floatval(trim($row['B'] ?? '0')),
+                    'KW' => floatval(trim($row['C'] ?? '0')),
+                ];
+            }
+        }
+
         $sea_data  = deduplicateByVesselId($normalized);
 
         $all_vessels = array_unique(array_merge($vessels_titik, $vessels_konstan));
 
         foreach ($sea_data as &$report) {
-            $konsumsi_perhitungan = $this->hitungKonsumsi($report, $titik, $density, $konstan_kurva, $all_vessels);
-            $report['Konsumsi M/E MFO Perhitungan'] = $konsumsi_perhitungan ?? 'N/A';
-            $report['Gap'] = is_numeric($report['Konsumsi M/E MFO Aktual']) && is_numeric($konsumsi_perhitungan) 
-                ? $konsumsi_perhitungan - $report['Konsumsi M/E MFO Aktual']
-                : 'N/A';
-            $report['Error'] = is_numeric($report['Konsumsi M/E MFO Aktual']) && is_numeric($konsumsi_perhitungan) && $konsumsi_perhitungan != 0
-                ? round((($konsumsi_perhitungan - $report['Konsumsi M/E MFO Aktual']) / $konsumsi_perhitungan) * 100, 2) . ' %'
-                : 'N/A';
+            $vesselId = strtoupper(trim($report['Vessel ID']));
+            $dayaMe   = floatval($report['DAYA ME (KW)']);
+            $powerKw  = $power[$vesselId]['KW'] ?? 0;
+            $konsumsi_aktual = floatval($report['Konsumsi M/E MFO Aktual']);
+
+            $report['Konsumsi M/E MFO Perhitungan'] = '';
+            $report['Gap'] = '';
+            $report['Error'] = '';
+
+            if ($dayaMe <= $powerKw && $powerKw > 0 && $konsumsi_aktual > 0) {
+                $konsumsi_perhitungan = $this->hitungKonsumsi($report, $titik, $density, $konstan_kurva, $all_vessels);
+                $report['Konsumsi M/E MFO Perhitungan'] = $konsumsi_perhitungan ?? '';
+                $report['Gap'] = is_numeric($report['Konsumsi M/E MFO Aktual']) && is_numeric($konsumsi_perhitungan)
+                    ? $konsumsi_perhitungan - $report['Konsumsi M/E MFO Aktual']
+                    : 'Tidak ada data kurva';
+                $report['Error'] = is_numeric($report['Konsumsi M/E MFO Aktual']) && is_numeric($konsumsi_perhitungan) && $konsumsi_perhitungan != 0
+                    ? round((($konsumsi_perhitungan - $report['Konsumsi M/E MFO Aktual']) / $konsumsi_perhitungan) * 100, 2) . ' %'
+                    : '';
+            }
         }
 
-        // $greenColumns = ['BL M/E', 'BL A/E (L/Day)', 'BL L/NM'];
-        // $analysisColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME MFO L/NM (%)'];
+        $colored_sea = array_map(function ($row) use ($power) {
+            $vesselId = strtoupper(trim($row['Vessel ID'] ?? ''));
+            $dayaMe   = floatval($row['DAYA ME (KW)'] ?? 0);
+            $powerKw  = $power[$vesselId]['KW'] ?? 0;
+            $konsumsi_aktual = floatval($row['Konsumsi M/E MFO Aktual'] ?? 0);
 
-        // $anomaly_sea = array_filter($sea_data, function ($row) use ($greenColumns, $analysisColumns) {
-        //     $meHsd = $row['M/E HSD'] ?? null;
-        //     $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-        //     $ae_pararel = $row['AE PARAREL DURATION'] ?? null;
-        //     $crane_dur = $row['CRANE DURATION'] ?? null;
+            $rawGap = $row['Gap'] ?? null;
+            $selisih_aktual_baseline = ($rawGap === '' || $rawGap === null);
+            $tidak_ada_kurva = ($rawGap === 'Tidak ada data kurva');
 
-        //     foreach ($analysisColumns as $col) {
-        //         if (isset($row[$col]) && is_numeric($row[$col]) && $row[$col] < 0) {
-        //             return true;
-        //         }
-        //     }
+            $newRow = [];
+            foreach ($row as $key => $value) {
+                $class = '';
+                $message = '';
 
-        //     if (is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0) {
-        //         return true;
-        //     }
+                if ($key === 'DAYA ME (KW)') {
+                    if ($dayaMe == 0.0) {
+                        $class = ' bg-red-200 font-semibold';
+                        $message = 'DAYA ME kosong (0)';
+                    }
+                    elseif ($dayaMe < $powerKw) {
+                        $class = '';
+                        $message = 'DAYA ME lebih kecil dari baseline power';
+                    } elseif ($selisih_aktual_baseline && $powerKw > 0) {
+                        $diffRatio = abs($dayaMe - $powerKw) / $powerKw;
+                        if ($diffRatio >= 0.1) {
+                            $class = ' bg-red-200 font-semibold';
+                            $message = 'Perbedaan ≥ 10% dari baseline power';
+                        } else {
+                            $class = ' bg-yellow-200 font-semibold';
+                            $message = 'Perbedaan < 10% dari baseline power';
+                        }
+                    }
+                }
 
-        //     if (is_numeric($ae_pararel) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-        //         $ae_pararel - $maneuvering - $crane_dur > 3) {
-        //         return true;
-        //     }
+                if ($key === 'Konsumsi M/E MFO Aktual') {
+                    if ($konsumsi_aktual == 0) {
+                        $class = ' bg-red-200 font-semibold';
+                        $message = 'Konsumsi aktual kosong (0)';
+                    }
+                }
 
-        //     return false;
-        // });
+                if ($key === 'Gap') {
+                    if ($tidak_ada_kurva) {
+                        $class = ' bg-yellow-200 font-semibold';
+                        $message = 'Tidak ada data kurva';
+                    }
+                }
 
-        // $colored_sea = array_map(function ($row) use ($greenColumns, $analysisColumns) {
-        //     $meHsd = $row['M/E HSD'] ?? null;
-        //     $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-        //     $crane_dur = $row['CRANE DURATION'] ?? null;
+                $newRow[$key] = [
+                    'value' => $value,
+                    'class' => $class,
+                    'message' => $message
+                ];
+            }
 
-        //     $load_1 = $row['LOAD A/E 1 (KW)'] ?? null;
-        //     $load_2 = $row['LOAD A/E 2 (KW)'] ?? null;
-        //     $load_3 = $row['LOAD A/E 3 (KW)'] ?? null;
-        //     $load_4 = $row['LOAD A/E 4 (KW)'] ?? null;
-            
-        //     $ae_par_dur = $row['AE PARAREL DURATION'] ?? null;
-
-        //     $me_without_manuev_Condition = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
-            
-        //     $excess_ae_par_dur_Condition = is_numeric($ae_par_dur) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-        //                     ($ae_par_dur - $maneuvering - $crane_dur > 3);
-
-        //     // Condition untuk multiple loads dengan AE PARAREL DURATION = 0
-        //     $loads = [$load_1, $load_2, $load_3, $load_4];
-        //     $activeLoads = array_filter($loads, fn($v) => is_numeric($v) && $v > 0);
-        //     $isLoadCondition = count($activeLoads) > 1 && is_numeric($ae_par_dur) && $ae_par_dur == 0;
-
-        //     // Condition untuk multiple loads dengan nilai berbeda
-        //     $isLoadDifferentCondition = false;
-        //     if (count($activeLoads) > 1) {
-        //         $uniqueValues = array_unique($activeLoads);
-        //         if (count($uniqueValues) > 1) {
-        //             $isLoadDifferentCondition = true;
-        //         }
-        //     }
-
-        //     // Condition untuk single load dengan AE PARAREL DURATION != 0
-        //     $isSingleLoadCondition = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
-
-        //     // Condition untuk AE Pararel Duration = 24
-        //     $is24HoursAePararelCondition = is_numeric($ae_par_dur) && $ae_par_dur == 24;
-
-        //     $newRow = [];
-        //     foreach ($row as $key => $value) {
-        //         $class = '';
-
-        //         if (in_array($key, $greenColumns)) {
-        //             $class .= ' bg-green-200 font-semibold';
-        //         }
-
-        //         if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
-        //             $class .= ' bg-red-200 font-semibold';
-        //         }
-
-        //         if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
-        //             $class .= ' bg-yellow-200 font-semibold';
-        //         }
-
-        //         if ($excess_ae_par_dur_Condition && in_array($key, ['AE PARAREL DURATION', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION'])) {
-        //             $class .= ' bg-blue-200 font-semibold';
-        //         }
-
-        //         if ($isLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-        //             $class .= ' bg-yellow-200 font-semibold';
-        //         }
-
-        //         if ($isLoadDifferentCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-        //             $class .= ' bg-yellow-200 font-semibold';
-        //         }
-
-        //         if ($isSingleLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-        //             $class .= ' bg-yellow-200 font-semibold';
-        //         }
-
-        //         if ($is24HoursAePararelCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-        //             $class .= ' bg-yellow-200 font-semibold';
-        //         }
-
-        //         $newRow[$key] = [
-        //             'value' => $value,
-        //             'class' => $class
-        //         ];
-        //     }
-
-        //     return $newRow;
-        // }, $sea_data);
+            return $newRow;
+        }, $sea_data);
 
         $headers_sea = [
             'Vessel ID', 'Tanggal', 'DEPARTURE', 'DESTINATION', 'Steam Distance (Miles)',
@@ -438,12 +401,13 @@ class UploadDinamisController extends Controller
             'Konsumsi M/E MFO Aktual', 'Konsumsi M/E MFO Perhitungan', 'Gap', 'Error'
         ];
 
-        session(['headers_sea' => $headers_sea, 'sea_anomaly' => $sea_data, 'report_date' => $reportDate, 'density' => $density]);
+        session(['headers_sea' => $headers_sea, 'sea_anomaly' => $sea_data, 'report_date' => $reportDate, 'density' => $density, 'colored_sea' => $colored_sea]);
 
         return view('po.upload_dinamis', [
             'headers_sea' => $headers_sea,
             'report16' => $sea_data,
             'density' => $density,
+            'colored_sea' => $colored_sea,
         ]);
     }
 

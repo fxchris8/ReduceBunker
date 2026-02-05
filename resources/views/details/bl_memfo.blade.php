@@ -13,25 +13,25 @@
                 <table class="table-fixed w-full divide-y divide-gray-200 text-sm text-center rounded border">
                     <thead class="bg-gray-300 sticky top-0 z-10">
                         <tr>
-                            <th class="px-4 py-2 text-center border-2 border-black">Vessel</th>
-                            <th class="px-4 py-2 text-center border-2 border-black">Steam Distance (Miles)</th>
-                            <th class="px-4 py-2 text-center border-2 border-black">Steam Time (Hour)</th>
-                            <th class="px-4 py-2 text-center border-2 border-black">ME MFO</th>
-                            <th class="px-4 py-2 text-center border-2 border-black">BL L/Nm</th>
-                            <th class="px-4 py-2 text-center border-2 border-black">L/NM</th>
-                            <th class="px-4 py-2 text-center border-2 border-black">EXCESS ME MFO L/NM (%)</th>
+                            <th class="px-4 py-2 text-center border border-black">Vessel</th>
+                            <th class="px-4 py-2 text-center border border-black">Steam Distance (Miles)</th>
+                            <th class="px-4 py-2 text-center border border-black">Steam Time (Hour)</th>
+                            <th class="px-4 py-2 text-center border border-black">ME MFO</th>
+                            <th class="px-4 py-2 text-center border border-black">BL L/Nm</th>
+                            <th class="px-4 py-2 text-center border border-black">L/NM</th>
+                            <th class="px-4 py-2 text-center border border-black">EXCESS ME MFO L/NM (%)</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($details as $row)
                             <tr class="text-center odd:bg-white even:bg-gray-200">
-                                <td class="px-4 py-2 text-center border-2 border-black">{{ $row['vessel'] }}</td>
-                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['steam_distance'], 2, '.', ',') }}</td>
-                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['steam_time'], 2, '.', ',') }}</td>
-                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['me_mfo'], 2, '.', ',') }}</td>
-                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['bl_l_nm'], 2, '.', ',') }}</td>
-                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['l_nm'], 2, '.', ',') }}</td>
-                                <td class="px-4 py-2 text-center border-2 border-black">{{ number_format($row['excess_me_mfo_l_nm'], 0, '.', ',') }}%</td>
+                                <td class="px-4 py-2 text-center border border-black">{{ $row['vessel'] }}</td>
+                                <td class="px-4 py-2 text-center border border-black">{{ number_format($row['steam_distance'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border border-black">{{ number_format($row['steam_time'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border border-black">{{ number_format($row['me_mfo'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border border-black">{{ number_format($row['bl_l_nm'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border border-black">{{ number_format($row['l_nm'], 2, '.', ',') }}</td>
+                                <td class="px-4 py-2 text-center border border-black">{{ number_format($row['excess_me_mfo_l_nm'], 0, '.', ',') }}%</td>
                             </tr>
                         @endforeach
                     </tbody>

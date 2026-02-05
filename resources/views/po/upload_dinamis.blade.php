@@ -16,30 +16,23 @@
                 </div>
             @endif
 
-            <div class="px-4 py-4 grid grid-cols-2 gap-4">
-                <!-- Kolom Statis -->
-                <div>
-                    <a href="{{ url('/consumption-analysis/statis') }}"
-                       class="w-full py-4 px-6 text-lg text-center block
-                              {{ request()->is('consumption-analysis/statis') 
-                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                  : 'bg-blue-300 text-gray-700' }}
-                              font-semibold rounded-md transition">
-                        Statis
-                    </a>
-                </div>
-
-                <!-- Kolom Dinamis -->
-                <div>
-                    <a href="{{ url('/consumption-analysis/dinamis') }}"
-                       class="w-full py-4 px-6 text-lg text-center block
-                              {{ request()->is('consumption-analysis/dinamis') 
-                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                  : 'bg-blue-300 text-gray-700' }}
-                              font-semibold rounded-md transition">
-                        Dinamis
-                    </a>
-                </div>
+            <div class="px-4 py-2 rounded-md text-lg">
+                <label for="analysis_type" class="block text-sm font-medium text-gray-700 mb-1">    
+                    Baseline
+                </label>
+                <select id="analysis_type"
+                        class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                        onchange="if(this.value) window.location.href=this.value;">
+                    <option value="">-- Pilih Jenis Baseline --</option>
+                    <option value="{{ url('/consumption-analysis/statis') }}"
+                        {{ request()->is('consumption-analysis/statis') ? 'selected' : '' }}>
+                        Baseline Statis
+                    </option>
+                    <option value="{{ url('/consumption-analysis/dinamis') }}"
+                        {{ request()->is('consumption-analysis/dinamis') ? 'selected' : '' }}>
+                        Baseline Dinamis
+                    </option>
+                </select>
             </div>
 
             <div class="px-4 py-2 rounded-md text-lg">
@@ -76,27 +69,34 @@
                                 ];
                             @endphp
                             <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
-                                <thead class="bg-gray-300 sticky top-0 z-10">
+                                <thead class="bg-gray-300 sticky top-0 z-30">
                                     <tr>
+                                        <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                            Vessel ID
+                                        </th>
                                         @foreach($headers_sea as $header)
-                                            @if(!in_array($header, $excludedHeaders_sea))
-                                                <th class="px-4 py-2 text-center border-2 border-black">{{ ucfirst($header) }}</th>
+                                            @if($header !== 'Vessel ID' && !in_array($header, $excludedHeaders_sea))
+                                                <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">{{ ucfirst($header) }}</th>
                                             @endif
                                         @endforeach
-                                        <th class="px-4 py-2 text-center border-2 border-black">Pilih</th>
+                                        <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">Pilih</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    @foreach($report16 as $index => $row)
+                                <tbody class="divide-y divide-gray-200">
+                                    @foreach($colored_sea as $index => $row)
                                         <tr class="text-center odd:bg-white even:bg-gray-200">
+                                            <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                                {{ $row['Vessel ID']['value'] }}
+                                            </td>
                                             @foreach ($row as $colIndex => $cell)
-                                                @if(!in_array($colIndex, $excludedHeaders_sea))
-                                                    <td class="px-4 py-2 text-center border-2 border-black">
-                                                        {{ $colIndex === 0 ? $cell : (is_numeric($cell) ? number_format($cell, 2, '.', ',') : $cell) }}
+                                                @if($colIndex !== 'Vessel ID' && !in_array($colIndex, $excludedHeaders_sea))
+                                                    <td class="px-4 py-2 text-center border border-black {{ $cell['class'] }}"
+                                                        title="{{ $cell['message'] }}">
+                                                        {{ is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value'] }}
                                                     </td>
                                                 @endif
                                             @endforeach
-                                            <td class="px-4 py-2 text-center border-2 border-black">
+                                            <td class="px-4 py-2 text-center border border-black">
                                                 <input type="checkbox" name="selected_rows_sea[]" value="{{ $index }}" class="form-checkbox">
                                             </td>
                                         </tr>
