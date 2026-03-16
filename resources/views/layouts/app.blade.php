@@ -25,7 +25,7 @@
     <aside class="hidden md:flex fixed top-0 left-0 w-64 h-screen bg-gray-200 flex-col py-6 overflow-y-auto z-40">
         <!-- Logo -->
         <div class="px-6 mb-10">
-            <a href="{{ url('/') }}" class="flex items-center gap-3 w-full overflow-hidden">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 w-full overflow-hidden">
                 <img src="{{ asset('images/logo.svg') }}" alt="Logo" class="w-10 h-10 flex-shrink-0">
                 <span class="text-xl font-bold text-red-600 truncate">Bunker App</span>
             </a>
@@ -35,20 +35,20 @@
         <nav class="flex-1 px-6 space-y-4">
             <p class="text-sm text-gray-500 uppercase">Menu</p>
 
-            <a href="{{ url('/') }}"
-               class="text-gray-500 block py-2 hover:underline {{ request()->is('/') ? 'font-bold underline' : '' }}">
+            <a href="{{ route('dashboard') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('dashboard') ? 'font-bold underline' : '' }}">
                <i class="fas fa-tachometer-alt"></i> Home / Dashboard
             </a>
-            <a href="{{ url('consumption-analysis/statis') }}"
-               class="text-gray-500 block py-2 hover:underline {{ request()->is('consumption-analysis/*') ? 'font-bold underline' : '' }}">
+            <a href="{{ route('po.upload') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('po.upload') || request()->routeIs('po.upload_dinamis') ? 'font-bold underline' : '' }}">
                <i class="fas fa-chart-line"></i> Consumption Analysis
             </a>
-            <a href="{{ url('refueling-planning') }}"
-               class="text-gray-500 block py-2 hover:underline {{ request()->is('refueling-planning') ? 'font-bold underline' : '' }}">
+            <a href="{{ route('po.planning') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('po.planning') ? 'font-bold underline' : '' }}">
                <i class="fas fa-gas-pump"></i> Refueling Planning
             </a>
-            <a href="{{ url('baseline-analysis') }}"
-               class="text-gray-500 block py-2 hover:underline {{ request()->is('baseline-analysis') ? 'font-bold underline' : '' }}">
+            <a href="{{ route('po.baseline') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('po.baseline') ? 'font-bold underline' : '' }}">
                <i class="fas fa-balance-scale"></i> Baseline Analysis
             </a>
         </nav>

@@ -31,11 +31,11 @@
                         class="border border-gray-300 rounded-md px-4 py-2 w-64"
                         onchange="if(this.value) window.location.href=this.value;">
                     <option value="">-- Pilih Jenis Baseline --</option>
-                    <option value="{{ url('/consumption-analysis/statis') }}"
+                    <option value="{{ route('po.upload') }}"
                         {{ request()->is('consumption-analysis/statis') ? 'selected' : '' }}>
                         Baseline Statis
                     </option>
-                    <option value="{{ url('/consumption-analysis/dinamis') }}"
+                    <option value="{{ route('po.upload_dinamis') }}"
                         {{ request()->is('consumption-analysis/dinamis') ? 'selected' : '' }}>
                         Baseline Dinamis
                     </option>

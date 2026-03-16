@@ -30,10 +30,10 @@
                         Cari PO
                     </button>
             </form>
-                    <a href="/po/create" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <a href="{{ route('po.create') }}" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         Input PO
                     </a>
-                    <a href="/po/monitoring" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <a href="{{ route('po.monitoring') }}" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         Monitoring
                     </a>
                     <a onclick="openModal()" class="px-4 py-2 bg-blue-600 text-white rounded-md">Upload File</a>
