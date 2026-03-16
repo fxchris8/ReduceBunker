@@ -32,7 +32,7 @@ services:
       - "traefik.http.routers.bunkerai.middlewares=strip-bunkerai"
       - "traefik.http.middlewares.strip-bunkerai.stripprefix.prefixes=/bunkerai"
 
-      - "traefik.http.services.bunkerai.loadbalancer.server.port=5000"
+      - "traefik.http.services.bunkerai.loadbalancer.server.port=80"
 
 networks:
   traefik-net:
