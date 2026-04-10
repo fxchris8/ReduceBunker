@@ -7,6 +7,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SsoController extends Controller
@@ -72,6 +73,13 @@ class SsoController extends Controller
 
     public function handleCallback(Request $request)
     {
+        Log::info('SSO callback received', [
+            'has_code' => $request->filled('code'),
+            'has_state' => $request->filled('state'),
+            'error' => $request->query('error'),
+            'callback_url' => $request->fullUrl(),
+        ]);
+
         if ($request->filled('error')) {
             return redirect()->route('login', [
                 'sso_error' => $request->query('error_description', $request->query('error')),
@@ -79,10 +87,21 @@ class SsoController extends Controller
         }
 
         if (! $this->isConfigured()) {
+            Log::warning('SSO callback aborted because configuration is incomplete', [
+                'base_url' => filled(config('services.sso.base_url')),
+                'client_id' => filled(config('services.sso.client_id')),
+                'client_secret' => filled(config('services.sso.client_secret')),
+                'callback_url' => filled(config('services.sso.callback_url')),
+            ]);
+
             abort(503, 'SSO belum dikonfigurasi.');
         }
 
         if (! $this->isValidState($request->query('state'))) {
+            Log::warning('SSO callback rejected because state is invalid', [
+                'state' => $request->query('state'),
+            ]);
+
             return redirect()->route('login', [
                 'sso_error' => 'State parameter tidak valid.',
             ]);
@@ -97,7 +116,13 @@ class SsoController extends Controller
         }
 
         try {
+            Log::info('SSO token exchange started', [
+                'base_url' => config('services.sso.base_url'),
+                'redirect_uri' => config('services.sso.callback_url'),
+            ]);
+
             $tokenResponse = Http::acceptJson()
+                ->connectTimeout(5)
                 ->timeout(15)
                 ->post(config('services.sso.base_url').'/api/v1/oauth/token', [
                     'grant_type' => 'authorization_code',
@@ -110,19 +135,33 @@ class SsoController extends Controller
 
             $tokenData = $tokenResponse->json('data', []);
 
+            Log::info('SSO token exchange completed', [
+                'has_access_token' => isset($tokenData['access_token']),
+                'has_refresh_token' => isset($tokenData['refresh_token']),
+                'expires_in' => $tokenData['expires_in'] ?? null,
+            ]);
+
             if (! isset($tokenData['access_token'], $tokenData['refresh_token'], $tokenData['expires_in'])) {
                 return redirect()->route('login', [
                     'sso_error' => 'Respons token SSO tidak lengkap.',
                 ]);
             }
 
+            Log::info('SSO userinfo request started');
+
             $userInfoResponse = Http::acceptJson()
+                ->connectTimeout(5)
                 ->timeout(15)
                 ->withToken($tokenData['access_token'])
                 ->get(config('services.sso.base_url').'/api/v1/oauth/userinfo')
                 ->throw();
 
             $userInfo = $userInfoResponse->json('data', []);
+
+            Log::info('SSO userinfo request completed', [
+                'sso_id' => $userInfo['id'] ?? null,
+                'username' => $userInfo['username'] ?? null,
+            ]);
 
             if (! isset($userInfo['id'], $userInfo['username'])) {
                 return redirect()->route('login', [
@@ -147,12 +186,31 @@ class SsoController extends Controller
                 ],
             ]);
 
+            Log::info('SSO login completed', [
+                'local_user_id' => $user->id,
+                'username' => $user->username,
+            ]);
+
             return redirect()->intended('/');
         } catch (RequestException $exception) {
             $message = $exception->response?->json('message') ?: 'Autentikasi SSO gagal.';
 
+            Log::error('SSO callback failed during HTTP request', [
+                'message' => $message,
+                'status' => $exception->response?->status(),
+                'response' => $exception->response?->json(),
+            ]);
+
             return redirect()->route('login', [
                 'sso_error' => $message,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::error('SSO callback failed unexpectedly', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return redirect()->route('login', [
+                'sso_error' => 'Terjadi kesalahan saat memproses login SSO.',
             ]);
         }
     }
