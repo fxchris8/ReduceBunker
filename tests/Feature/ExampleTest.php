@@ -10,10 +10,18 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_guests_are_redirected_to_login(): void
     {
         $response = $this->get('/');
 
+        $response->assertRedirect('/login');
+    }
+
+    public function test_login_page_is_available(): void
+    {
+        $response = $this->get('/login');
+
         $response->assertStatus(200);
+        $response->assertSee('Login dengan SSO');
     }
 }

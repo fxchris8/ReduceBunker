@@ -31,4 +31,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'sso' => [
+        'base_url' => rtrim((string) env('SSO_BASE_URL', ''), '/'),
+        'frontend_url' => rtrim((string) env('SSO_FRONTEND_URL', ''), '/'),
+        'client_id' => env('SSO_CLIENT_ID'),
+        'client_secret' => env('SSO_CLIENT_SECRET'),
+        'callback_url' => env('SSO_CALLBACK_URL'),
+    ],
+
 ];
