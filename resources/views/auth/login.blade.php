@@ -117,9 +117,6 @@
             <a class="button button-primary" href="{{ route('sso.redirect', ['client_id' => $clientId]) }}">
                 Login dengan SSO
             </a>
-            <a class="button button-secondary" href="{{ url('/') }}">
-                Kembali ke aplikasi
-            </a>
         </div>
 
         <p class="meta">
