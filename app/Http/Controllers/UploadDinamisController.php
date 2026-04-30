@@ -101,7 +101,9 @@ class UploadDinamisController extends Controller
                         'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 
                         'PRA', 'HAN', 'HAP', 'HAS', 'HAY', 'FOR',
                         'AKA', 'DER', 'MAG', 'KAA', 'OJA', 'ORU',
-                        'REN', 'PBE', 'LUZ', 'PSM', 'PNN', 'RUM', 'RAT', 'OPA', 'OSA', 'ASR', 'ASN', 'ASG'];
+                        'REN', 'PBE', 'LUZ', 'PSM', 'PNN', 'RUM', 
+                        'RAT', 'OPA', 'OSA', 'ASR', 'ASN', 'ASG',
+                        'RET', 'RAH'];
 
         $kapal_osi_oem = ['OSI', 'OEM'];    
 
