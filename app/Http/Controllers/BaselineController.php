@@ -156,11 +156,11 @@ class BaselineController extends Controller
                         'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 
                         'PRA', 'HAN', 'HAP', 'HAS', 'HAY', 'FOR',
                         'AKA', 'DER', 'MAG', 'KAA', 'OJA', 'ORU',
-                        'REN', 'PBE', 'LUZ', 'PSM', 'PNN'];
+                        'REN', 'PBE', 'LUZ', 'PSM', 'PNN', 'RUM', 'RAT', 'OPA', 'OSA', 'ASR', 'ASN', 'ASG'];
 
         $kapal_osi_oem = ['OSI', 'OEM'];    
 
-        $kapal_konstan = ['ASR', 'ASN', 'ASG', 'APE', 'PFA', 'PRI', 'ODI'];
+        $kapal_konstan = ['APE', 'PFA', 'PRI', 'ODI'];
 
         if (in_array($selectedVessel, $kapal_kecil)){
             ///// X = kW //////////

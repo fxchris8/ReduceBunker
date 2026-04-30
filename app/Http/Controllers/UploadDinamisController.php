@@ -101,11 +101,11 @@ class UploadDinamisController extends Controller
                         'BAU', 'BKU', 'BSA', 'BGI', 'PAH', 'PST', 
                         'PRA', 'HAN', 'HAP', 'HAS', 'HAY', 'FOR',
                         'AKA', 'DER', 'MAG', 'KAA', 'OJA', 'ORU',
-                        'REN', 'PBE', 'LUZ', 'PSM'];
+                        'REN', 'PBE', 'LUZ', 'PSM', 'PNN', 'RUM', 'RAT', 'OPA', 'OSA', 'ASR', 'ASN', 'ASG'];
 
         $kapal_osi_oem = ['OSI', 'OEM'];    
 
-        $kapal_konstan = ['ASR', 'ASN', 'ASG', 'APE', 'PFA', 'PRI', 'ODI'];
+        $kapal_konstan = ['APE', 'PFA', 'PRI', 'ODI'];
         $sfoc_konstan_bhp = ['APE', 'ODI'];
 
         if(!in_array($selectedVessel, $all_vessels)){
