@@ -37,6 +37,10 @@ return [
         'client_id' => env('SSO_CLIENT_ID'),
         'client_secret' => env('SSO_CLIENT_SECRET'),
         'callback_url' => env('SSO_CALLBACK_URL'),
+        'dev_bypass_enabled' => (bool) env('SSO_DEV_BYPASS_ENABLED', false),
+        'dev_bypass_username' => env('SSO_DEV_BYPASS_USERNAME', 'local.dev'),
+        'dev_bypass_name' => env('SSO_DEV_BYPASS_NAME', 'Local Developer'),
+        'dev_bypass_role' => env('SSO_DEV_BYPASS_ROLE', 'developer'),
     ],
 
 ];

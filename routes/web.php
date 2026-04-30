@@ -16,6 +16,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [SsoController::class, 'showLogin'])->name('login');
     Route::get('/auth/sso', [SsoController::class, 'redirectToSso'])->name('sso.redirect');
     Route::get('/auth/callback', [SsoController::class, 'handleCallback'])->name('sso.callback');
+    Route::post('/auth/dev-bypass', [SsoController::class, 'devBypassLogin'])->name('sso.dev-bypass');
 });
 
 Route::post('/logout', [SsoController::class, 'logout'])->middleware('auth')->name('logout');

@@ -34,7 +34,45 @@ class SsoController extends Controller
             'ssoError' => $ssoError,
             'clientId' => $configuredClientId,
             'shouldAutoRedirect' => $shouldAutoRedirect,
+            'devBypassEnabled' => $this->isDevBypassEnabled(),
         ]);
+    }
+
+    public function devBypassLogin(Request $request)
+    {
+        abort_unless($this->isDevBypassEnabled(), 404);
+
+        $username = (string) config('services.sso.dev_bypass_username');
+        $name = (string) config('services.sso.dev_bypass_name');
+        $role = (string) config('services.sso.dev_bypass_role');
+
+        $user = User::query()->firstOrCreate(
+            ['username' => $username],
+            [
+                'name' => $name,
+                'email' => null,
+                'role' => $role,
+                'sso_id' => null,
+                'password' => null,
+            ],
+        );
+
+        $user->forceFill([
+            'name' => $name,
+            'role' => $role,
+        ])->save();
+
+        Auth::login($user);
+        $request->session()->regenerate();
+        $request->session()->forget([
+            'is_sso_authenticated',
+            'sso_access_token',
+            'sso_refresh_token',
+            'sso_token_expires_at',
+            'sso_user',
+        ]);
+
+        return redirect()->intended('/');
     }
 
     public function redirectToSso(Request $request)
@@ -313,5 +351,11 @@ class SsoController extends Controller
             && filled(config('services.sso.client_id'))
             && filled(config('services.sso.client_secret'))
             && filled(config('services.sso.callback_url'));
+    }
+
+    private function isDevBypassEnabled(): bool
+    {
+        return app()->environment('local')
+            && (bool) config('services.sso.dev_bypass_enabled');
     }
 }
