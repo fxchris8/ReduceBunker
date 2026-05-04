@@ -117,11 +117,26 @@
             <a class="button button-primary" href="{{ route('sso.redirect', ['client_id' => $clientId]) }}">
                 Login dengan SSO
             </a>
+
+            @if ($devBypassEnabled)
+                <form method="POST" action="{{ route('sso.dev-bypass') }}">
+                    @csrf
+                    <button class="button button-secondary" type="submit">
+                        Masuk mode local dev
+                    </button>
+                </form>
+            @endif
         </div>
 
         <p class="meta">
             Client ID terdaftar: <strong>{{ $clientId ?: 'belum dikonfigurasi' }}</strong>
         </p>
+
+        @if ($devBypassEnabled)
+            <p class="meta">
+                Bypass local aktif hanya untuk environment <strong>local</strong>.
+            </p>
+        @endif
     </main>
 
     @if ($shouldAutoRedirect && $clientId)
