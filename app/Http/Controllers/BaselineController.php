@@ -163,6 +163,7 @@ class BaselineController extends Controller
         $kapal_osi_oem = ['OSI', 'OEM'];    
 
         $kapal_konstan = ['APE', 'PFA', 'PRI', 'ODI'];
+        $sfoc_konstan_bhp = ['APE', 'ODI'];
 
         if (in_array($selectedVessel, $kapal_kecil)){
             ///// X = kW //////////
@@ -329,8 +330,6 @@ class BaselineController extends Controller
                     ];
                 }
             }
-
-            $sfoc_konstan_bhp = ['APE', 'ODI'];
 
             if (in_array($selectedVessel, $sfoc_konstan_bhp)){
                 $sfoc_kw = $konstan_kurva[$selectedVessel]['SFOC'] / 0.7457 / $density;
