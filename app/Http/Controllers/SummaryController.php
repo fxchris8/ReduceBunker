@@ -155,7 +155,7 @@ class SummaryController extends Controller
             $filtered = [];
 
             foreach ($reports as $report) {
-                $vesselid = $report['Vessel ID'] ?? null;
+                $vesselid = $report['Vessel  ID'] ?? null;
                 if ($vesselid && !in_array($vesselid, $seen)) {
                     $seen[] = $vesselid;
                     $filtered[] = $report;

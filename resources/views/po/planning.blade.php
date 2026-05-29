@@ -17,44 +17,103 @@
                         </div>
                     @endif
 
-                    <div class="flex space-x-4 mb-4">
-                        <!-- Tanggal Awal -->
-                        <div class="px-4 py-2 rounded-md text-lg">
-                            <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                Tanggal Awal
-                            </label>
-                            <input type="date" id="report_date" name="report_date"
-                                class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                                value="{{ request('report_date', date('Y-m-d')) }}"
-                                onchange="updateDates()">
+                    <form method="GET" action="{{ route('po.planning') }}" class="mb-4" onsubmit="showPlanningLoading(this)">
+                        <input type="hidden" name="hit_api" value="1">
+
+                        <div class="flex flex-wrap items-end gap-4 mb-4">
+                            <!-- Tanggal Awal -->
+                            <div class="px-4 py-2 rounded-md text-lg">
+                                <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Tanggal Awal
+                                </label>
+                                <input type="date" id="report_date" name="report_date"
+                                    class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                                    value="{{ request('report_date', date('Y-m-d')) }}">
+                            </div>
+
+                            <!-- Tanggal Akhir -->
+                            <div class="px-4 py-2 rounded-md text-lg">
+                                <label for="next_week_date" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Tanggal Akhir
+                                </label>
+                                <input type="date" id="next_week_date" name="next_week_date"
+                                    class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                                    value="{{ request('next_week_date', date('Y-m-d', strtotime('+7 days'))) }}">
+                            </div>
                         </div>
 
-                        <!-- Tanggal Akhir -->
-                        <div class="px-4 py-2 rounded-md text-lg">
-                            <label for="next_week_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                Tanggal Akhir
-                            </label>
-                            <input type="date" id="next_week_date" name="next_week_date"
-                                class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                                value="{{ request('next_week_date', date('Y-m-d', strtotime('+7 days'))) }}"
-                                onchange="updateDates()">
+                        <!-- ROB Tanker -->
+                        <div class="flex flex-wrap items-end gap-4 mb-4">
+                            <h3 class="w-full text-lg font-medium mb-2">ROB Tanker</h3>
+
+                            <div>
+                                <label for="rob_tanker_mfo" class="block text-sm font-medium text-gray-700 mb-1">
+                                    MFO
+                                </label>
+                                <input type="number" step="any" id="rob_tanker_mfo" name="rob_tanker_mfo"
+                                    class="border border-gray-300 rounded-md px-4 py-2 w-48
+                                    [appearance:textfield]
+                                    [&::-webkit-outer-spin-button]:appearance-none
+                                    [&::-webkit-inner-spin-button]:appearance-none"
+                                    value="{{ request('rob_tanker_mfo') }}"
+                                    required
+                                    placeholder="0">
+                            </div>
+
+                            <div>
+                                <label for="rob_tanker_hsd" class="block text-sm font-medium text-gray-700 mb-1">
+                                    HSD
+                                </label>
+                                <input type="number" step="any" id="rob_tanker_hsd" name="rob_tanker_hsd"
+                                    class="border border-gray-300 rounded-md px-4 py-2 w-48
+                                    [appearance:textfield]
+                                    [&::-webkit-outer-spin-button]:appearance-none
+                                    [&::-webkit-inner-spin-button]:appearance-none"
+                                    value="{{ request('rob_tanker_hsd') }}"
+                                    required
+                                    placeholder="0">
+                            </div>
                         </div>
-                    </div>
+
+                        <!-- Input Saldo -->
+                        <div class="flex flex-wrap items-end gap-4 mb-4">
+                            <div>
+                                <label for="input_saldo_rp" class="block text-lg font-medium mb-2">
+                                    Input Saldo
+                                </label>
+                                <input type="number" step="any" id="input_saldo_rp" name="input_saldo_rp"
+                                    class="border border-gray-300 rounded-md px-4 py-2 w-48
+                                        [appearance:textfield]
+                                        [&::-webkit-outer-spin-button]:appearance-none
+                                        [&::-webkit-inner-spin-button]:appearance-none"
+                                    value="{{ request('input_saldo_rp') }}"
+                                    placeholder="0">
+                            </div>
+                            <button type="submit" data-loading-text="Loading..."
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow">
+                                Hit API
+                            </button>
+                        </div>
+                    </form>
 
                     <script>
-                        function updateDates() {
-                            const start = document.getElementById('report_date').value;
-                            const end = document.getElementById('next_week_date').value;
-                            const url = `{{ route('po.planning') }}?report_date=${start}&next_week_date=${end}`;
-                            window.location.href = url;
+                        function showPlanningLoading(form) {
+                            const button = form.querySelector('button[type="submit"]');
+                            if (!button) {
+                                return;
+                            }
+
+                            button.disabled = true;
+                            button.textContent = button.dataset.loadingText;
+                            button.classList.add('opacity-75', 'cursor-wait');
                         }
                     </script>
 
-                    <div class="flex space-x-4 mb-4">
-                        <h3 class="text-lg">Tanggal Noon Report: {{ $noon_report_formattedDate }}</h1>
-                    </div>
+                    <!-- <div class="flex space-x-4 mb-4">
+                        <h3 class="text-lg">Tanggal Noon Report: {{ $noon_report_formattedDate }}</h3>
+                    </div> -->
 
-                    @if(is_array($headerRows) && count($headerRows) > 0)
+                    @if(is_array($headerRows ?? null) && count($headerRows) > 0)
                         <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">
                             <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
                                 <thead class="bg-gray-300 sticky top-0 z-30">
@@ -90,6 +149,54 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="mt-8">
+                            <h2 class="text-lg font-semibold mb-3">Rekomendasi Strategi Bunkering</h2>
+                            <div class="overflow-x-auto overflow-y-auto max-h-[260px] rounded-md shadow-sm w-full">
+                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                    <thead class="bg-gray-300 sticky top-0 z-20">
+                                        <tr>
+                                            <th class="px-4 py-2 text-center border border-black">ID Vessel</th>
+                                            <th class="px-4 py-2 text-center border border-black">ROB MFO</th>
+                                            <th class="px-4 py-2 text-center border border-black">ROB HSD</th>
+                                            <th class="px-4 py-2 text-center border border-black">Distance next voyage</th>
+                                            <th class="px-4 py-2 text-center border border-black">Kebutuhan MFO</th>
+                                            <th class="px-4 py-2 text-center border border-black">Kebutuhan HSD</th>
+                                            <th class="px-4 py-2 text-center border border-black">Isi BBM MFO</th>
+                                            <th class="px-4 py-2 text-center border border-black">Isi BBM HSD</th>
+                                            <th class="px-4 py-2 text-center border border-black">Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach($report as $row)
+                                            @php
+                                                $robMfo = $row['ROB MFO Arrival'] ?? $row['ROB MFO Berthing'] ?? $row['ROB MFO Sebelumnya'] ?? '';
+                                                $robHsd = $row['ROB HSD Arrival'] ?? $row['ROB HSD Berthing'] ?? $row['ROB HSD Sebelumnya'] ?? '';
+                                                $distanceNextVoyage = $row['Jarak Next Voyage'] ?? '';
+                                                $kebutuhanMfo = $row['Kebutuhan MFO Next Route'] ?? '';
+                                                $kebutuhanHsd = $row['Kebutuhan HSD Next Route'] ?? '';
+                                                $isiBbmMfo = $row['Isi BBM MFO'] ?? '';
+                                                $isiBbmHsd = $row['Isi BBM HSD'] ?? '';
+                                                $tanggalIsi = $row['Tanggal isi'] ?? '';
+                                                $keterangan = $row['Keterangan'] ?? '';
+                                            @endphp
+                                            <tr class="text-center odd:bg-white even:bg-gray-200">
+                                                <td class="px-4 py-2 text-center border border-black">{{ $row['Vessel ID'] ?? '' }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robMfo) ? number_format($robMfo, 2, '.', ',') : $robMfo }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robHsd) ? number_format($robHsd, 2, '.', ',') : $robHsd }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? number_format($distanceNextVoyage, 2, '.', ',') : $distanceNextVoyage }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfo) ? number_format($kebutuhanMfo, 2, '.', ',') : $kebutuhanMfo }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanHsd) ? number_format($kebutuhanHsd, 2, '.', ',') : $kebutuhanHsd }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfo) ? number_format($isiBbmMfo, 2, '.', ',') : $isiBbmMfo }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsd) ? number_format($isiBbmHsd, 2, '.', ',') : $isiBbmHsd }}</td>
+                                                <td class="px-4 py-2 text-center border border-black">{{ $keterangan }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         <div class="flex justify-end mt-4">
                             <form method="POST" action="{{ route('file.refueling.download') }}" class="mt-4">
                                 @csrf
@@ -99,7 +206,7 @@
                                 </button>
                             </form>
                         </div>
-                    @else
+                    @elseif($hasFetchedPlanning ?? false)
                         <p>Tidak ada data tersedia.</p>
                     @endif
                 </div>

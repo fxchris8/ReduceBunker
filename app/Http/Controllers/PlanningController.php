@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-set_time_limit(0);
-
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Support\Facades\Log;
@@ -11,12 +9,62 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Mail;
 
 
 class PlanningController extends Controller
 {
+    private const PLANNING_API_BASE_URL = 'http://nanika.spil.co.id:3021';
+
+    private function fetchPlanningApiData(string $path, array $payload, string $label, int $ttlSeconds = 300): array
+    {
+        $cacheKey = 'planning_api:'.sha1($path.'|'.json_encode($payload));
+
+        return Cache::remember($cacheKey, $ttlSeconds, function () use ($path, $payload, $label) {
+            $startedAt = microtime(true);
+
+            Log::info("Mulai ambil data API {$label}", [
+                'path' => $path,
+                'payload' => $payload,
+            ]);
+
+            try {
+                $response = Http::connectTimeout(10)
+                    ->timeout(60)
+                    ->withHeaders([
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->withBody(json_encode($payload), 'application/json')
+                    ->get(self::PLANNING_API_BASE_URL . $path);
+            } catch (\Throwable $exception) {
+                Log::error("Gagal ambil data API {$label}", [
+                    'path' => $path,
+                    'message' => $exception->getMessage(),
+                ]);
+
+                throw new \RuntimeException("Gagal ambil data API {$label}: ".$exception->getMessage());
+            }
+
+            if (!$response->successful()) {
+                throw new \RuntimeException("Gagal ambil data API {$label} (status: ".$response->status().')');
+            }
+
+            $data = $response->json();
+            $rows = $data['data'] ?? [];
+
+            Log::info("Selesai ambil data API {$label}", [
+                'path' => $path,
+                'rows' => is_array($rows) ? count($rows) : 0,
+                'duration_seconds' => round(microtime(true) - $startedAt, 2),
+            ]);
+
+            return $rows;
+        });
+    }
+
     private function loadLnmMap(): array
     {
         $filePath = storage_path('app/L_NM.xlsx');
@@ -41,6 +89,120 @@ class PlanningController extends Controller
                 ];
             }
         }
+        return $map;
+    }
+
+    private function toNullableFloat($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function roundUpToMultiple(float $value, int $multiple): float
+    {
+        return ceil($value / $multiple) * $multiple;
+    }
+
+    private function formatFuelAmount(float $value): string
+    {
+        return number_format($value, 2, '.', ',');
+    }
+
+    private function applyTankerBalances(array $reports, float $initialMfo, float $initialHsd): array
+    {
+        $mfoBalance = $initialMfo;
+        $hsdBalance = $initialHsd;
+
+        foreach ($reports as &$report) {
+            $robMfo = $this->toNullableFloat($report['ROB MFO Arrival'] ?? $report['ROB MFO Berthing'] ?? $report['ROB MFO Sebelumnya'] ?? null);
+            $robHsd = $this->toNullableFloat($report['ROB HSD Arrival'] ?? $report['ROB HSD Berthing'] ?? $report['ROB HSD Sebelumnya'] ?? null);
+            $kebutuhanMfo = $this->toNullableFloat($report['Kebutuhan MFO Next Route'] ?? null);
+            $kebutuhanHsd = $this->toNullableFloat($report['Kebutuhan HSD Next Route'] ?? null);
+            $keterangan = [];
+
+            if ($robMfo !== null && $kebutuhanMfo !== null) {
+                $selisihMfo = $robMfo - $kebutuhanMfo;
+
+                if ($selisihMfo >= 0) {
+                    $report['Isi BBM MFO'] = 0;
+                    $keterangan[] = 'MFO: Tidak perlu isi BBM (surplus '.$this->formatFuelAmount($selisihMfo).')';
+                } else {
+                    $kebutuhanIsiMfo = $this->roundUpToMultiple(abs($selisihMfo), 1000);
+                    $sisaTankerMfo = $mfoBalance - $kebutuhanIsiMfo;
+                    $report['Isi BBM MFO'] = $kebutuhanIsiMfo;
+
+                    if ($sisaTankerMfo >= 0) {
+                        $mfoBalance = $sisaTankerMfo;
+                        $keterangan[] = 'MFO: Isi dari ROB tanker '.$this->formatFuelAmount($kebutuhanIsiMfo);
+                    } else {
+                        $keterangan[] = 'MFO: Beli dari Pertamina '.$this->formatFuelAmount(abs($sisaTankerMfo));
+                    }
+                }
+            } else {
+                $report['Isi BBM MFO'] = null;
+            }
+
+            if ($robHsd !== null && $kebutuhanHsd !== null) {
+                $selisihHsd = $robHsd - $kebutuhanHsd;
+
+                if ($selisihHsd >= 0) {
+                    $report['Isi BBM HSD'] = 0;
+                    $keterangan[] = 'HSD: Tidak perlu isi BBM (surplus '.$this->formatFuelAmount($selisihHsd).')';
+                } else {
+                    $kebutuhanIsiHsd = $this->roundUpToMultiple(abs($selisihHsd), 1000);
+                    $sisaTankerHsd = $hsdBalance - $kebutuhanIsiHsd;
+                    $report['Isi BBM HSD'] = $kebutuhanIsiHsd;
+
+                    if ($sisaTankerHsd >= 0) {
+                        $hsdBalance = $sisaTankerHsd;
+                        $keterangan[] = 'HSD: Isi dari ROB tanker '.$this->formatFuelAmount($kebutuhanIsiHsd);
+                    } else {
+                        $keterangan[] = 'HSD: Beli dari Pertamina '.$this->formatFuelAmount(abs($sisaTankerHsd));
+                    }
+                }
+            } else {
+                $report['Isi BBM HSD'] = null;
+            }
+
+            $report['Keterangan'] = implode(' | ', $keterangan);
+        }
+
+        unset($report);
+
+        return $reports;
+    }
+
+    private function loadRefuelingPlanMap(): array
+    {
+        try {
+            $rows = DB::table('refueling_plan')
+                ->select('kapal', 'mfo_day_at_sea', 'ae_day_at_sea', 'speed')
+                ->get();
+        } catch (\Throwable $exception) {
+            Log::error('Gagal ambil data refueling_plan', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        $map = [];
+        foreach ($rows as $row) {
+            $vessel = strtoupper(trim($row->kapal ?? ''));
+            if ($vessel === '') {
+                continue;
+            }
+
+            $map[$vessel] = [
+                'mfo_day_at_sea' => $this->toNullableFloat($row->mfo_day_at_sea ?? null),
+                'ae_day_at_sea' => $this->toNullableFloat($row->ae_day_at_sea ?? null),
+                'speed' => $this->toNullableFloat($row->speed ?? null),
+            ];
+        }
+
         return $map;
     }
 
@@ -111,7 +273,7 @@ class PlanningController extends Controller
     }
 
 
-    function reorderReport($grouped, $noon_report_groupedByVessel = [], $l_nm_map = [], $port_id_map = [], $jarak_map = [], string $dvs_formattedDate = '', string $noon_report_formattedDate = '') {
+    function reorderReport($grouped, $noon_report_groupedByVessel = [], $l_nm_map = [], $refueling_plan_map = [], $port_id_map = [], $jarak_map = [], string $dvs_formattedDate = '', string $noon_report_formattedDate = '') {
         $currentRoute = $grouped['from_port'] ?? '';
         $nextRoute    = $grouped['sailing_route'] ?? '';
 
@@ -176,6 +338,11 @@ class PlanningController extends Controller
         // Hitung jarak
         // $distanceCurrent = $calculateDistance($currentRouteWithNext);
         $distanceNext = $calculateDistance($nextRoute);
+
+        $refuelingPlan = $refueling_plan_map[$vesselKey] ?? [];
+        $mfoDayAtSea = $refuelingPlan['mfo_day_at_sea'] ?? null;
+        $aeDayAtSea = $refuelingPlan['ae_day_at_sea'] ?? null;
+        $speed = $refuelingPlan['speed'] ?? null;
 
         //////////////////////////////////////////////////////////////////////////
 
@@ -318,33 +485,41 @@ class PlanningController extends Controller
 
         //////////////////////////////////////////////////////////////////////////
 
-        if (
-            $rob_hsd_sebelumnya !== null && $rob_mfo_sebelumnya !== null && 
-            $distanceCurrent !== null && 
-            $distanceNext >= 0 
-            // && $lnm_hsd !== null && $lnm_mfo !== null
-            ) {
-            $rob_hsd_berthing = $rob_hsd_sebelumnya - ($distanceCurrent * $lnm_hsd) ?? null;
-            $rob_mfo_berthing = $rob_mfo_sebelumnya - ($distanceCurrent * $lnm_mfo) ?? null;
+        if ($rob_hsd_sebelumnya !== null && $distanceCurrent !== null && $lnm_hsd !== null) {
+            $rob_hsd_berthing = $rob_hsd_sebelumnya - ($distanceCurrent * $lnm_hsd);
+        }
 
-            $kebutuhan_hsd_next_route = ($distanceNext * $lnm_hsd) ?? null;
-            $kebutuhan_mfo_next_route = ($distanceNext * $lnm_mfo) ?? null;
+        if ($rob_mfo_sebelumnya !== null && $distanceCurrent !== null && $lnm_mfo !== null) {
+            $rob_mfo_berthing = $rob_mfo_sebelumnya - ($distanceCurrent * $lnm_mfo);
+        }
 
+        if ($distanceNext !== null && $speed !== null && $speed > 0) {
+            if ($aeDayAtSea !== null) {
+                $kebutuhan_hsd_next_route = $this->roundUpToMultiple((($distanceNext / $speed) / 24) * $aeDayAtSea, 1000);
+            }
+
+            if ($mfoDayAtSea !== null) {
+                $kebutuhan_mfo_next_route = $this->roundUpToMultiple((($distanceNext / $speed) / 24) * $mfoDayAtSea, 1000);
+            }
+        }
+
+        if ($kebutuhan_hsd_next_route !== null && $rob_hsd_berthing !== null) {
             $selisih_hsd = $kebutuhan_hsd_next_route - $rob_hsd_berthing;
-            $selisih_mfo = $kebutuhan_mfo_next_route - $rob_mfo_berthing;
-
             if ($selisih_hsd >= 0) {
                 $pengisian_hsd = ceil(($selisih_hsd * 1.1) / 5000) * 5000;
             } else {
                 $pengisian_hsd = 0;
             }
+        }
 
+        if ($kebutuhan_mfo_next_route !== null && $rob_mfo_berthing !== null) {
+            $selisih_mfo = $kebutuhan_mfo_next_route - $rob_mfo_berthing;
             if ($selisih_mfo >= 0) {
                 $pengisian_mfo = ceil(($selisih_mfo * 1.1) / 5000) * 5000;
             } else {
                 $pengisian_mfo = 0;
             }
-        } 
+        }
         
         /////////////////////////////////////////////////////////////////////////
 
@@ -435,6 +610,9 @@ class PlanningController extends Controller
             'Kebutuhan MFO Next Route',
             'Pengisian HSD',
             'Pengisian MFO',
+            'Isi BBM MFO',
+            'Isi BBM HSD',
+            'Keterangan',
             'Koreksi',
         ];
 
@@ -522,60 +700,54 @@ class PlanningController extends Controller
         
         $dvs_formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
         $dvs_formattedNextWeekDate = \Carbon\Carbon::parse($next_week_date)->format('d/m/Y');
+        $noon_report_formattedDate = \Carbon\Carbon::now()->subDay()->format('d/m/Y');
+        $hasFetchedPlanning = $request->boolean('hit_api');
+
+        $planningViewData = [
+            'reportDate' => $dvs_formattedDate,
+            'nextWeekDate' => $dvs_formattedNextWeekDate,
+            'headerRows' => [],
+            'report' => [],
+            'noon_report_formattedDate' => $noon_report_formattedDate,
+            'hasFetchedPlanning' => $hasFetchedPlanning,
+        ];
+
+        if (!$hasFetchedPlanning) {
+            return view('po.planning', $planningViewData);
+        }
+
+        if (!$request->filled('rob_tanker_mfo') || !$request->filled('rob_tanker_hsd')) {
+            return view('po.planning', array_merge($planningViewData, [
+                'error' => 'ROB Tanker MFO dan HSD wajib diisi.',
+            ]));
+        }
+
+        $robTankerMfo = $this->toNullableFloat($request->input('rob_tanker_mfo'));
+        $robTankerHsd = $this->toNullableFloat($request->input('rob_tanker_hsd'));
+
+        if ($robTankerMfo === null || $robTankerHsd === null) {
+            return view('po.planning', array_merge($planningViewData, [
+                'error' => 'ROB Tanker MFO dan HSD harus berupa angka.',
+            ]));
+        }
 
         $dvs_basePayload = [
             "tanggal_awal" => $dvs_formattedDate,
             "tanggal_akhir" => $dvs_formattedNextWeekDate,
         ];
 
-        $all_dvs_Reports = [];
-
-        $dvs_payload = $dvs_basePayload;
-        
-        $response = Http::timeout(120)
-        ->withHeaders([
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-        ])->withBody(json_encode($dvs_payload), 'application/json')
-        ->get('http://nanika.spil.co.id:3021/get-data-dvs');
-
-        if (!$response->successful()) {
-            return view('po.planning', [
-                'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
-            ]);
+        try {
+            $dvs_reports_raw = $this->fetchPlanningApiData('/get-data-dvs', $dvs_basePayload, 'DVS', 300);
+        } catch (\RuntimeException $exception) {
+            return view('po.planning', array_merge($planningViewData, [
+                'error' => $exception->getMessage(),
+            ]));
         }
 
-        $dvs_data = $response->json();
-        $dvs_reports_raw = $dvs_data['data'] ?? [];
-
-        $dvs_reports = array_filter($dvs_reports_raw, function ($row) {
-            return isset($row['vesselid']) && trim($row['vesselid']) !== '' && trim($row['etb']) !== '';
-        });
-
-        // $grouped = [];
-        // foreach ($dvs_reports as $report) {
-        //     $vesselid = $report['vesselid'];
-        //     $grouped[$vesselid][] = $report;
-        // }
-
-        // ksort($grouped);
-
-        // foreach ($grouped as &$reports) {
-        //     usort($reports, function ($a, $b) {
-        //         $etbA = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $a['etb']);
-        //         $etbB = \Carbon\Carbon::createFromFormat('d/m/Y H:i', $b['etb']);
-        //         return $etbA->lt($etbB) ? -1 : 1;
-        //     });
-        // }
-
-        // unset($reports);
-
-        // $dvs_reports = array_merge(...array_values($grouped));
-
         // filter data valid
-        $dvs_reports = array_filter($dvs_reports_raw, function ($row) {
+        $dvs_reports = array_values(array_filter($dvs_reports_raw, function ($row) {
             return isset($row['vesselid']) && trim($row['vesselid']) !== '' && trim($row['etb']) !== '';
-        });
+        }));
 
         // langsung sort berdasarkan etb
         usort($dvs_reports, function ($a, $b) {
@@ -590,8 +762,6 @@ class PlanningController extends Controller
 
         ////////////////////////////////////////////////////////////////////////
 
-        $noon_report_formattedDate = \Carbon\Carbon::now()->subDay()->format('d/m/Y');
-
         $noon_report_basePayload = [
             "tanggal" => $noon_report_formattedDate,
         ];
@@ -603,23 +773,16 @@ class PlanningController extends Controller
             $rob_payload = $noon_report_basePayload;
             $rob_payload['report_id'] = (string)$reportId;
 
-            $response = Http::timeout(120)
-            ->withHeaders([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])->withBody(json_encode($rob_payload), 'application/json')
-            ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
-
-            if (!$response->successful()) {
-                return view('po.planning', [
-                    'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
+            try {
+                $rob_reports = $this->fetchPlanningApiData('/get-bunker-analysis', $rob_payload, 'bunker analysis report_id '.$reportId, 1800);
+            } catch (\RuntimeException $exception) {
+                return view('po.planning', array_merge($planningViewData, [
+                    'error' => $exception->getMessage(),
                     'report14' => [],
                     'report16' => [],
-                ]);
+                ]));
             }
 
-            $rob_data = $response->json();
-            $rob_reports = $rob_data['data'] ?? [];
             $noon_report_allReports = array_merge($noon_report_allReports, $rob_reports);
         }
 
@@ -659,30 +822,26 @@ class PlanningController extends Controller
         ///////////////////////////////////////////////////////////////////////////
 
         $l_nm_map = $this->loadLnmMap();
+        $refueling_plan_map = $this->loadRefuelingPlanMap();
 
         ///////////////////////////////////////////////////////////////////////////
 
-        $port_id_basePayload = [
+        $master_route_payload = [
             "load_port" => "-",
             "disc_port" => "-",
         ];
 
-        $response = Http::withHeaders([
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-        ])->withBody(json_encode($port_id_basePayload), 'application/json')
-        ->get('http://nanika.spil.co.id:3021/get-master-route');
-
-        if (!$response->successful()) {
-            return view('po.planning', [
-                'error' => 'Gagal ambil data API (status: '.$response->status().')',
-            ]);
+        try {
+            $master_route_data = $this->fetchPlanningApiData('/get-master-route', $master_route_payload, 'master route', 86400);
+        } catch (\RuntimeException $exception) {
+            return view('po.planning', array_merge($planningViewData, [
+                'error' => $exception->getMessage(),
+            ]));
         }
 
-        $port_id_data = $response->json();
         $port_id_map = [];
 
-        foreach ($port_id_data['data'] as $port) {
+        foreach ($master_route_data as $port) {
             $discportname = trim($port['discportname'] ?? '');
             $discport_unportid = trim($port['discport_unportid'] ?? '');
 
@@ -714,27 +873,9 @@ class PlanningController extends Controller
 
         //////////////////////////////////////////////////////////////////////
 
-        $jarak_basePayload = [
-            "load_port" => "-",
-            "disc_port" => "-",
-        ];
-
-        $response = Http::withHeaders([
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/json',
-        ])->withBody(json_encode($jarak_basePayload), 'application/json')
-        ->get('http://nanika.spil.co.id:3021/get-master-route');
-
-        if (!$response->successful()) {
-            return view('po.planning', [
-                'error' => 'Gagal ambil data API (status: '.$response->status().')',
-            ]);
-        }
-
-        $jarak_data = $response->json();
         $jarak_map = [];
 
-        foreach ($jarak_data['data'] as $route) {
+        foreach ($master_route_data as $route) {
             $from = trim($route['loadport_unportid'] ?? '');
             $to   = trim($route['discport_unportid'] ?? '');
             $dist = floatval($route['nmile'] ?? 0);
@@ -753,25 +894,15 @@ class PlanningController extends Controller
 
         // Pass ke reorderReport
         $all_dvs_Reports = array_map(
-            fn($grouped) => $this->reorderReport($grouped, $noon_report_groupedByVessel, $l_nm_map, $port_id_map, $jarak_map, $dvs_formattedDate, $noon_report_formattedDate),
+            fn($grouped) => $this->reorderReport($grouped, $noon_report_groupedByVessel, $l_nm_map, $refueling_plan_map, $port_id_map, $jarak_map, $dvs_formattedDate, $noon_report_formattedDate),
             $dvs_reports
         );
 
+        $all_dvs_Reports = $this->applyTankerBalances($all_dvs_Reports, $robTankerMfo, $robTankerHsd);
+
         //////////////////////////////////////////////////////////////////////////
 
-        $filePath = $this->generatePlanningExcel($all_dvs_Reports, $dvs_formattedDate, $dvs_formattedNextWeekDate);
-
-        Mail::raw('Berikut terlampir hasil Refueling Planning untuk tanggal ' . $dvs_formattedDate . ' hingga tanggal ' . $dvs_formattedNextWeekDate . "\nTanggal Noon Report: " . $noon_report_formattedDate . '.', 
-        function ($message) use ($filePath, $dvs_formattedDate, $dvs_formattedNextWeekDate) {
-            $cleanDate = str_replace(['/', ':', ' '], '_', $dvs_formattedDate);
-            $cleannextWeekDate = str_replace(['/', ':', ' '], '_', $dvs_formattedNextWeekDate);
-            $message->to('marulihtgl12@gmail.com')
-                    ->subject('Refueling Planning Excel')
-                    ->attach($filePath, [
-                        'as' => 'refueling_planning_from_' . $cleanDate . '_until_' . $cleannextWeekDate . '.xlsx',
-                        'mime' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    ]);
-        });
+        $headerRows = $all_dvs_Reports ? array_keys(reset($all_dvs_Reports)) : [];
 
         session([
             'planning_reports' => $all_dvs_Reports,
@@ -780,12 +911,20 @@ class PlanningController extends Controller
             'noon_report_formattedDate' => $noon_report_formattedDate,
         ]);
 
+        Log::info('Refueling planning rendered', [
+            'report_date' => $dvs_formattedDate,
+            'next_week_date' => $dvs_formattedNextWeekDate,
+            'rows' => count($all_dvs_Reports),
+            'columns' => count($headerRows),
+        ]);
+
         return view('po.planning', [
             'reportDate' => $dvs_formattedDate,
             'nextWeekDate' => $dvs_formattedNextWeekDate,
-            'headerRows' => $all_dvs_Reports ? array_keys($all_dvs_Reports[0]) : [],
+            'headerRows' => $headerRows,
             'report' => $all_dvs_Reports,
             'noon_report_formattedDate' => $noon_report_formattedDate,
+            'hasFetchedPlanning' => $hasFetchedPlanning,
         ]);
     }
 
