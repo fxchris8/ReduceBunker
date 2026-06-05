@@ -110,6 +110,14 @@ class UploadController extends Controller
 
     public function show(Request $request)
     {   
+        if (!$request->filled('report_date')) {
+            return view('po.upload', [
+                'report14' => null,
+                'report16' => null,
+                'port_sea_data' => null,
+            ]);
+        }
+        
         $reportDate = $request->input('report_date', date('Y-m-d', strtotime('-1 day')));
         $formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
 

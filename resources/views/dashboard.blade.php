@@ -19,10 +19,15 @@
                 <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
                     Tanggal Laporan
                 </label>
-                <input type="date" id="report_date" name="report_date"
-                    class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                    value="{{ request('report_date', date('Y-m-d', strtotime('-1 day'))) }}"
-                    onchange="window.location='{{ route('dashboard') }}?report_date='+this.value">
+                <form method="GET" action="{{ route('dashboard') }}" class="flex items-center gap-3">
+                    <input type="date" id="report_date" name="report_date"
+                        class="border border-gray-300 rounded-md px-4 py-2 w-64"
+                        value="{{ request('report_date') }}">
+                    <button type="submit"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        Tampilkan
+                    </button>
+                </form>
             </div>
 
             @if(isset($uniqueVessels) && $uniqueVessels > 0)
@@ -314,7 +319,9 @@
                             </div>
                         </div>
                     </div>
-                </div>    
+                </div>
+            @elseif(!request()->filled('report_date'))
+                <p class="text-gray-500 mt-6">Pilih tanggal laporan lalu klik <strong>Tampilkan</strong>.</p>    
             @else
                 <p class="text-gray-500 mt-6">Sheet kosong atau tidak ditemukan.</p>
             @endif

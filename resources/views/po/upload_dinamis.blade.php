@@ -35,25 +35,30 @@
                 </select>
             </div>
 
-            <div class="px-4 py-2 rounded-md text-lg">
+            <form method="GET" action="{{ route('po.upload_dinamis') }}" class="px-4 py-2 rounded-md text-lg">
                 <div class="mb-4">
                     <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
                         Tanggal Laporan
                     </label>
                     <input type="date" id="report_date" name="report_date"
                         class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                        value="{{ request('report_date', date('Y-m-d', strtotime('-1 day'))) }}"
-                        onchange="location.href='{{ route('po.upload_dinamis') }}?report_date='+this.value+'&density='+document.getElementById('density').value">
-                </div>       
+                        value="{{ request('report_date') }}">
+                </div>
 
-                <div>
-                    <label for="density" class="block text-sm font-medium text-gray-700 mb-2">Masukkan Density (g/L):</label>
+                <div class="mb-4">
+                    <label for="density" class="block text-sm font-medium text-gray-700 mb-2">
+                        Masukkan Density (g/L):
+                    </label>
                     <input type="number" step="any" name="density" id="density"
                         value="{{ request('density', 950) }}"
-                        class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                        onchange="location.href='{{ route('po.upload_dinamis') }}?report_date='+(document.getElementById('report_date').value || '{{ date('Y-m-d', strtotime('-1 day')) }}')+'&density='+this.value">
+                        class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out">
                 </div>
-            </div>
+
+                <button type="submit"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    Tampilkan
+                </button>
+            </form>
             
             @if(is_array($report16))
                 <form action="{{ route('send.email') }}" method="POST">
