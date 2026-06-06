@@ -47,6 +47,10 @@
                class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('po.planning') ? 'font-bold underline' : '' }}">
                <i class="fas fa-gas-pump"></i> Refueling Planning
             </a>
+            <a href="{{ route('fuel-baseline.index') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('fuel-baseline.index') ? 'font-bold underline' : '' }}">
+               <i class="fas fa-gauge"></i> Fuel Baseline
+            </a>
             <a href="{{ route('po.baseline') }}"
                class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('po.baseline') ? 'font-bold underline' : '' }}">
                <i class="fas fa-balance-scale"></i> Baseline Analysis
