@@ -127,7 +127,7 @@
                             @if($isPaginated)
                                 Showing {{ $fuelBaselines->firstItem() }}–{{ $fuelBaselines->lastItem() }} of {{ $fuelBaselines->total() }} entries
                             @else
-                                {{ $fuelBaselines->count() }} entries
+                                Showing {{ $fuelBaselines->count() }} entries
                             @endif
                         </span>
                     </div>
