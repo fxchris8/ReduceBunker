@@ -8,13 +8,49 @@ use Illuminate\Http\Request;
 
 class FuelBaselineController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $fuelBaselines = FuelBaseline::with('vessel')
-            ->orderBy('updated_at', 'desc')
-            ->get();
+        $perPage  = $request->get('per_page', 10);
+        $sortBy   = $request->get('sort_by', 'updated_at');
+        $sortDir  = $request->get('sort_dir', 'desc');
 
-        return view('pages.fuelbaseline.index', compact('fuelBaselines'));
+        $allowedSorts = ['vessel_id', 'vessel_name', 'updated_at'];
+        $allowedDirs  = ['asc', 'desc'];
+
+        if (!in_array($sortBy, $allowedSorts)) $sortBy = 'updated_at';
+        if (!in_array($sortDir, $allowedDirs))  $sortDir = 'desc';
+
+        $search = $request->get('search', '');
+
+        $query = FuelBaseline::with('vessel')
+            ->join('vessels', 'fuel_baselines.vessel_id', '=', 'vessels.vessel_id')
+            ->select('fuel_baselines.*');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('fuel_baselines.vessel_id', 'like', "%{$search}%")
+                ->orWhere('vessels.vessel_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($sortBy === 'vessel_name') {
+            $query->orderBy('vessels.vessel_name', $sortDir);
+        } elseif ($sortBy === 'vessel_id') {
+            $query->orderBy('fuel_baselines.vessel_id', $sortDir);
+        } else {
+            $query->orderBy('fuel_baselines.updated_at', $sortDir);
+        }
+
+        if ($perPage === 'all') {
+            $fuelBaselines = $query->get();
+            $isPaginated   = false;
+        } else {
+            $fuelBaselines = $query->paginate((int) $perPage)->withQueryString();
+            $isPaginated   = true;
+        }
+
+
+        return view('pages.fuelbaseline.index', compact('fuelBaselines', 'isPaginated', 'perPage', 'sortBy', 'sortDir', 'search'));
     }
 
     public function create()
