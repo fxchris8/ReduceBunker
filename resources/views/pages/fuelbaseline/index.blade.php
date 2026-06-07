@@ -135,9 +135,9 @@
                 </div>
             </form>
 
-            <div class="overflow-x-auto" id="tableWrapper">
+            <div class="overflow-x-auto overflow-y-auto max-h-[80vh]" id="tableWrapper">
                 <table class="w-full text-sm text-center border border-gray-200 rounded">
-                    <thead class="bg-gray-100 text-gray-700">
+                    <thead class="bg-gray-100 text-gray-700 sticky top-0 z-10">
                         <tr>
                             <th class="px-4 py-3 border border-gray-200">
                                 Vessel Code
@@ -268,12 +268,11 @@
                         @endforelse
                     </tbody>
                 </table>
-
-                <div id="paginationWrapper" class="mt-4 flex flex-col items-center gap-2">
+            </div>
+            <div id="paginationWrapper" class="mt-4 flex flex-col items-center gap-2">
                     @if($isPaginated && $fuelBaselines->hasPages())
                         {{ $fuelBaselines->links() }}
                     @endif
-                </div>
             </div>
         </div>
     </div>
