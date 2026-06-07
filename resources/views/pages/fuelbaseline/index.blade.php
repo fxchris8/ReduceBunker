@@ -152,7 +152,7 @@
                                 BL HSD (L/day)
                             </th>
                             <th class="px-4 py-3 border border-gray-200">
-                                Speed
+                                Speed (Knot)
                             </th>
                             <th class="px-4 py-3 border border-gray-200">
                                 Safety Stock MFO
