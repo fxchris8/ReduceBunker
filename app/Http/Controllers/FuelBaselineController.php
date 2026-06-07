@@ -56,8 +56,9 @@ class FuelBaselineController extends Controller
     public function create()
     {
         $vessels = Vessel::orderBy('vessel_id')->get();
+        $existingVesselIds = FuelBaseline::pluck('vessel_id')->toArray();
 
-        return view('pages.fuelbaseline.create', compact('vessels'));
+        return view('pages.fuelbaseline.create', compact('vessels', 'existingVesselIds'));
     }
 
     public function store(Request $request)
