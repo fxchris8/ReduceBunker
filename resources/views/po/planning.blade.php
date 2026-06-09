@@ -19,9 +19,7 @@
 
             <form method="GET" action="{{ route('po.planning') }}" class="mb-4" onsubmit="showPlanningLoading(this)">
                 <input type="hidden" name="hit_api" value="1">
-
                 <div class="flex flex-wrap items-end gap-4 mb-4">
-                    <!-- Tanggal Awal -->
                     <div class="px-4 py-2 rounded-md text-lg">
                         <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
                             Tanggal Awal
@@ -30,8 +28,6 @@
                             class="border border-gray-300 rounded-md px-4 py-2 w-64"
                             value="{{ request('report_date', date('Y-m-d')) }}">
                     </div>
-
-                    <!-- Tanggal Akhir -->
                     <div class="px-4 py-2 rounded-md text-lg">
                         <label for="next_week_date" class="block text-sm font-medium text-gray-700 mb-1">
                             Tanggal Akhir
@@ -41,14 +37,11 @@
                             value="{{ request('next_week_date', date('Y-m-d', strtotime('+7 days'))) }}">
                     </div>
                 </div>
-
-                <!-- ROB Tanker -->
                 <div class="flex flex-wrap items-end gap-4 mb-4">
                     <h3 class="w-full text-lg font-medium mb-2">ROB Tanker</h3>
-
                     <div>
                         <label for="rob_tanker_mfo" class="block text-sm font-medium text-gray-700 mb-1">
-                            MFO
+                            MFO (kL)
                         </label>
                         <input type="number" step="any" id="rob_tanker_mfo" name="rob_tanker_mfo"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48
@@ -59,10 +52,9 @@
                             required
                             placeholder="0">
                     </div>
-
                     <div>
                         <label for="rob_tanker_hsd" class="block text-sm font-medium text-gray-700 mb-1">
-                            HSD
+                            HSD (kL)
                         </label>
                         <input type="number" step="any" id="rob_tanker_hsd" name="rob_tanker_hsd"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48
@@ -75,7 +67,7 @@
                     </div>
                     <div>
                         <label for="harga_mfo" class="block text-sm font-medium text-gray-700 mb-1">
-                            MFO Price (per kL)
+                            MFO Price (per L)
                         </label>
                         <input type="number" step="any" id="harga_mfo" name="harga_mfo"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48
@@ -86,10 +78,9 @@
                             required
                             placeholder="0">
                     </div>
-
                     <div>
                         <label for="harga_hsd" class="block text-sm font-medium text-gray-700 mb-1">
-                            HSD Price (per kL)
+                            HSD Price (per L)
                         </label>
                         <input type="number" step="any" id="harga_hsd" name="harga_hsd"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48
@@ -101,12 +92,10 @@
                             placeholder="0">
                     </div>
                 </div>
-
-                <!-- Input Saldo -->
                 <div class="flex flex-wrap items-end gap-4 mb-4">
                     <div>
                         <label for="input_saldo_rp" class="block text-lg font-medium mb-2">
-                            Input Saldo
+                            Input Saldo (IDR)
                         </label>
                         <input type="number" step="any" id="input_saldo_rp" name="input_saldo_rp"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48
@@ -123,7 +112,6 @@
                     </button>
                 </div>
             </form>
-
             <script>
                 function showPlanningLoading(form) {
                     const button = form.querySelector('button[type="submit"]');
@@ -135,28 +123,22 @@
             </script>
 
             @if(is_array($headerRows ?? null) && count($headerRows) > 0)
-
                 <div class="flex flex-wrap items-center gap-4 mb-3 py-2">
                     <span class="text-sm font-medium text-gray-500">Filter port:</span>
-
                     <label class="flex items-center gap-1.5 text-sm cursor-pointer select-none">
                         <input type="checkbox" id="cb-all" checked class="w-4 h-4 accent-blue-600">
                         <span class="bg-gray-100 text-xs font-medium px-2 py-0.5 rounded">ALL</span>
                     </label>
-
                     <label class="flex items-center gap-1.5 text-sm cursor-pointer select-none">
                         <input type="checkbox" id="cb-jkt" checked class="w-4 h-4 accent-blue-600">
                         <span class="bg-gray-100 text-xs font-medium px-2 py-0.5 rounded">IDJKT</span>
                     </label>
-
                     <label class="flex items-center gap-1.5 text-sm cursor-pointer select-none">
                         <input type="checkbox" id="cb-sub" checked class="w-4 h-4 accent-blue-600">
                         <span class="bg-gray-100 text-xs font-medium px-2 py-0.5 rounded">IDSUB</span>
                     </label>
-
                     <span id="port-row-count" class="ml-auto text-xs text-gray-400"></span>
                 </div>
-
                 <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">
                     <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
                         <thead class="bg-gray-300 sticky top-0 z-30">
@@ -200,10 +182,9 @@
                         </tbody>
                     </table>
                 </div>
-
                 <div class="mt-8">
                     <h2 class="text-lg font-semibold mb-3">Rekomendasi Strategi Bunkering</h2>
-                    <div class="overflow-x-auto overflow-y-auto max-h-[260px] rounded-md shadow-sm w-full">
+                    <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">
                         <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
                             <thead class="bg-gray-300 sticky top-0 z-20">
                                 <tr>
@@ -334,7 +315,7 @@
                 <div id="detail-modal" class="fixed inset-0 z-50 hidden">
                     <div class="fixed inset-0 bg-black bg-opacity-50" onclick="closeDetail()"></div>
                     <div class="fixed inset-0 flex items-center justify-center p-4">
-                        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
+                        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
                             <div class="bg-red-600 text-white px-4 py-3 rounded-t-lg flex justify-between items-center">
                                 <h3 id="detail-title" class="font-bold text-lg"></h3>
                                 <button onclick="closeDetail()" class="text-white hover:text-red-200 text-xl">&times;</button>
@@ -360,37 +341,80 @@
 
                     let html = '';
 
-                    // ROB Tanker Sebelum
+                    // Baris 1: ROB Tanker Sebelum | Isi BBM | ROB Tanker Sesudah
+                    html += '<div class="grid grid-cols-3 gap-3">';
+
                     html += '<div class="border rounded p-3 bg-gray-50">';
-                    html += '<p class="font-semibold mb-1">ROB Tanker Sebelum Pengisian</p>';
-                    html += '<p>MFO: ' + fmt(d.tanker_mfo_before) + ' KL</p>';
-                    html += '<p>HSD: ' + fmt(d.tanker_hsd_before) + ' KL</p>';
+                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">ROB Tanker Sebelum</p>';
+                    html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.tanker_mfo_before) + ' L</span></div>';
+                    html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.tanker_hsd_before) + ' L</span></div>';
                     html += '</div>';
 
-                    // Pembelian Pertamina
+                    html += '<div class="border rounded p-3 bg-gray-50">';
+                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Jumlah Diisi</p>';
+                    html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.isi_bbm_mfo) + ' L</span></div>';
+                    html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.isi_bbm_hsd) + ' L</span></div>';
+                    html += '</div>';
+
+                    html += '<div class="border rounded p-3 bg-gray-50">';
+                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">ROB Tanker Sesudah</p>';
+                    html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.tanker_mfo_after) + ' L</span></div>';
+                    html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.tanker_hsd_after) + ' L</span></div>';
+                    html += '</div>';
+
+                    html += '</div>';
+
+                    // Baris 2: Saldo | Pembelian/Estimasi
+                    html += '<div class="flex gap-3 mt-3 items-start">';
+
+                    // Saldo
+                    html += '<div class="border rounded p-3 bg-blue-50 shrink-0 w-56">';
+                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Saldo</p>';
+                    html += '<div class="flex justify-between text-sm"><span>Saldo Saat Ini</span><span>' + fmtRp(d.sisa_saldo) + '</span></div>';
+                    html += '</div>';
+
+                    // Pembelian atau Estimasi
                     if (d.beli_pertamina_mfo > 0 || d.beli_pertamina_hsd > 0) {
-                        html += '<div class="border rounded p-3 bg-yellow-50">';
-                        html += '<p class="font-semibold mb-1">Pembelian dari Pertamina</p>';
-                        if (d.beli_pertamina_mfo > 0) {
-                            html += '<p>MFO: ' + fmt(d.beli_pertamina_mfo) + ' KL (' + fmtRp(d.biaya_mfo) + ')</p>';
+                        if (d.saldo_tidak_cukup) {
+                            html += '<div class="border rounded p-3 bg-red-50 flex-1">';
+                            html += '<p class="font-semibold mb-2 text-xs text-red-700 uppercase">Estimasi Pembelian dari Pertamina</p>';
+                            if (d.beli_pertamina_mfo > 0) {
+                                html += '<div class="flex justify-between text-sm"><span>Estimasi Beli MFO</span><span>' + fmt(d.beli_pertamina_mfo) + ' L</span></div>';
+                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Estimasi Biaya MFO</span><span>' + fmtRp(d.biaya_mfo) + '</span></div>';
+                            }
+                            if (d.beli_pertamina_hsd > 0) {
+                                html += '<div class="flex justify-between text-sm"><span>Estimasi Beli HSD</span><span>' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
+                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Estimasi Biaya HSD</span><span>' + fmtRp(d.biaya_hsd) + '</span></div>';
+                            }
+                            html += '<hr class="my-2">';
+                            html += '<div class="flex justify-between text-sm font-semibold text-red-700"><span>Total Dibutuhkan</span><span>' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</span></div>';
+                            html += '<div class="flex justify-between text-sm font-semibold text-red-700 mt-1"><span>Kekurangan Saldo</span><span>' + fmtRp((d.biaya_mfo + d.biaya_hsd) - d.sisa_saldo) + '</span></div>';
+                            html += '</div>';
+                        } else {
+                            html += '<div class="border rounded p-3 bg-yellow-50 flex-1">';
+                            html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Pembelian dari Pertamina</p>';
+                            html += '<div class="flex justify-between text-sm text-gray-500 mb-1"><span>Saldo Awal</span><span>' + fmtRp(d.saldo_sebelum) + '</span></div>';
+                            html += '<hr class="my-1">';
+                            if (d.beli_pertamina_mfo > 0) {
+                                html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.beli_pertamina_mfo) + ' L</span></div>';
+                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Biaya MFO</span><span>- ' + fmtRp(d.biaya_mfo) + '</span></div>';
+                            }
+                            if (d.beli_pertamina_hsd > 0) {
+                                html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
+                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Biaya HSD</span><span>- ' + fmtRp(d.biaya_hsd) + '</span></div>';
+                            }
+                            html += '<hr class="my-1">';
+                            html += '<div class="flex justify-between text-sm font-semibold"><span>Total Biaya</span><span>- ' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</span></div>';
+                            html += '<div class="flex justify-between text-sm font-semibold mt-1"><span>Saldo Akhir</span><span>' + fmtRp(d.sisa_saldo) + '</span></div>';
+                            html += '</div>';
                         }
-                        if (d.beli_pertamina_hsd > 0) {
-                            html += '<p>HSD: ' + fmt(d.beli_pertamina_hsd) + ' KL (' + fmtRp(d.biaya_hsd) + ')</p>';
-                        }
-                        html += '<p class="mt-1 font-medium">Total: ' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</p>';
+                    } else {
+                        html += '<div class="border rounded p-3 bg-gray-50 flex-1">';
+                        html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Pembelian dari Pertamina</p>';
+                        html += '<div class="text-sm text-gray-400">Tidak ada pembelian</div>';
                         html += '</div>';
                     }
 
-                    // ROB Tanker Sesudah
-                    html += '<div class="border rounded p-3 bg-gray-50">';
-                    html += '<p class="font-semibold mb-1">ROB Tanker Setelah Pengisian</p>';
-                    html += '<p>MFO: ' + fmt(d.tanker_mfo_after) + ' KL</p>';
-                    html += '<p>HSD: ' + fmt(d.tanker_hsd_after) + ' KL</p>';
-                    html += '</div>';
-
-                    // Sisa Saldo
-                    html += '<div class="border rounded p-3 bg-blue-50">';
-                    html += '<p class="font-semibold">Sisa Saldo: ' + fmtRp(d.sisa_saldo) + '</p>';
                     html += '</div>';
 
                     document.getElementById('detail-body').innerHTML = html;

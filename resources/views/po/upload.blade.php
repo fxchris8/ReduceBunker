@@ -534,7 +534,7 @@
                         <span id="modal-total-mfo" class="text-sm font-semibold text-gray-800"></span>
                     </div>
                     <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">HSD (AE + ME + Genset)</span>
+                        <span class="text-sm text-gray-500">HSD</span>
                         <span id="modal-total-hsd" class="text-sm font-semibold text-gray-800"></span>
                     </div>
                     <div class="flex justify-between items-center px-4 py-2.5 bg-gray-800">

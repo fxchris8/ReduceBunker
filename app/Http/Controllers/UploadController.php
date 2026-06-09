@@ -127,6 +127,60 @@ class UploadController extends Controller
                 'port_sea_data' => null,
             ]);
         }
+
+        // MOCK DATA
+        if (true) {
+            $mockPort = $this->getMockPortRows();
+            $mockSea  = $this->getMockSeaRows();
+
+            $port_sea_data = [];
+            $seaIndex = [];
+            foreach ($mockSea as $row) {
+                $seaIndex[$row['Vessel ID']] = $row;
+            }
+            foreach ($mockPort as $portRow) {
+                $vid = $portRow['Vessel ID'];
+                if (isset($seaIndex[$vid])) {
+                    $merged = [];
+                    foreach ($portRow as $key => $val) {
+                        $merged[$key] = ['port' => $val, 'sea' => $seaIndex[$vid][$key] ?? null];
+                    }
+                    foreach ($seaIndex[$vid] as $key => $val) {
+                        if (!isset($merged[$key])) {
+                            $merged[$key] = ['port' => null, 'sea' => $val];
+                        }
+                    }
+                    $port_sea_data[] = $merged;
+                }
+            }
+
+            $wrapRows = function (array $rows): array {
+                return array_map(function ($row) {
+                    $newRow = [];
+                    foreach ($row as $key => $value) {
+                        $newRow[$key] = ['value' => $value, 'class' => ''];
+                    }
+                    $newRow['_row_class'] = ['value' => '', 'class' => ''];
+                    return $newRow;
+                }, $rows);
+            };
+
+            $colored_port = $wrapRows($mockPort);
+            $colored_sea  = $wrapRows($mockSea);
+
+            $headers_port = array_filter(array_keys($colored_port[0] ?? []), fn($k) => $k !== '_row_class');
+            $headers_sea  = array_filter(array_keys($colored_sea[0] ?? []), fn($k) => $k !== '_row_class');
+
+            return view('po.upload', [
+                'headers_port'   => $headers_port,
+                'report14'       => $colored_port,
+                'headers_sea'    => $headers_sea,
+                'report16'       => $colored_sea,
+                'port_sea_header'=> array_keys($port_sea_data[0] ?? []),
+                'port_sea_data'  => $port_sea_data,
+            ]);
+        }
+        // END MOCK
         
         $reportDate = $request->input('report_date', date('Y-m-d', strtotime('-1 day')));
         $formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
@@ -354,6 +408,188 @@ class UploadController extends Controller
             'port_sea_data' => $port_sea_data
         ]);
     }
+
+    // MOCK FUNCTION
+    private function getMockPortRows(): array
+    {
+        return [
+            [
+                'Vessel ID'                      => 'ANO',
+                'tanggal'                        => '01 June 2025 08:00',
+                'POSITION'                       => 'SURABAYA',
+                'DEPARTURE PORT'                 => null,
+                'DESTINATION'                    => null,
+                'STEAM. DIST.'                   => null,
+                'STEAM TIME (HOUR : MINUTE)'     => null,
+                'SHIP SPEED'                     => null,
+                'PROPELLER SLIP'                 => null,
+                'ME RPM'                         => null,
+                'M/E MFO'                        => 0,
+                'M/E HSD'                        => 50,
+                'A/E MFO'                        => 0,
+                'A/E HSD'                        => 120,
+                'MANEUVERING TIME (HOURS)'       => 0,
+                'BOILER HSD'                     => 0,
+                'BOILER MFO'                     => 0,
+                'GENSET CONSUMPTION - HSD'       => 30,
+                'EMERGENCY GENERATOR CONSUMPTION'=> 0,
+                'TOTAL CRANE'                    => 2,
+                'CRANE DURATION'                 => 4,
+                'LOAD A/E 1 (KW)'               => 250,
+                'LOAD A/E 2 (KW)'               => 250,
+                'LOAD A/E 3 (KW)'               => 0,
+                'LOAD A/E 4 (KW)'               => 0,
+                'AE PARAREL DURATION'            => 6,
+                'REEFER 20"'                     => 5,
+                'REEFER 40"'                     => 3,
+                'BL M/E'                         => 80,
+                'ME Maneuvering Cons. (L/H)'     => 0,
+                'SELISIH ME Maneuvering'         => 0,
+                'BL L/NM'                        => 10,
+                'BL MFO'                         => 200,
+                'BL HSD'                         => 150,
+                'BL REFFER'                      => 8,
+                'L/NM'                           => 0,
+                'EXCESS ME MFO L/NM (%)'         => 0,
+                'BL A/E (L/Day)'                 => 160,
+                'AE Consumption'                 => 150,
+                'EXCESS AE'                      => 10,
+            ],
+            [
+                'Vessel ID'                      => 'BIM',
+                'tanggal'                        => '01 June 2025 08:00',
+                'POSITION'                       => 'MAKASSAR',
+                'DEPARTURE PORT'                 => null,
+                'DESTINATION'                    => null,
+                'STEAM. DIST.'                   => null,
+                'STEAM TIME (HOUR : MINUTE)'     => null,
+                'SHIP SPEED'                     => null,
+                'PROPELLER SLIP'                 => null,
+                'ME RPM'                         => null,
+                'M/E MFO'                        => 0,
+                'M/E HSD'                        => 30,
+                'A/E MFO'                        => 0,
+                'A/E HSD'                        => 90,
+                'MANEUVERING TIME (HOURS)'       => 0,
+                'BOILER HSD'                     => 0,
+                'BOILER MFO'                     => 0,
+                'GENSET CONSUMPTION - HSD'       => 20,
+                'EMERGENCY GENERATOR CONSUMPTION'=> 0,
+                'TOTAL CRANE'                    => 1,
+                'CRANE DURATION'                 => 2,
+                'LOAD A/E 1 (KW)'               => 200,
+                'LOAD A/E 2 (KW)'               => 0,
+                'LOAD A/E 3 (KW)'               => 0,
+                'LOAD A/E 4 (KW)'               => 0,
+                'AE PARAREL DURATION'            => 0,
+                'REEFER 20"'                     => 2,
+                'REEFER 40"'                     => 1,
+                'BL M/E'                         => 75,
+                'ME Maneuvering Cons. (L/H)'     => 0,
+                'SELISIH ME Maneuvering'         => 0,
+                'BL L/NM'                        => 9,
+                'BL MFO'                         => 180,
+                'BL HSD'                         => 130,
+                'BL REFFER'                      => 5,
+                'L/NM'                           => 0,
+                'EXCESS ME MFO L/NM (%)'         => 0,
+                'BL A/E (L/Day)'                 => 140,
+                'AE Consumption'                 => 110,
+                'EXCESS AE'                      => 30,
+            ],
+        ];
+    }
+
+    private function getMockSeaRows(): array
+    {
+        return [
+            [
+                'Vessel ID'                      => 'ANO',
+                'tanggal'                        => '01 June 2025 08:00',
+                'POSITION'                       => null,
+                'DEPARTURE PORT'                 => 'SURABAYA',
+                'DESTINATION'                    => 'MAKASSAR',
+                'STEAM. DIST.'                   => 350,
+                'STEAM TIME (HOUR : MINUTE)'     => 28,
+                'SHIP SPEED'                     => 12.5,
+                'PROPELLER SLIP'                 => 3.2,
+                'ME RPM'                         => 120,
+                'M/E MFO'                        => 4200,
+                'M/E HSD'                        => 0,
+                'A/E MFO'                        => 0,
+                'A/E HSD'                        => 100,
+                'MANEUVERING TIME (HOURS)'       => 2,
+                'BOILER HSD'                     => 0,
+                'BOILER MFO'                     => 0,
+                'GENSET CONSUMPTION - HSD'       => 25,
+                'EMERGENCY GENERATOR CONSUMPTION'=> 0,
+                'TOTAL CRANE'                    => 0,
+                'CRANE DURATION'                 => 0,
+                'LOAD A/E 1 (KW)'               => 300,
+                'LOAD A/E 2 (KW)'               => 300,
+                'LOAD A/E 3 (KW)'               => 0,
+                'LOAD A/E 4 (KW)'               => 0,
+                'AE PARAREL DURATION'            => 3,
+                'REEFER 20"'                     => 4,
+                'REEFER 40"'                     => 2,
+                'BL M/E'                         => 80,
+                'ME Maneuvering Cons. (L/H)'     => 160,
+                'SELISIH ME Maneuvering'         => -20,
+                'BL L/NM'                        => 10,
+                'BL MFO'                         => 200,
+                'BL HSD'                         => 150,
+                'BL REFFER'                      => 8,
+                'L/NM'                           => 12.0,
+                'EXCESS ME MFO L/NM (%)'         => -20.0,
+                'BL A/E (L/Day)'                 => 160,
+                'AE Consumption'                 => 125,
+                'EXCESS AE'                      => 35,
+            ],
+            [
+                'Vessel ID'                      => 'BIM',
+                'tanggal'                        => '01 June 2025 08:00',
+                'POSITION'                       => null,
+                'DEPARTURE PORT'                 => 'MAKASSAR',
+                'DESTINATION'                    => 'BITUNG',
+                'STEAM. DIST.'                   => 280,
+                'STEAM TIME (HOUR : MINUTE)'     => 25,
+                'SHIP SPEED'                     => 11.2,
+                'PROPELLER SLIP'                 => 2.8,
+                'ME RPM'                         => 115,
+                'M/E MFO'                        => 3500,
+                'M/E HSD'                        => 0,
+                'A/E MFO'                        => 0,
+                'A/E HSD'                        => 85,
+                'MANEUVERING TIME (HOURS)'       => 1.5,
+                'BOILER HSD'                     => 0,
+                'BOILER MFO'                     => 0,
+                'GENSET CONSUMPTION - HSD'       => 20,
+                'EMERGENCY GENERATOR CONSUMPTION'=> 0,
+                'TOTAL CRANE'                    => 0,
+                'CRANE DURATION'                 => 0,
+                'LOAD A/E 1 (KW)'               => 220,
+                'LOAD A/E 2 (KW)'               => 0,
+                'LOAD A/E 3 (KW)'               => 0,
+                'LOAD A/E 4 (KW)'               => 0,
+                'AE PARAREL DURATION'            => 0,
+                'REEFER 20"'                     => 3,
+                'REEFER 40"'                     => 1,
+                'BL M/E'                         => 75,
+                'ME Maneuvering Cons. (L/H)'     => 112.5,
+                'SELISIH ME Maneuvering'         => 50,
+                'BL L/NM'                        => 9,
+                'BL MFO'                         => 180,
+                'BL HSD'                         => 130,
+                'BL REFFER'                      => 5,
+                'L/NM'                           => 12.5,
+                'EXCESS ME MFO L/NM (%)'         => -38.9,
+                'BL A/E (L/Day)'                 => 140,
+                'AE Consumption'                 => 105,
+                'EXCESS AE'                      => 35,
+            ],
+        ];
+    }
+    // END MOCK FUNCTION
 
     private function loadVesselEmails()
     {
