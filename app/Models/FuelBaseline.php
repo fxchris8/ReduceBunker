@@ -11,6 +11,7 @@ class FuelBaseline extends Model
         'vessel_id',
         'bl_mfo',
         'bl_hsd',
+        'bl_ae_1_reffer',
         'speed',
         'ss_multiplier_mfo',
         'ss_multiplier_hsd',
@@ -19,7 +20,7 @@ class FuelBaseline extends Model
     protected $casts = [
         'bl_mfo'            => 'integer',
         'bl_hsd'            => 'integer',
-        'speed'              => 'integer',
+        'speed'             => 'integer',
         'ss_multiplier_mfo' => 'integer',
         'ss_multiplier_hsd' => 'integer',
     ];

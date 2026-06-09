@@ -40,7 +40,7 @@
             <a href="{{ route('fuel-baseline.index') }}" 
                class="flex items-center justify-center gap-3 py-6 px-6 text-lg bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white font-semibold rounded-lg shadow-md transform hover:scale-105 transition duration-300">
                 <i class="fas fa-gauge text-2xl"></i>
-                Fuel Baseline
+                Baseline Management
             </a>
 
             <!-- Baseline Analysis -->

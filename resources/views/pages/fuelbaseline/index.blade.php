@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Fuel Baseline')
+@section('title', 'Baseline Management')
 
 @section('content')
 <div class="container mx-auto py-6 px-4">
     <div class="bg-white rounded-lg shadow-md">
         <div class="bg-gray-50 px-4 py-4 border-b flex items-center justify-between">
-            <h1 class="text-xl font-bold">Fuel Baseline Management</h1>
+            <h1 class="text-xl font-bold">Baseline Management</h1>
             <a href="{{ route('fuel-baseline.create') }}"
                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-semibold">
                 + Add Fuel Baseline
@@ -139,33 +139,16 @@
                 <table class="w-full text-sm text-center border border-gray-200 rounded">
                     <thead class="bg-gray-100 text-gray-700 sticky top-0 z-10">
                         <tr>
-                            <th class="px-4 py-3 border border-gray-200">
-                                Vessel Code
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                Vessel Name
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                BL MFO (L/day)
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                BL HSD (L/day)
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                Speed (Knot)
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                Safety Stock MFO
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                Safety Stock HSD
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                Last Updated
-                            </th>
-                            <th class="px-4 py-3 border border-gray-200">
-                                Actions
-                            </th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Vessel Code</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Vessel Name</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">BL MFO (L/day)</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">BL HSD (L/day)</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">BL AE 1 Reffer</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Speed (Knot)</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Safety Stock MFO</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Safety Stock HSD</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Last Updated</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Actions</th>
                         </tr>
                     </thead>
 
@@ -186,6 +169,10 @@
 
                                 <td class="px-4 py-3 border border-gray-200">
                                     {{ $baseline->bl_hsd }}
+                                </td>
+
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->bl_ae_1_reffer }}
                                 </td>
 
                                 <td class="px-4 py-3 border border-gray-200">

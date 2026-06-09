@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Add Fuel Baseline')
+@section('title', 'Add Baseline')
 
 @section('content')
 <div class="container mx-auto py-6 px-4">
     <div class="bg-white rounded-lg shadow-md">
         <div class="bg-gray-50 px-4 py-4 border-b flex items-center justify-between">
-            <h1 class="text-xl font-bold">Add Fuel Baseline</h1>
+            <h1 class="text-xl font-bold">Add Baseline</h1>
             <a href="{{ route('fuel-baseline.index') }}"
                class="text-gray-500 hover:underline text-sm">
                 &larr; Back
@@ -39,7 +39,7 @@
                 </div>
 
                 {{-- Mode: existing — Vessel | BL MFO | BL HSD dalam satu baris --}}
-                <div x-show="addNew === 'existing'" class="grid grid-cols-3 gap-4 mb-4">
+                <div x-show="addNew === 'existing'" class="grid grid-cols-4 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vessel</label>
                         <select name="vessel_id"
@@ -68,10 +68,16 @@
                                value="{{ old('bl_hsd') }}"
                                class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">BL AE 1 Reffer</label>
+                        <input type="number" step="1" name="bl_ae_1_reffer"
+                            value="{{ old('bl_ae_1_reffer') }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
                 </div>
 
                 {{-- Mode: new — Kode | Nama | BL MFO | BL HSD dalam satu baris --}}
-                <div x-show="addNew === 'new'" class="grid grid-cols-4 gap-4 mb-4">
+                <div x-show="addNew === 'new'" class="grid grid-cols-5 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vessel Code <span class="text-gray-400 font-normal">(3 chars)</span></label>
                         <input type="text" name="new_vessel_id" maxlength="3"

@@ -69,6 +69,7 @@ class FuelBaselineController extends Controller
             'vessel_id'         => 'nullable|exists:vessels,vessel_id',
             'bl_mfo'            => 'required|numeric|min:0',
             'bl_hsd'            => 'required|numeric|min:0',
+            'bl_ae_1_reffer'    => 'nullable|integer|min:0',
             'speed'             => 'required|numeric|min:0',
             'ss_multiplier_mfo' => 'required|in:2,3',
             'ss_multiplier_hsd' => 'required|in:2,3',
@@ -113,6 +114,7 @@ class FuelBaselineController extends Controller
         $validated = $request->validate([
             'bl_mfo'            => 'required|numeric|min:0',
             'bl_hsd'            => 'required|numeric|min:0',
+            'bl_ae_1_reffer'    => 'nullable|integer|min:0',
             'speed'             => 'required|numeric|min:0',
             'ss_multiplier_mfo' => 'required|in:2,3',
             'ss_multiplier_hsd' => 'required|in:2,3',

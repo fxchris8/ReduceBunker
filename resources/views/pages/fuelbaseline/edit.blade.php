@@ -7,7 +7,7 @@
     <div class="bg-white rounded-lg shadow-md">
         <div class="bg-gray-50 px-4 py-4 border-b flex items-center justify-between">
             <h1 class="text-xl font-bold">
-                Edit Fuel Baseline
+                Edit Baseline
             </h1>
             <a href="{{ route('fuel-baseline.index') }}"
                class="text-gray-500 hover:underline text-sm">
@@ -30,7 +30,7 @@
                 @csrf
                 @method('PUT')
 
-                <div class="grid grid-cols-4 gap-4 mb-4">
+                <div class="grid grid-cols-5 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vessel Code</label>
                         <input type="text"
@@ -56,6 +56,12 @@
                         <input type="number" step="1" name="bl_hsd"
                                value="{{ old('bl_hsd', $fuelBaselines->bl_hsd) }}"
                                class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">BL AE1 Reffer (L/day)</label>
+                        <input type="number" step="1" name="bl_ae1_reffer"
+                            value="{{ old('bl_ae1_reffer', $fuelBaselines->bl_ae1_reffer) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                 </div>
 
