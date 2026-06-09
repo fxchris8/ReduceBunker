@@ -228,7 +228,7 @@
                                         <td class="px-4 py-2 text-center border border-black">
                                             @if(isset($row['_detail']))
                                                 <button onclick="showDetail({{ json_encode($row['_detail']) }}, '{{ $row['Vessel ID'] }}')"
-                                                    class="text-yellow-600 hover:text-yellow-800">
+                                                    class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -315,8 +315,8 @@
                 <div id="detail-modal" class="fixed inset-0 z-50 hidden">
                     <div class="fixed inset-0 bg-black bg-opacity-50" onclick="closeDetail()"></div>
                     <div class="fixed inset-0 flex items-center justify-center p-4">
-                        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                            <div class="bg-red-600 text-white px-4 py-3 rounded-t-lg flex justify-between items-center">
+                        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                            <div class="bg-gray-800 text-white px-4 py-3 rounded-t-lg flex justify-between items-center">
                                 <h3 id="detail-title" class="font-bold text-lg"></h3>
                                 <button onclick="closeDetail()" class="text-white hover:text-red-200 text-xl">&times;</button>
                             </div>
@@ -342,76 +342,79 @@
                     let html = '';
 
                     // Baris 1: ROB Tanker Sebelum | Isi BBM | ROB Tanker Sesudah
-                    html += '<div class="grid grid-cols-3 gap-3">';
+                    html += '<div class="grid grid-cols-3 gap-4">';
 
-                    html += '<div class="border rounded p-3 bg-gray-50">';
-                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">ROB Tanker Sebelum</p>';
-                    html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.tanker_mfo_before) + ' L</span></div>';
-                    html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.tanker_hsd_before) + ' L</span></div>';
-                    html += '</div>';
+                    html += '<div class="rounded-lg border border-gray-200 overflow-hidden">';
+                    html += '<div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">ROB Tanker Sebelum Diisi</span></div>';
+                    html += '<div class="divide-y divide-gray-100">';
+                    html += '<div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">MFO</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.tanker_mfo_before) + ' L</span></div>';
+                    html += '<div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">HSD</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.tanker_hsd_before) + ' L</span></div>';
+                    html += '</div></div>';
 
-                    html += '<div class="border rounded p-3 bg-gray-50">';
-                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Jumlah Diisi</p>';
-                    html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.isi_bbm_mfo) + ' L</span></div>';
-                    html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.isi_bbm_hsd) + ' L</span></div>';
-                    html += '</div>';
+                    html += '<div class="rounded-lg border border-gray-200 overflow-hidden">';
+                    html += '<div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Jumlah Diisi</span></div>';
+                    html += '<div class="divide-y divide-gray-100">';
+                    html += '<div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">MFO</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.isi_bbm_mfo) + ' L</span></div>';
+                    html += '<div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">HSD</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.isi_bbm_hsd) + ' L</span></div>';
+                    html += '</div></div>';
 
-                    html += '<div class="border rounded p-3 bg-gray-50">';
-                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">ROB Tanker Sesudah</p>';
-                    html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.tanker_mfo_after) + ' L</span></div>';
-                    html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.tanker_hsd_after) + ' L</span></div>';
-                    html += '</div>';
+                    html += '<div class="rounded-lg border border-gray-200 overflow-hidden">';
+                    html += '<div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">ROB Tanker Sesudah Diisi</span></div>';
+                    html += '<div class="divide-y divide-gray-100">';
+                    html += '<div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">MFO</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.tanker_mfo_after) + ' L</span></div>';
+                    html += '<div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">HSD</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.tanker_hsd_after) + ' L</span></div>';
+                    html += '</div></div>';
 
                     html += '</div>';
 
                     // Baris 2: Saldo | Pembelian/Estimasi
-                    html += '<div class="flex gap-3 mt-3 items-start">';
+                    html += '<div class="flex gap-4 mt-4 items-start">';
 
                     // Saldo
-                    html += '<div class="border rounded p-3 bg-blue-50 shrink-0 w-56">';
-                    html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Saldo</p>';
-                    html += '<div class="flex justify-between text-sm"><span>Saldo Saat Ini</span><span>' + fmtRp(d.sisa_saldo) + '</span></div>';
-                    html += '</div>';
+                    html += '<div class="rounded-lg border border-gray-200 overflow-hidden shrink-0 w-72">';
+                    html += '<div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Saldo</span></div>';
+                    html += '<div class="divide-y divide-gray-100">';
+                    html += '<div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">Saldo Saat Ini</span><span class="text-sm font-semibold text-gray-800">' + fmtRp(d.sisa_saldo) + '</span></div>';
+                    html += '</div></div>';
 
                     // Pembelian atau Estimasi
                     if (d.beli_pertamina_mfo > 0 || d.beli_pertamina_hsd > 0) {
                         if (d.saldo_tidak_cukup) {
-                            html += '<div class="border rounded p-3 bg-red-50 flex-1">';
-                            html += '<p class="font-semibold mb-2 text-xs text-red-700 uppercase">Estimasi Pembelian dari Pertamina</p>';
+                            html += '<div class="rounded-lg border border-red-200 overflow-hidden flex-1">';
+                            html += '<div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Estimasi Pembelian dari Pertamina</span></div>';
+                            html += '<div class="divide-y divide-red-100">';
                             if (d.beli_pertamina_mfo > 0) {
-                                html += '<div class="flex justify-between text-sm"><span>Estimasi Beli MFO</span><span>' + fmt(d.beli_pertamina_mfo) + ' L</span></div>';
-                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Estimasi Biaya MFO</span><span>' + fmtRp(d.biaya_mfo) + '</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-800">Estimasi Beli MFO</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.beli_pertamina_mfo) + ' L</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-800">Estimasi Biaya MFO</span><span class="text-sm font-semibold text-gray-800">' + fmtRp(d.biaya_mfo) + '</span></div>';
                             }
                             if (d.beli_pertamina_hsd > 0) {
-                                html += '<div class="flex justify-between text-sm"><span>Estimasi Beli HSD</span><span>' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
-                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Estimasi Biaya HSD</span><span>' + fmtRp(d.biaya_hsd) + '</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-500">Estimasi Beli HSD</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-500">Estimasi Biaya HSD</span><span class="text-sm font-semibold text-red-600">' + fmtRp(d.biaya_hsd) + '</span></div>';
                             }
-                            html += '<hr class="my-2">';
-                            html += '<div class="flex justify-between text-sm font-semibold text-red-700"><span>Total Dibutuhkan</span><span>' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</span></div>';
-                            html += '<div class="flex justify-between text-sm font-semibold text-red-700 mt-1"><span>Kekurangan Saldo</span><span>' + fmtRp((d.biaya_mfo + d.biaya_hsd) - d.sisa_saldo) + '</span></div>';
-                            html += '</div>';
+                            html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-400"><span class="text-sm font-bold text-white">Total Dibutuhkan</span><span class="text-sm font-bold text-white">' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</span></div>';
+                            html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-400"><span class="text-sm font-bold text-white">Kekurangan Saldo</span><span class="text-sm font-bold text-white">' + fmtRp((d.biaya_mfo + d.biaya_hsd) - d.sisa_saldo) + '</span></div>';
+                            html += '</div></div>';
                         } else {
-                            html += '<div class="border rounded p-3 bg-yellow-50 flex-1">';
-                            html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Pembelian dari Pertamina</p>';
-                            html += '<div class="flex justify-between text-sm text-gray-500 mb-1"><span>Saldo Awal</span><span>' + fmtRp(d.saldo_sebelum) + '</span></div>';
-                            html += '<hr class="my-1">';
+                            html += '<div class="rounded-lg border border-yellow-200 overflow-hidden flex-1">';
+                            html += '<div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Pembelian dari Pertamina</span></div>';
+                            html += '<div class="divide-y divide-yellow-100">';
+                            html += '<div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100"><span class="text-sm text-gray-800">Saldo Awal</span><span class="text-sm font-semibold text-gray-800">' + fmtRp(d.saldo_sebelum) + '</span></div>';
                             if (d.beli_pertamina_mfo > 0) {
-                                html += '<div class="flex justify-between text-sm"><span>MFO</span><span>' + fmt(d.beli_pertamina_mfo) + ' L</span></div>';
-                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Biaya MFO</span><span>- ' + fmtRp(d.biaya_mfo) + '</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100"><span class="text-sm text-gray-800">MFO</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.beli_pertamina_mfo) + ' L</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100"><span class="text-sm text-gray-800">Biaya MFO</span><span class="text-sm font-semibold text-red-600">- ' + fmtRp(d.biaya_mfo) + '</span></div>';
                             }
                             if (d.beli_pertamina_hsd > 0) {
-                                html += '<div class="flex justify-between text-sm"><span>HSD</span><span>' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
-                                html += '<div class="flex justify-between text-sm text-red-600 mb-1"><span>Biaya HSD</span><span>- ' + fmtRp(d.biaya_hsd) + '</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100"><span class="text-sm text-gray-800">HSD</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100"><span class="text-sm text-gray-800">Biaya HSD</span><span class="text-sm font-semibold text-red-600">- ' + fmtRp(d.biaya_hsd) + '</span></div>';
                             }
-                            html += '<hr class="my-1">';
-                            html += '<div class="flex justify-between text-sm font-semibold"><span>Total Biaya</span><span>- ' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</span></div>';
-                            html += '<div class="flex justify-between text-sm font-semibold mt-1"><span>Saldo Akhir</span><span>' + fmtRp(d.sisa_saldo) + '</span></div>';
-                            html += '</div>';
+                            html += '<div class="flex justify-between items-center px-4 py-2.5 bg-yellow-400"><span class="text-sm font-bold text-gray-800">Total Biaya</span><span class="text-sm font-bold text-gray-800">- ' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</span></div>';
+                            html += '<div class="flex justify-between items-center px-4 py-2.5 bg-yellow-400"><span class="text-sm font-bold text-gray-800">Saldo Akhir</span><span class="text-sm font-bold text-gray-800">' + fmtRp(d.sisa_saldo) + '</span></div>';
+                            html += '</div></div>';
                         }
                     } else {
-                        html += '<div class="border rounded p-3 bg-gray-50 flex-1">';
-                        html += '<p class="font-semibold mb-2 text-xs text-gray-500 uppercase">Pembelian dari Pertamina</p>';
-                        html += '<div class="text-sm text-gray-400">Tidak ada pembelian</div>';
+                        html += '<div class="rounded-lg border border-gray-200 overflow-hidden flex-1">';
+                        html += '<div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Pembelian dari Pertamina</span></div>';
+                        html += '<div class="px-4 py-2.5"><span class="text-sm text-gray-400">Tidak ada pembelian</span></div>';
                         html += '</div>';
                     }
 

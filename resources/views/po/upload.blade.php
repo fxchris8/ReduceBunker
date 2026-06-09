@@ -146,7 +146,7 @@
                                                                 {{ $row['BL HSD']['value'] ?? 0 }},
                                                                 {{ $row['BL REFFER']['value'] ?? 0 }}
                                                             )'
-                                                            class="bg-yellow-400 hover:bg-yellow-500 text-white rounded px-2 py-1 text-xs font-medium transition-colors duration-150"
+                                                            class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
                                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -250,7 +250,7 @@
                                                                 {{ $row['BL HSD']['value'] ?? 0 }},
                                                                 {{ $row['BL REFFER']['value'] ?? 0 }}
                                                             )'
-                                                            class="bg-yellow-400 hover:bg-yellow-500 text-white rounded px-2 py-1 text-xs font-medium transition-colors duration-150"
+                                                            class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
                                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -348,7 +348,7 @@
                                                                 {{ $row['BL HSD']['port'] ?? 0 }},
                                                                 {{ $row['BL REFFER']['port'] ?? 0 }}
                                                             )'
-                                                            class="bg-yellow-400 hover:bg-yellow-500 text-white rounded px-2 py-1 text-xs font-medium transition-colors duration-150"
+                                                            class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
                                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -392,7 +392,7 @@
                                                                 {{ $row['BL HSD']['sea'] ?? 0 }},
                                                                 {{ $row['BL REFFER']['sea'] ?? 0 }}
                                                             )'
-                                                            class="bg-yellow-400 hover:bg-yellow-500 text-white rounded px-2 py-1 text-xs font-medium transition-colors duration-150"
+                                                            class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
                                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
