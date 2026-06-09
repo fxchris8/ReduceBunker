@@ -851,6 +851,7 @@ class PlanningController extends Controller
 
     public function show(Request $request)
     {   
+        set_time_limit(1200);
         $reportDate = $request->input('report_date', date('Y-m-d'));
         $next_week_date = $request->input('next_week_date', date('Y-m-d', strtotime('+7 days')));
         
@@ -903,7 +904,6 @@ class PlanningController extends Controller
             "tanggal_akhir" => $dvs_formattedNextWeekDate,
         ];
 
-        /*
         try {
             $dvs_reports_raw = $this->fetchPlanningApiData('/get-data-dvs', $dvs_basePayload, 'DVS', 300);
         } catch (\RuntimeException $exception) {
@@ -911,9 +911,6 @@ class PlanningController extends Controller
                 'error' => $exception->getMessage(),
             ]));
         }
-        */
-
-        $dvs_reports_raw = $this->getMockDvsReports();
 
         // filter data valid
         $dvs_reports = array_values(array_filter($dvs_reports_raw, function ($row) {
@@ -937,7 +934,6 @@ class PlanningController extends Controller
             "tanggal" => $noon_report_formattedDate,
         ];
 
-        /*
         $reportIds = [14, 16];
         $noon_report_allReports = [];
 
@@ -957,9 +953,7 @@ class PlanningController extends Controller
 
             $noon_report_allReports = array_merge($noon_report_allReports, $rob_reports);
         } 
-        */
-
-        $noon_report_allReports = [];
+        
         $noon_report_groupedByVessel = [];
 
         foreach ($noon_report_allReports as $row) {
@@ -994,7 +988,6 @@ class PlanningController extends Controller
 
         ///////////////////////////////////////////////////////////////////////////
 
-        $noon_report_groupedByVessel = $this->getMockNoonReportMap();
         $l_nm_map = $this->loadLnmMap();
         $refueling_plan_map = $this->loadRefuelingPlanMap();
 
@@ -1005,7 +998,6 @@ class PlanningController extends Controller
             "disc_port" => "-",
         ];
 
-        /*
         try {
             $master_route_data = $this->fetchPlanningApiData('/get-master-route', $master_route_payload, 'master route', 86400);
         } catch (\RuntimeException $exception) {
@@ -1013,9 +1005,6 @@ class PlanningController extends Controller
                 'error' => $exception->getMessage(),
             ]));
         }
-        */
-
-        $master_route_data = [];
 
         $port_id_map = [];
 
@@ -1051,20 +1040,6 @@ class PlanningController extends Controller
 
         //////////////////////////////////////////////////////////////////////
 
-        $port_id_map = [
-            'SURABAYA'     => 'IDSUB',
-            'JAKARTA'      => 'IDJKT',
-            'MAKASSAR'     => 'IDMAK',
-            'MAKASAR'      => 'IDMAK',
-            'BALIKPAPAN'   => 'IDBPN',
-            'KUALA TANJUNG'=> 'IDKTJ',
-            'KUALATANJUNG' => 'IDKTJ',
-            'PALEMBANG'    => 'IDPLM',
-        ];
-
-        $jarak_map = $this->getMockJarakMap();
-
-        /*
         $jarak_map = [];
 
         foreach ($master_route_data as $route) {
@@ -1081,7 +1056,6 @@ class PlanningController extends Controller
                 }
             }
         }
-        */
 
         /////////////////////////////////////////////////////////////////////
 
@@ -1161,70 +1135,4 @@ class PlanningController extends Controller
             return [];
         }
     }
-
-    private function getMockDvsReports(): array
-    {
-        return [
-            ['vesselid' => 'TFL', 'voyage' => 'V001', 'from_port' => 'IDSUB', 'sailing_route' => 'IDSUB.IDJKT', 'eta' => '15/06/2026 08:00', 'etb' => '15/06/2026 10:00', 'etd' => '16/06/2026 06:00'],
-            ['vesselid' => 'BKU', 'voyage' => 'V002', 'from_port' => 'IDSUB', 'sailing_route' => 'IDJKT.IDSUB', 'eta' => '15/06/2026 11:00', 'etb' => '15/06/2026 13:00', 'etd' => '16/06/2026 08:00'],
-            ['vesselid' => 'OSI', 'voyage' => 'V003', 'from_port' => 'IDSUB', 'sailing_route' => 'IDSUB.IDMAK', 'eta' => '16/06/2026 06:00', 'etb' => '16/06/2026 08:00', 'etd' => '17/06/2026 06:00'],
-            ['vesselid' => 'MAN', 'voyage' => 'V004', 'from_port' => 'IDSUB', 'sailing_route' => 'IDMAK.IDSUB', 'eta' => '16/06/2026 09:00', 'etb' => '16/06/2026 11:00', 'etd' => '17/06/2026 09:00'],
-            ['vesselid' => 'ASR', 'voyage' => 'V005', 'from_port' => 'IDSUB', 'sailing_route' => 'IDJKT.IDKTJ', 'eta' => '16/06/2026 12:00', 'etb' => '16/06/2026 14:00', 'etd' => '17/06/2026 12:00'],
-            ['vesselid' => 'BSA', 'voyage' => 'V006', 'from_port' => 'IDSUB', 'sailing_route' => 'IDKTJ.IDSUB', 'eta' => '17/06/2026 06:00', 'etb' => '17/06/2026 08:00', 'etd' => '18/06/2026 06:00'],
-            ['vesselid' => 'PAH', 'voyage' => 'V007', 'from_port' => 'IDSUB', 'sailing_route' => 'IDSUB.IDBPN', 'eta' => '17/06/2026 09:00', 'etb' => '17/06/2026 11:00', 'etd' => '18/06/2026 09:00'],
-            ['vesselid' => 'TBI', 'voyage' => 'V008', 'from_port' => 'IDSUB', 'sailing_route' => 'IDBPN.IDJKT', 'eta' => '17/06/2026 12:00', 'etb' => '17/06/2026 14:00', 'etd' => '18/06/2026 12:00'],
-            ['vesselid' => 'PWE', 'voyage' => 'V009', 'from_port' => 'IDSUB', 'sailing_route' => 'IDJKT.IDPLM', 'eta' => '18/06/2026 06:00', 'etb' => '18/06/2026 08:00', 'etd' => '19/06/2026 06:00'],
-            ['vesselid' => 'HSG', 'voyage' => 'V010', 'from_port' => 'IDSUB', 'sailing_route' => 'IDPLM.IDJKT', 'eta' => '18/06/2026 09:00', 'etb' => '18/06/2026 11:00', 'etd' => '19/06/2026 09:00'],
-            ['vesselid' => 'BGI', 'voyage' => 'V011', 'from_port' => 'IDSUB', 'sailing_route' => 'IDSUB.IDJKT', 'eta' => '19/06/2026 06:00', 'etb' => '19/06/2026 08:00', 'etd' => '20/06/2026 06:00'],
-            ['vesselid' => 'BAU', 'voyage' => 'V012', 'from_port' => 'IDSUB', 'sailing_route' => 'IDJKT.IDSUB', 'eta' => '19/06/2026 09:00', 'etb' => '19/06/2026 11:00', 'etd' => '20/06/2026 09:00'],
-            ['vesselid' => 'OEM', 'voyage' => 'V013', 'from_port' => 'IDSUB', 'sailing_route' => 'IDSUB.IDMAK', 'eta' => '19/06/2026 12:00', 'etb' => '19/06/2026 14:00', 'etd' => '20/06/2026 12:00'],
-            ['vesselid' => 'ASN', 'voyage' => 'V014', 'from_port' => 'IDSUB', 'sailing_route' => 'IDMAK.IDSUB', 'eta' => '20/06/2026 06:00', 'etb' => '20/06/2026 08:00', 'etd' => '21/06/2026 06:00'],
-            ['vesselid' => 'ASG', 'voyage' => 'V015', 'from_port' => 'IDSUB', 'sailing_route' => 'IDSUB.IDBPN', 'eta' => '20/06/2026 09:00', 'etb' => '20/06/2026 11:00', 'etd' => '21/06/2026 09:00'],
-            ['vesselid' => 'PRI', 'voyage' => 'V016', 'from_port' => 'IDSUB', 'sailing_route' => 'IDBPN.IDJKT', 'eta' => '20/06/2026 12:00', 'etb' => '20/06/2026 14:00', 'etd' => '21/06/2026 12:00'],
-            ['vesselid' => 'PFA', 'voyage' => 'V017', 'from_port' => 'IDSUB', 'sailing_route' => 'IDJKT.IDKTJ', 'eta' => '21/06/2026 06:00', 'etb' => '21/06/2026 08:00', 'etd' => '22/06/2026 06:00'],
-            ['vesselid' => 'PBE', 'voyage' => 'V018', 'from_port' => 'IDSUB', 'sailing_route' => 'IDKTJ.IDSUB', 'eta' => '21/06/2026 09:00', 'etb' => '21/06/2026 11:00', 'etd' => '22/06/2026 09:00'],
-            ['vesselid' => 'OGA', 'voyage' => 'V019', 'from_port' => 'IDSUB', 'sailing_route' => 'IDSUB.IDPLM', 'eta' => '21/06/2026 12:00', 'etb' => '21/06/2026 14:00', 'etd' => '22/06/2026 12:00'],
-            ['vesselid' => 'LUZ', 'voyage' => 'V020', 'from_port' => 'IDSUB', 'sailing_route' => 'IDPLM.IDJKT', 'eta' => '22/06/2026 06:00', 'etb' => '22/06/2026 08:00', 'etd' => '23/06/2026 06:00'],
-        ];
-    }
-
-    private function getMockNoonReportMap(): array
-    {
-        return [
-            'TFL' => ['rob_mfo' => 25000, 'rob_hsd' => 2000, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'BKU' => ['rob_mfo' => 22000, 'rob_hsd' => 1800, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'JAKARTA'],
-            'OSI' => ['rob_mfo' => 28000, 'rob_hsd' => 2200, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'MAN' => ['rob_mfo' => 20000, 'rob_hsd' => 2000, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'MAKASSAR'],
-            'ASR' => ['rob_mfo' => 24000, 'rob_hsd' => 1900, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'JAKARTA'],
-            'BSA' => ['rob_mfo' => 22000, 'rob_hsd' => 1800, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'KUALA TANJUNG'],
-            'PAH' => ['rob_mfo' => 23000, 'rob_hsd' => 1900, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'TBI' => ['rob_mfo' => 24000, 'rob_hsd' => 2000, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'BALIKPAPAN'],
-            'PWE' => ['rob_mfo' => 22000, 'rob_hsd' => 1800, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'JAKARTA'],
-            'HSG' => ['rob_mfo' => 23000, 'rob_hsd' => 1900, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'PALEMBANG'],
-            'BGI' => ['rob_mfo' => 24000, 'rob_hsd' => 1900, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'BAU' => ['rob_mfo' => 23000, 'rob_hsd' => 1800, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'OEM' => ['rob_mfo' => 26000, 'rob_hsd' => 2100, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'ASN' => ['rob_mfo' => 22000, 'rob_hsd' => 1800, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'ASG' => ['rob_mfo' => 23000, 'rob_hsd' => 1900, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'PRI' => ['rob_mfo' => 21000, 'rob_hsd' => 1700, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'PFA' => ['rob_mfo' => 22000, 'rob_hsd' => 1750, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'PBE' => ['rob_mfo' => 21500, 'rob_hsd' => 1700, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'OGA' => ['rob_mfo' => 27000, 'rob_hsd' => 2200, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-            'LUZ' => ['rob_mfo' => 25000, 'rob_hsd' => 2000, 'distance_to_go' => null, 'departure' => null, 'destination' => null, 'pos' => 'SURABAYA'],
-        ];
-    }
-
-    private function getMockJarakMap(): array
-    {
-        // NM antar port ID, nilai realistis untuk rute domestik
-        return [
-            'IDSUB' => ['IDJKT' => 385, 'IDMAK' => 520, 'IDBPN' => 680, 'IDKTJ' => 740, 'IDPLM' => 560],
-            'IDJKT' => ['IDSUB' => 385, 'IDMAK' => 890, 'IDBPN' => 1050, 'IDKTJ' => 620, 'IDPLM' => 280],
-            'IDMAK' => ['IDSUB' => 520, 'IDJKT' => 890, 'IDBPN' => 310, 'IDKTJ' => 1100, 'IDPLM' => 960],
-            'IDBPN' => ['IDSUB' => 680, 'IDJKT' => 1050, 'IDMAK' => 310, 'IDKTJ' => 980, 'IDPLM' => 1200],
-            'IDKTJ' => ['IDSUB' => 740, 'IDJKT' => 620, 'IDMAK' => 1100, 'IDBPN' => 980, 'IDPLM' => 480],
-            'IDPLM' => ['IDSUB' => 560, 'IDJKT' => 280, 'IDMAK' => 960, 'IDBPN' => 1200, 'IDKTJ' => 480],
-        ];
-    }
-
 }
