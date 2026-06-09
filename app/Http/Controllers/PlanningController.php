@@ -111,63 +111,147 @@ class PlanningController extends Controller
         return number_format($value, 2, '.', ',');
     }
 
-    private function applyTankerBalances(array $reports, float $initialMfo, float $initialHsd): array
+    private function applyTankerBalances(
+        array $reports, 
+        float $initialMfo, 
+        float $initialHsd, 
+        array $fuelBaselineMap = [], 
+        float $hargaMfo = 0, 
+        float $hargaHsd = 0, 
+        float $saldo = 0
+    ): array
     {
-        $mfoBalance = $initialMfo;
-        $hsdBalance = $initialHsd;
+        $mfoBalance   = $initialMfo;
+        $hsdBalance   = $initialHsd;
+        $saldoBalance = $saldo;
 
         foreach ($reports as &$report) {
-            $robMfo = $this->toNullableFloat($report['ROB MFO Arrival'] ?? $report['ROB MFO Berthing'] ?? $report['ROB MFO Sebelumnya'] ?? null);
-            $robHsd = $this->toNullableFloat($report['ROB HSD Arrival'] ?? $report['ROB HSD Berthing'] ?? $report['ROB HSD Sebelumnya'] ?? null);
-            $kebutuhanMfo = $this->toNullableFloat($report['Kebutuhan MFO Next Route'] ?? null);
-            $kebutuhanHsd = $this->toNullableFloat($report['Kebutuhan HSD Next Route'] ?? null);
-            $keterangan = [];
+            $vesselKey = strtoupper(trim($report['Vessel ID'] ?? ''));
+            $baseline  = $fuelBaselineMap[$vesselKey] ?? null;
 
-            if ($robMfo !== null && $kebutuhanMfo !== null) {
-                $selisihMfo = $robMfo - $kebutuhanMfo;
-
-                if ($selisihMfo >= 0) {
-                    $report['Isi BBM MFO'] = 0;
-                    $keterangan[] = 'MFO: Tidak perlu isi BBM (surplus '.$this->formatFuelAmount($selisihMfo).')';
-                } else {
-                    $kebutuhanIsiMfo = $this->roundUpToMultiple(abs($selisihMfo), 1000);
-                    $sisaTankerMfo = $mfoBalance - $kebutuhanIsiMfo;
-                    $report['Isi BBM MFO'] = $kebutuhanIsiMfo;
-
-                    if ($sisaTankerMfo >= 0) {
-                        $mfoBalance = $sisaTankerMfo;
-                        $keterangan[] = 'MFO: Isi dari ROB tanker '.$this->formatFuelAmount($kebutuhanIsiMfo);
-                    } else {
-                        $keterangan[] = 'MFO: Beli dari Pertamina '.$this->formatFuelAmount(abs($sisaTankerMfo));
-                    }
-                }
-            } else {
+            if ($baseline === null || $baseline['speed'] <= 0) {
                 $report['Isi BBM MFO'] = null;
-            }
+                $report['Isi BBM HSD'] = null;
+                $report['Keterangan']  = 'Fuel Baseline not found';
+            } 
+            else {
+                 if ($vesselKey === 'BSA') {
+                    \Log::info('applyTankerBalances vessel', [
+                        'vessel'          => $vesselKey,
+                        'ROB MFO Arrival' => $report['ROB MFO Arrival'] ?? 'NULL',
+                        'ROB HSD Arrival' => $report['ROB HSD Arrival'] ?? 'NULL',
+                        'Jarak Next'      => $report['Jarak Next Voyage'] ?? 'NULL',
+                    ]);
+                 }
 
-            if ($robHsd !== null && $kebutuhanHsd !== null) {
-                $selisihHsd = $robHsd - $kebutuhanHsd;
+                $jarakNext = (float)($report['Jarak Next Voyage'] ?? 0);
+                $day       = ($jarakNext / $baseline['speed']) / 24;
 
-                if ($selisihHsd >= 0) {
-                    $report['Isi BBM HSD'] = 0;
-                    $keterangan[] = 'HSD: Tidak perlu isi BBM (surplus '.$this->formatFuelAmount($selisihHsd).')';
+                $robMfo = max(0, (float)($report['ROB MFO Arrival'] ?? $report['ROB MFO Sebelumnya'] ?? 0));
+                $robHsd = max(0, (float)($report['ROB HSD Arrival'] ?? $report['ROB HSD Sebelumnya'] ?? 0));
+
+                $konsMfo   = $baseline['bl_mfo'] * $day;
+                $konsHsd   = $baseline['bl_hsd'] * $day;
+
+                $report['Kebutuhan MFO Next Route'] = $konsMfo;
+                $report['Kebutuhan HSD Next Route'] = $konsHsd;
+
+                $ss_mfo    = $baseline['ss_mfo'];
+                $ss_hsd    = $baseline['ss_hsd'];
+
+                $robNewMfo = $robMfo - $konsMfo;
+                $robNewHsd = $robHsd - $konsHsd;
+
+                $keterangan = [];
+
+                $beliMfo = 0;
+                $biayaMfo = 0;
+
+                $beliHsd = 0;
+                $biayaHsd = 0;
+
+                $totalBiaya = $biayaMfo + $biayaHsd;
+                $tankerMfoBefore = $mfoBalance;
+                $tankerHsdBefore = $hsdBalance;
+
+                // MFO
+                if ($robNewMfo >= $ss_mfo) {
+                    $isiBbmMfo = 0;
                 } else {
-                    $kebutuhanIsiHsd = $this->roundUpToMultiple(abs($selisihHsd), 1000);
-                    $sisaTankerHsd = $hsdBalance - $kebutuhanIsiHsd;
-                    $report['Isi BBM HSD'] = $kebutuhanIsiHsd;
-
-                    if ($sisaTankerHsd >= 0) {
-                        $hsdBalance = $sisaTankerHsd;
-                        $keterangan[] = 'HSD: Isi dari ROB tanker '.$this->formatFuelAmount($kebutuhanIsiHsd);
-                    } else {
-                        $keterangan[] = 'HSD: Beli dari Pertamina '.$this->formatFuelAmount(abs($sisaTankerHsd));
+                    $isiBbmMfo = $ss_mfo - $robNewMfo;
+                    if ($mfoBalance < $isiBbmMfo) {
+                        $beliMfo = $isiBbmMfo - $mfoBalance;
+                        $biayaMfo = $beliMfo * $hargaMfo;
                     }
                 }
-            } else {
-                $report['Isi BBM HSD'] = null;
-            }
 
-            $report['Keterangan'] = implode(' | ', $keterangan);
+                // HSD
+                if ($robNewHsd >= $ss_hsd) {
+                    $isiBbmHsd = 0;
+                } else {
+                    $isiBbmHsd = $ss_hsd - $robNewHsd;
+                    if ($hsdBalance < $isiBbmHsd) {
+                        $beliHsd = $isiBbmHsd - $hsdBalance;
+                        $biayaHsd = $beliHsd * $hargaHsd;
+                    }
+                }
+
+                if ($isiBbmMfo == 0 && $isiBbmHsd == 0) {
+                    $report['Isi BBM MFO'] = 0;
+                    $report['Isi BBM HSD'] = 0;
+                    $keterangan[] = 'Tidak perlu isi';
+                } 
+                elseif ($totalBiaya > 0 && $saldoBalance < $totalBiaya) {
+                    $report['Isi BBM MFO'] = null;
+                    $report['Isi BBM HSD'] = null;
+                    $keterangan[] = 'Saldo tidak mencukupi';
+                } 
+                else {
+                    if ($beliMfo > 0) {
+                        $mfoBalance += $beliMfo;
+                        $saldoBalance -= $biayaMfo;
+                        $keterangan[] = 'MFO: Beli Pertamina ' . $this->formatFuelAmount($beliMfo) . ' KL, isi dari Tanker ' . $this->formatFuelAmount($isiBbmMfo) . ' KL';
+                    } 
+                    elseif ($isiBbmMfo > 0) {
+                        $keterangan[] = 'MFO: Isi dari Tanker ' . $this->formatFuelAmount($isiBbmMfo) . ' KL';
+                    } 
+                    else {
+                        $keterangan[] = 'MFO: Tidak perlu isi';
+                    }
+
+                    if ($beliHsd > 0) {
+                        $hsdBalance += $beliHsd;
+                        $saldoBalance -= $biayaHsd;
+                        $keterangan[] = 'HSD: Beli Pertamina ' . $this->formatFuelAmount($beliHsd) . ' KL, isi dari Tanker ' . $this->formatFuelAmount($isiBbmHsd) . ' KL';
+                    } 
+                    elseif ($isiBbmHsd > 0) {
+                        $keterangan[] = 'HSD: Isi dari Tanker ' . $this->formatFuelAmount($isiBbmHsd) . ' KL';
+                    } 
+                    else {
+                        $keterangan[] = 'HSD: Tidak perlu isi';
+                    }
+
+                    $mfoBalance -= $isiBbmMfo;
+                    $hsdBalance -= $isiBbmHsd;
+
+                    $report['Isi BBM MFO'] = $isiBbmMfo;
+                    $report['Isi BBM HSD'] = $isiBbmHsd;
+                }
+
+                $report['Keterangan'] = implode(' | ', $keterangan);
+
+                $report['_detail'] = [
+                    'tanker_mfo_before' => $tankerMfoBefore,
+                    'tanker_hsd_before' => $tankerHsdBefore,
+                    'beli_pertamina_mfo' => $beliMfo,
+                    'beli_pertamina_hsd' => $beliHsd,
+                    'biaya_mfo' => $biayaMfo,
+                    'biaya_hsd' => $biayaHsd,
+                    'tanker_mfo_after' => $mfoBalance,
+                    'tanker_hsd_after' => $hsdBalance,
+                    'sisa_saldo' => $saldoBalance,
+                ];
+            }
         }
 
         unset($report);
@@ -493,6 +577,16 @@ class PlanningController extends Controller
             $rob_mfo_berthing = $rob_mfo_sebelumnya - ($distanceCurrent * $lnm_mfo);
         }
 
+        if ($vesselKey === 'BSA') {
+            \Log::info('BSA debug reorderReport', [
+                'rob_mfo_sebelumnya' => $rob_mfo_sebelumnya,
+                'rob_hsd_sebelumnya' => $rob_hsd_sebelumnya,
+                'distanceCurrent'    => $distanceCurrent,
+                'lnm_mfo'            => $lnm_mfo,
+                'lnm_hsd'            => $lnm_hsd,
+            ]);
+        }
+
         if ($distanceNext !== null && $speed !== null && $speed > 0) {
             if ($aeDayAtSea !== null) {
                 $kebutuhan_hsd_next_route = $this->roundUpToMultiple((($distanceNext / $speed) / 24) * $aeDayAtSea, 1000);
@@ -639,7 +733,8 @@ class PlanningController extends Controller
 
         $rowIndex = 2;
         foreach ($all_dvs_Reports as $reportRow) {
-            $reportRow['Koreksi'] = ''; // tambahkan kolom koreksi kosong
+            unset($reportRow['_detail']);
+            $reportRow['Koreksi'] = '';
             $sheet->fromArray(array_values($reportRow), null, "A{$rowIndex}");
             $rowIndex++;
         }
@@ -716,14 +811,25 @@ class PlanningController extends Controller
             return view('po.planning', $planningViewData);
         }
 
-        if (!$request->filled('rob_tanker_mfo') || !$request->filled('rob_tanker_hsd')) {
+        if (!$request->filled('rob_tanker_mfo') || !$request->filled('rob_tanker_hsd')
+            || !$request->filled('harga_mfo') || !$request->filled('harga_hsd')
+            || !$request->filled('input_saldo_rp')) {
             return view('po.planning', array_merge($planningViewData, [
-                'error' => 'ROB Tanker MFO dan HSD wajib diisi.',
+                'error' => 'ROB Tanker, Harga BBM, dan Input Saldo wajib diisi.',
             ]));
         }
 
         $robTankerMfo = $this->toNullableFloat($request->input('rob_tanker_mfo'));
         $robTankerHsd = $this->toNullableFloat($request->input('rob_tanker_hsd'));
+        $hargaMfo = $this->toNullableFloat($request->input('harga_mfo'));
+        $hargaHsd = $this->toNullableFloat($request->input('harga_hsd'));
+        $saldo    = $this->toNullableFloat($request->input('input_saldo_rp'));
+
+        if ($hargaMfo === null || $hargaHsd === null || $saldo === null) {
+            return view('po.planning', array_merge($planningViewData, [
+                'error' => 'Harga BBM dan Saldo harus berupa angka.',
+            ]));
+        }
 
         if ($robTankerMfo === null || $robTankerHsd === null) {
             return view('po.planning', array_merge($planningViewData, [
@@ -898,7 +1004,8 @@ class PlanningController extends Controller
             $dvs_reports
         );
 
-        $all_dvs_Reports = $this->applyTankerBalances($all_dvs_Reports, $robTankerMfo, $robTankerHsd);
+        $fuelBaselineMap = $this->loadFuelBaselineMap();
+        $all_dvs_Reports = $this->applyTankerBalances($all_dvs_Reports, $robTankerMfo, $robTankerHsd, $fuelBaselineMap, $hargaMfo, $hargaHsd, $saldo);
 
         //////////////////////////////////////////////////////////////////////////
 
@@ -925,6 +1032,9 @@ class PlanningController extends Controller
             'report' => $all_dvs_Reports,
             'noon_report_formattedDate' => $noon_report_formattedDate,
             'hasFetchedPlanning' => $hasFetchedPlanning,
+            'hargaMfo' => $hargaMfo,
+            'hargaHsd' => $hargaHsd,
+            'saldo' => $saldo,
         ]);
     }
 
@@ -938,6 +1048,31 @@ class PlanningController extends Controller
         $filename = 'refueling_planning_from_' . str_replace(['/', ':', ' '], '_', $date) . '_until_' . str_replace(['/', ':', ' '], '_', $next_week_date) . '.xlsx';
 
         return response()->download($filePath, $filename)->deleteFileAfterSend(true);
+    }
+
+    private function loadFuelBaselineMap(): array
+    {
+        try {
+             $rows = DB::table('fuel_baselines')
+                        ->select('vessel_id', 'bl_mfo', 'bl_hsd', 'speed', 'ss_multiplier_mfo', 'ss_multiplier_hsd')
+                        ->get();
+
+            $map = [];
+            foreach ($rows as $row) {
+                $map[strtoupper(trim($row->vessel_id))] = [
+                    'bl_mfo' => (float) $row->bl_mfo,
+                    'bl_hsd' => (float) $row->bl_hsd,
+                    'speed'  => (float) $row->speed,
+                    'ss_mfo' => $row->bl_mfo * $row->ss_multiplier_mfo,
+                    'ss_hsd' => $row->bl_hsd * $row->ss_multiplier_hsd,
+                ];
+            }
+            return $map;
+        }
+        catch (\Throwable $e) {
+            Log::error('Failed to load fuel_baselines', ['message' => $e->getMessage()]);
+            return [];
+        }
     }
 
 }

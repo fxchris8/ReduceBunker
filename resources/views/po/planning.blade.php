@@ -73,6 +73,33 @@
                             required
                             placeholder="0">
                     </div>
+                    <div>
+                        <label for="harga_mfo" class="block text-sm font-medium text-gray-700 mb-1">
+                            MFO Price (per kL)
+                        </label>
+                        <input type="number" step="any" id="harga_mfo" name="harga_mfo"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48
+                            [appearance:textfield]
+                            [&::-webkit-outer-spin-button]:appearance-none
+                            [&::-webkit-inner-spin-button]:appearance-none"
+                            value="{{ request('harga_mfo') }}"
+                            required
+                            placeholder="0">
+                    </div>
+
+                    <div>
+                        <label for="harga_hsd" class="block text-sm font-medium text-gray-700 mb-1">
+                            HSD Price (per kL)
+                        </label>
+                        <input type="number" step="any" id="harga_hsd" name="harga_hsd"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48
+                            [appearance:textfield]
+                            [&::-webkit-outer-spin-button]:appearance-none
+                            [&::-webkit-inner-spin-button]:appearance-none"
+                            value="{{ request('harga_hsd') }}"
+                            required
+                            placeholder="0">
+                    </div>
                 </div>
 
                 <!-- Input Saldo -->
@@ -87,6 +114,7 @@
                                 [&::-webkit-outer-spin-button]:appearance-none
                                 [&::-webkit-inner-spin-button]:appearance-none"
                             value="{{ request('input_saldo_rp') }}"
+                            required
                             placeholder="0">
                     </div>
                     <button type="submit" data-loading-text="Loading..."
@@ -137,7 +165,7 @@
                                     Vessel ID
                                 </th>
                                 @foreach($headerRows as $header)
-                                    @if($header !== 'Vessel ID')
+                                    @if($header !== 'Vessel ID' && $header !== '_detail')
                                         <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30
                                             {{ in_array($header, ['Pengisian HSD', 'Pengisian MFO']) ? 'bg-green-500 text-white' : '' }}">
                                             {{ ucfirst($header) }}
@@ -149,17 +177,21 @@
                         <tbody class="divide-y divide-gray-200" id="main-table-body">
                             @foreach($report as $row)
                                 @php
-                                    $portFrom = Str::upper(trim($row['New Current Voyage (FROM)'] ?? ''));
+                                    $portFrom  = Str::upper(trim($row['New Current Voyage (FROM)'] ?? ''));
+                                    $_robMfo   = $row['ROB MFO Arrival'] ?? $row['ROB MFO Sebelumnya'] ?? null;
+                                    $_robHsd   = $row['ROB HSD Arrival'] ?? $row['ROB HSD Sebelumnya'] ?? null;
+                                    $isNegativeRob = (is_numeric($_robMfo) && $_robMfo < 0) || (is_numeric($_robHsd) && $_robHsd < 0);
+                                    $excludeFromMain = ['Kebutuhan MFO Next Route', 'Kebutuhan HSD Next Route', 'Isi BBM MFO', 'Isi BBM HSD', 'Keterangan', '_detail'];
                                 @endphp
-                                <tr class="text-center odd:bg-white even:bg-gray-200"
-                                    data-port="{{ $portFrom }}">
+                                <tr class="text-center {{ $isNegativeRob ? 'bg-red-200' : '' }}"
+                                     data-port="{{ $portFrom }}">
                                     <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
                                         {{ $row['Vessel ID'] }}
                                     </td>
                                     @foreach($headerRows as $header)
-                                        @if($header !== 'Vessel ID')
+                                        @if($header !== 'Vessel ID' && $header !== '_detail')
                                             <td class="px-4 py-2 text-center border border-black">
-                                                {{ is_numeric($row[$header] ?? null) ? number_format($row[$header], 2, '.', ',') : ($row[$header] ?? '') }}
+                                                {{ in_array($header, $excludeFromMain) ? '' : (is_numeric($row[$header] ?? null) ? number_format($row[$header], 2, '.', ',') : ($row[$header] ?? '')) }}
                                             </td>
                                         @endif
                                     @endforeach
@@ -184,6 +216,7 @@
                                     <th class="px-4 py-2 text-center border border-black">Isi BBM MFO</th>
                                     <th class="px-4 py-2 text-center border border-black">Isi BBM HSD</th>
                                     <th class="px-4 py-2 text-center border border-black">Keterangan</th>
+                                    <th class="px-4 py-2 text-center border border-black">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200" id="rekom-table-body">
@@ -198,8 +231,9 @@
                                         $isiBbmHsd        = $row['Isi BBM HSD'] ?? '';
                                         $keterangan       = $row['Keterangan'] ?? '';
                                         $portFrom         = Str::upper(trim($row['New Current Voyage (FROM)'] ?? ''));
+                                        $isNegativeRob = (is_numeric($robMfo) && $robMfo < 0) || (is_numeric($robHsd) && $robHsd < 0);
                                     @endphp
-                                    <tr class="text-center odd:bg-white even:bg-gray-200"
+                                    <tr class="text-center {{ $isNegativeRob ? 'bg-red-200' : '' }}"
                                         data-port="{{ $portFrom }}">
                                         <td class="px-4 py-2 text-center border border-black">{{ $row['Vessel ID'] ?? '' }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robMfo) ? number_format($robMfo, 2, '.', ',') : $robMfo }}</td>
@@ -210,6 +244,17 @@
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfo) ? number_format($isiBbmMfo, 2, '.', ',') : $isiBbmMfo }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsd) ? number_format($isiBbmHsd, 2, '.', ',') : $isiBbmHsd }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ $keterangan }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">
+                                            @if(isset($row['_detail']))
+                                                <button onclick="showDetail({{ json_encode($row['_detail']) }}, '{{ $row['Vessel ID'] }}')"
+                                                    class="text-yellow-600 hover:text-yellow-800">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                    </svg>
+                                                </button>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -245,20 +290,27 @@
                         const showSub = cbSub.checked;
                         let shown = 0;
 
-                        getAllRows().forEach(function (row) {
-                            const port    = (row.dataset.port || '').toUpperCase();
-                            const isJkt   = port.includes('IDJKT');
-                            const isSub   = port.includes('IDSUB');
-                            const visible = (isJkt && showJkt) || (isSub && showSub);
+                        ['main-table-body', 'rekom-table-body'].forEach(function(tbodyId) {
+                            let visibleIndex = 0;
+                            document.querySelectorAll('#' + tbodyId + ' tr[data-port]').forEach(function(row) {
+                                const port    = (row.dataset.port || '').toUpperCase();
+                                const isJkt   = port.includes('IDJKT');
+                                const isSub   = port.includes('IDSUB');
+                                const visible = (isJkt && showJkt) || (isSub && showSub);
+                                const isRed   = row.classList.contains('bg-red-200');
 
-                            row.style.display = visible ? '' : 'none';
-                            if (visible) shown++;
+                                row.style.display = visible ? '' : 'none';
+
+                                if (visible) {
+                                    if (!isRed) {
+                                        row.classList.remove('bg-white', 'bg-gray-200');
+                                        row.classList.add(visibleIndex % 2 === 0 ? 'bg-white' : 'bg-gray-200');
+                                        visibleIndex++;
+                                    }
+                                    shown++;
+                                }
+                            });
                         });
-
-                        if (countEl) {
-                            const vesselCount = shown / 2;
-                            countEl.textContent = 'Showing ' + vesselCount + ' vessel';
-                        }
                     }
 
                     cbAll.addEventListener('change', function () {
@@ -277,6 +329,77 @@
 
                     applyFilter();
                 })();
+                </script>
+                
+                <div id="detail-modal" class="fixed inset-0 z-50 hidden">
+                    <div class="fixed inset-0 bg-black bg-opacity-50" onclick="closeDetail()"></div>
+                    <div class="fixed inset-0 flex items-center justify-center p-4">
+                        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
+                            <div class="bg-red-600 text-white px-4 py-3 rounded-t-lg flex justify-between items-center">
+                                <h3 id="detail-title" class="font-bold text-lg"></h3>
+                                <button onclick="closeDetail()" class="text-white hover:text-red-200 text-xl">&times;</button>
+                            </div>
+                            <div id="detail-body" class="p-4 text-sm space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                function fmt(v) {
+                    if (v === null || v === undefined) return '-';
+                    return Number(v).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                }
+
+                function fmtRp(v) {
+                    if (v === null || v === undefined) return 'Rp 0';
+                    return 'Rp ' + Number(v).toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                }
+
+                function showDetail(d, vessel) {
+                    document.getElementById('detail-title').textContent = 'Detail Bunkering - ' + vessel;
+
+                    let html = '';
+
+                    // ROB Tanker Sebelum
+                    html += '<div class="border rounded p-3 bg-gray-50">';
+                    html += '<p class="font-semibold mb-1">ROB Tanker Sebelum Pengisian</p>';
+                    html += '<p>MFO: ' + fmt(d.tanker_mfo_before) + ' KL</p>';
+                    html += '<p>HSD: ' + fmt(d.tanker_hsd_before) + ' KL</p>';
+                    html += '</div>';
+
+                    // Pembelian Pertamina
+                    if (d.beli_pertamina_mfo > 0 || d.beli_pertamina_hsd > 0) {
+                        html += '<div class="border rounded p-3 bg-yellow-50">';
+                        html += '<p class="font-semibold mb-1">Pembelian dari Pertamina</p>';
+                        if (d.beli_pertamina_mfo > 0) {
+                            html += '<p>MFO: ' + fmt(d.beli_pertamina_mfo) + ' KL (' + fmtRp(d.biaya_mfo) + ')</p>';
+                        }
+                        if (d.beli_pertamina_hsd > 0) {
+                            html += '<p>HSD: ' + fmt(d.beli_pertamina_hsd) + ' KL (' + fmtRp(d.biaya_hsd) + ')</p>';
+                        }
+                        html += '<p class="mt-1 font-medium">Total: ' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</p>';
+                        html += '</div>';
+                    }
+
+                    // ROB Tanker Sesudah
+                    html += '<div class="border rounded p-3 bg-gray-50">';
+                    html += '<p class="font-semibold mb-1">ROB Tanker Setelah Pengisian</p>';
+                    html += '<p>MFO: ' + fmt(d.tanker_mfo_after) + ' KL</p>';
+                    html += '<p>HSD: ' + fmt(d.tanker_hsd_after) + ' KL</p>';
+                    html += '</div>';
+
+                    // Sisa Saldo
+                    html += '<div class="border rounded p-3 bg-blue-50">';
+                    html += '<p class="font-semibold">Sisa Saldo: ' + fmtRp(d.sisa_saldo) + '</p>';
+                    html += '</div>';
+
+                    document.getElementById('detail-body').innerHTML = html;
+                    document.getElementById('detail-modal').classList.remove('hidden');
+                }
+
+                function closeDetail() {
+                    document.getElementById('detail-modal').classList.add('hidden');
+                }
                 </script>
 
             @elseif($hasFetchedPlanning ?? false)
