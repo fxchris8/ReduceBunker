@@ -10,6 +10,7 @@ use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\POController;
 use App\Http\Controllers\BaselineController;
 use App\Http\Controllers\UploadDinamisController;
+use App\Http\Controllers\FuelBaselineController;
 use App\Http\Middleware\EnsureSsoSessionIsFresh;
 
 Route::middleware('guest')->group(function () {
@@ -58,4 +59,6 @@ Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
     Route::post('/upload-file', [POController::class, 'uploadFile'])->name('upload.file');
 
     Route::any('/baseline-analysis', [BaselineController::class, 'show'])->name('po.baseline');
+
+    Route::resource('/fuel-baseline', FuelBaselineController::class)->except(['show']);
 });

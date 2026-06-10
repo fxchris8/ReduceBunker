@@ -11,7 +11,7 @@ use DateTime;
 
 class UploadController extends Controller
 {   
-    function reorderReport($grouped) {
+    function reorderReport($grouped, $baselines) {
         $bl_l_nm_FilePath = storage_path('app/BL for Analysis.xlsx');
         $spreadsheet_bl_l_nm = IOFactory::load($bl_l_nm_FilePath);
         $sheet_bl_l_nm = $spreadsheet_bl_l_nm->getActiveSheet();
@@ -29,8 +29,13 @@ class UploadController extends Controller
 
         $vesselRaw = $grouped['vesselid'] ?? '';
         $vesselKey = strtoupper(trim($vesselRaw));
+        $vesselBaseline = $baselines->get($vesselKey);
 
         $bl_l_nm = $bl_l_nm_map[$vesselKey]['bl_l_nm'] ?? 10;
+
+        $bl_mfo_db      = $vesselBaseline?->bl_mfo ?? 0;
+        $bl_hsd_db      = $vesselBaseline?->bl_hsd ?? 0;
+        $bl_ae_1_reffer = $vesselBaseline?->bl_ae_1_reffer ?? 0;
 
         \Log::info(print_r($bl_l_nm_map, true) . PHP_EOL);
 
@@ -84,6 +89,10 @@ class UploadController extends Controller
 
             'BL L/NM' => $bl_l_nm,
 
+            'BL MFO'    => $bl_mfo_db,
+            'BL HSD'    => $bl_hsd_db,
+            'BL REFFER' => $bl_ae_1_reffer,
+
             'L/NM' => (
                 isset($grouped['steam_time']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
             ) ? (
@@ -110,6 +119,16 @@ class UploadController extends Controller
 
     public function show(Request $request)
     {   
+        set_time_limit(1200);
+        
+        if (!$request->filled('report_date')) {
+            return view('po.upload', [
+                'report14' => null,
+                'report16' => null,
+                'port_sea_data' => null,
+            ]);
+        }
+        
         $reportDate = $request->input('report_date', date('Y-m-d', strtotime('-1 day')));
         $formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
 
@@ -119,6 +138,8 @@ class UploadController extends Controller
 
         $reportIds = [14, 16];
         $allReports = [];
+
+        $baselines = \App\Models\FuelBaseline::all()->keyBy('vessel_id');
 
         foreach ($reportIds as $reportId) {
             $payload = $basePayload;
@@ -142,7 +163,7 @@ class UploadController extends Controller
             $data = $response->json();
             $reports = $data['data'] ?? [];
 
-            $normalized = array_map([$this, 'reorderReport'], $reports);
+            $normalized = array_map(fn($r) => $this->reorderReport($r, $baselines), $reports);
 
             $allReports[$reportId] = $normalized;
         }
@@ -198,42 +219,38 @@ class UploadController extends Controller
         $greenColumns = ['BL M/E', 'BL A/E (L/Day)', 'BL L/NM'];
         $analysisColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME MFO L/NM (%)'];
 
-        $colored_port = array_map(function ($row) use ($greenColumns, $analysisColumns) {
-            $meHsd = $row['M/E HSD'] ?? null;
+        $colored_port = array_map(function ($row) use ($greenColumns, $analysisColumns, $baselines) {
+            $meHsd      = $row['M/E HSD'] ?? null;
             $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-            $crane_dur = $row['CRANE DURATION'] ?? null;
+            $crane_dur  = $row['CRANE DURATION'] ?? null;
+            $ae_par_dur = $row['AE PARAREL DURATION'] ?? null;
 
             $load_1 = $row['LOAD A/E 1 (KW)'] ?? null;
             $load_2 = $row['LOAD A/E 2 (KW)'] ?? null;
             $load_3 = $row['LOAD A/E 3 (KW)'] ?? null;
             $load_4 = $row['LOAD A/E 4 (KW)'] ?? null;
 
-            $ae_par_dur = $row['AE PARAREL DURATION'] ?? null;
-
-            $me_without_manuev_Condition = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
-            
-            $excess_ae_par_dur_Condition = is_numeric($ae_par_dur) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-                            ($ae_par_dur - $maneuvering - $crane_dur > 3);
-
-            // Condition untuk multiple loads dengan AE PARAREL DURATION = 0
-            $loads = [$load_1, $load_2, $load_3, $load_4];
+            $loads       = [$load_1, $load_2, $load_3, $load_4];
             $activeLoads = array_filter($loads, fn($v) => is_numeric($v) && $v > 0);
-            $isLoadCondition = count($activeLoads) > 1 && is_numeric($ae_par_dur) && $ae_par_dur == 0;
 
-            // Condition untuk multiple loads dengan nilai berbeda
-            $isLoadDifferentCondition = false;
-            if (count($activeLoads) > 1) {
-                $uniqueValues = array_unique($activeLoads);
-                if (count($uniqueValues) > 1) {
-                    $isLoadDifferentCondition = true;
-                }
-            }
+            $vesselBaseline = $baselines->get($row['Vessel ID'] ?? null);
+            $blAe1Reffer    = $vesselBaseline?->bl_ae_1_reffer;
+            $totalReefer    = floatval($row['REEFER 20"'] ?? 0) + floatval($row['REEFER 40"'] ?? 0);
 
-            // Condition untuk single load dengan AE PARAREL DURATION != 0
-            $isSingleLoadCondition = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
+            $allAeZero     = collect($loads)->every(fn($v) => !is_numeric($v) || floatval($v) == 0);
+            $reeferExceeds = count($activeLoads) > 1 && $blAe1Reffer !== null && $totalReefer < $blAe1Reffer;
+            $rowAnomalous  = ($allAeZero && $totalReefer > 0) || $reeferExceeds;
 
-            // Condition untuk AE Pararel Duration = 24
-            $is24HoursAePararelCondition = is_numeric($ae_par_dur) && $ae_par_dur == 24;
+            $me_without_manuev_Condition    = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
+            $excess_ae_par_dur_Condition    = is_numeric($ae_par_dur) && is_numeric($maneuvering) && is_numeric($crane_dur)
+                                                && ($ae_par_dur - $maneuvering - $crane_dur > 3);
+            $isLoadCondition                = count($activeLoads) > 1 && is_numeric($ae_par_dur) && $ae_par_dur == 0;
+            $isLoadDifferentCondition       = count($activeLoads) > 1 && count(array_unique($activeLoads)) > 1;
+            $isSingleLoadCondition          = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
+            $is24HoursAePararelCondition    = is_numeric($ae_par_dur) && $ae_par_dur == 24;
+
+            $aeLoadCols = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
+            $highlightAeLoad = $isLoadCondition || $isLoadDifferentCondition || $isSingleLoadCondition || $is24HoursAePararelCondition;
 
             $newRow = [];
             foreach ($row as $key => $value) {
@@ -242,80 +259,59 @@ class UploadController extends Controller
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
                 }
-
                 if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
                 }
-
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
-
                 if ($excess_ae_par_dur_Condition && in_array($key, ['AE PARAREL DURATION', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION'])) {
                     $class .= ' bg-blue-200 font-semibold';
                 }
-
-                if ($isLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                if ($highlightAeLoad && in_array($key, $aeLoadCols)) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
 
-                if ($isLoadDifferentCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-                    $class .= ' bg-yellow-200 font-semibold';
-                }
-
-                if ($isSingleLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-                    $class .= ' bg-yellow-200 font-semibold';
-                }
-
-                if ($is24HoursAePararelCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-                    $class .= ' bg-yellow-200 font-semibold';
-                }
-
-                $newRow[$key] = [
-                    'value' => $value,
-                    'class' => $class
-                ];
+                $newRow[$key] = ['value' => $value, 'class' => $class];
             }
+
+            $newRow['_row_class'] = ['value' => $rowAnomalous ? 'bg-red-200' : '', 'class' => ''];
 
             return $newRow;
         }, $port_data);
 
-        $colored_sea = array_map(function ($row) use ($greenColumns, $analysisColumns) {
-            $meHsd = $row['M/E HSD'] ?? null;
+        $colored_sea = array_map(function ($row) use ($greenColumns, $analysisColumns, $baselines) {
+            $meHsd       = $row['M/E HSD'] ?? null;
             $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-            $crane_dur = $row['CRANE DURATION'] ?? null;
+            $crane_dur   = $row['CRANE DURATION'] ?? null;
+            $ae_par_dur  = $row['AE PARAREL DURATION'] ?? null;
 
             $load_1 = $row['LOAD A/E 1 (KW)'] ?? null;
             $load_2 = $row['LOAD A/E 2 (KW)'] ?? null;
             $load_3 = $row['LOAD A/E 3 (KW)'] ?? null;
             $load_4 = $row['LOAD A/E 4 (KW)'] ?? null;
-            
-            $ae_par_dur = $row['AE PARAREL DURATION'] ?? null;
+
+            $loads       = [$load_1, $load_2, $load_3, $load_4];
+            $activeLoads = array_filter($loads, fn($v) => is_numeric($v) && $v > 0);
+
+            $vesselBaseline = $baselines->get($row['Vessel ID'] ?? null);
+            $blAe1Reffer    = $vesselBaseline?->bl_ae_1_reffer;
+            $totalReefer    = floatval($row['REEFER 20"'] ?? 0) + floatval($row['REEFER 40"'] ?? 0);
+
+            $allAeZero     = collect($loads)->every(fn($v) => !is_numeric($v) || floatval($v) == 0);
+            $reeferExceeds = count($activeLoads) > 1 && $blAe1Reffer !== null && $totalReefer < $blAe1Reffer;
+            $rowAnomalous  = $allAeZero || $reeferExceeds;
 
             $me_without_manuev_Condition = is_numeric($meHsd) && $meHsd != 0 && is_numeric($maneuvering) && $maneuvering == 0;
-            
-            $excess_ae_par_dur_Condition = is_numeric($ae_par_dur) && is_numeric($maneuvering) && is_numeric($crane_dur) &&
-                            ($ae_par_dur - $maneuvering - $crane_dur > 3);
-
-            // Condition untuk multiple loads dengan AE PARAREL DURATION = 0
-            $loads = [$load_1, $load_2, $load_3, $load_4];
-            $activeLoads = array_filter($loads, fn($v) => is_numeric($v) && $v > 0);
-            $isLoadCondition = count($activeLoads) > 1 && is_numeric($ae_par_dur) && $ae_par_dur == 0;
-
-            // Condition untuk multiple loads dengan nilai berbeda
-            $isLoadDifferentCondition = false;
-            if (count($activeLoads) > 1) {
-                $uniqueValues = array_unique($activeLoads);
-                if (count($uniqueValues) > 1) {
-                    $isLoadDifferentCondition = true;
-                }
-            }
-
-            // Condition untuk single load dengan AE PARAREL DURATION != 0
-            $isSingleLoadCondition = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
-
-            // Condition untuk AE Pararel Duration = 24
+            $excess_ae_par_dur_Condition = is_numeric($ae_par_dur) && is_numeric($maneuvering) && is_numeric($crane_dur)
+                                            && ($ae_par_dur - $maneuvering - $crane_dur > 3);
+            $isLoadCondition             = count($activeLoads) > 1 && is_numeric($ae_par_dur) && $ae_par_dur == 0;
+            $isLoadDifferentCondition    = count($activeLoads) > 1 && count(array_unique($activeLoads)) > 1;
+            $isSingleLoadCondition       = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
             $is24HoursAePararelCondition = is_numeric($ae_par_dur) && $ae_par_dur == 24;
+
+            $aeLoadCols      = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
+            $highlightAeLoad = $isLoadCondition || $isLoadDifferentCondition || $isSingleLoadCondition || $is24HoursAePararelCondition;
 
             $newRow = [];
             foreach ($row as $key => $value) {
@@ -324,51 +320,36 @@ class UploadController extends Controller
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
                 }
-
                 if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
                 }
-
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
-
                 if ($excess_ae_par_dur_Condition && in_array($key, ['AE PARAREL DURATION', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION'])) {
                     $class .= ' bg-blue-200 font-semibold';
                 }
-
-                if ($isLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
+                if ($highlightAeLoad && in_array($key, $aeLoadCols)) {
                     $class .= ' bg-yellow-200 font-semibold';
                 }
 
-                if ($isLoadDifferentCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-                    $class .= ' bg-yellow-200 font-semibold';
-                }
-
-                if ($isSingleLoadCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-                    $class .= ' bg-yellow-200 font-semibold';
-                }
-
-                if ($is24HoursAePararelCondition && in_array($key, ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'])) {
-                    $class .= ' bg-yellow-200 font-semibold';
-                }
-
-                $newRow[$key] = [
-                    'value' => $value,
-                    'class' => $class
-                ];
+                $newRow[$key] = ['value' => $value, 'class' => $class];
             }
+
+            $newRow['_row_class'] = ['value' => $rowAnomalous ? 'bg-red-200' : '', 'class' => ''];
 
             return $newRow;
         }, $sea_data);
 
+        $headers_port = array_filter(array_keys($colored_port[0] ?? []), fn($k) => $k !== '_row_class');
+        $headers_sea  = array_filter(array_keys($colored_sea[0] ?? []), fn($k) => $k !== '_row_class');
 
         session(['port_anomaly' => $colored_port, 'sea_anomaly' => $colored_sea, 'port_sea_data' => $port_sea_data]);
 
         return view('po.upload', [
-            'headers_port' => array_keys($colored_port[0] ?? []),
+            'headers_port' => $headers_port,
             'report14' => $colored_port,
-            'headers_sea' => array_keys($colored_sea[0] ?? []),
+            'headers_sea' => $headers_sea,
             'report16' => $colored_sea,
             'port_sea_header' => array_keys($port_sea_data[0] ?? []),
             'port_sea_data' => $port_sea_data
