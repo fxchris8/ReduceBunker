@@ -83,9 +83,9 @@ class UploadController extends Controller
             'REEFER 20"' => $grouped['reefer20'] ?? null,
             'REEFER 40"' => $grouped['reefer40'] ?? null,
             
-            'BL M/E' => $grouped['bl_me_hsd'] ?? null,
+            'BL M/E' => $bl_mfo_db,
             'ME Maneuvering Cons. (L/H)' => $grouped['me_manuev_consum'] ?? null,
-            'SELISIH ME Maneuvering' => $grouped['selisih'] ?? null,
+            'SELISIH ME Maneuvering' => $bl_mfo_db - ($grouped['me_manuev_consum'] ?? 0),
 
             'BL L/NM' => $bl_l_nm,
 
@@ -109,9 +109,9 @@ class UploadController extends Controller
                     : 0
             ) : 0,
 
-            'BL A/E (L/Day)' => $grouped['bl_ae'] ?? null,
+            'BL A/E (L/Day)' => $bl_hsd_db,
             'AE Consumption' => ($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0),
-            'EXCESS AE' => ($grouped['bl_ae'] ?? 0) - (($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0)),
+            'EXCESS AE' => $bl_hsd_db - (($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0)),
             ];
 
         return $ordered;
