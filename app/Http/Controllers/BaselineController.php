@@ -11,7 +11,11 @@ use Illuminate\Support\Facades\Log;
 class BaselineController extends Controller
 {
     function polyfitQuadratic(array $x, array $y) {
-        $n = count($x);
+        $n = min(count($x), count($y));
+
+        if ($n < 3) {
+            return [0, 0, 0];
+        }
 
         // Hitung jumlah-sum yang diperlukan
         $sumX = $sumX2 = $sumX3 = $sumX4 = 0;
