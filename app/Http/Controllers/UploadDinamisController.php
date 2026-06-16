@@ -227,6 +227,7 @@ class UploadDinamisController extends Controller
             "report_id" => "16",
         ];
 
+        /* UNCOMMENT THIS FOR PRODUCTION
         $response = Http::timeout(120)
             ->withHeaders([
                 'Accept' => 'application/json',
@@ -244,6 +245,32 @@ class UploadDinamisController extends Controller
 
         $data    = $response->json();
         $reports = $data['data'] ?? [];
+        */
+
+        // MOCK [START]
+        if (true) {
+            $data    = $this->getMockSeaData();
+            $reports = $data['data'] ?? [];
+        } else {
+            $response = Http::timeout(120)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])
+                ->withBody(json_encode($basePayload), 'application/json')
+                ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
+            
+            if (!$response->successful()) {
+                return view('po.upload_dinamis', [
+                    'error'    => 'Gagal ambil data API (report_id: 16, status: '.$response->status().')',
+                    'sea_data' => [],
+                ]);
+            }
+
+            $data    = $response->json();
+            $reports = $data['data'] ?? [];
+        }
+        // MOCK [END]
 
         $normalized = array_map([$this, 'reorderReport'], $reports);
 
@@ -348,6 +375,19 @@ class UploadDinamisController extends Controller
                 $report['Error'] = is_numeric($report['Konsumsi M/E MFO Aktual']) && is_numeric($konsumsi_perhitungan) && $konsumsi_perhitungan != 0
                     ? round((($konsumsi_perhitungan - $report['Konsumsi M/E MFO Aktual']) / $konsumsi_perhitungan) * 100, 2) . ' %'
                     : '';
+            }
+        }
+
+        foreach ($sea_data as $report) {
+            $vesselId   = strtoupper(trim($report['Vessel ID'] ?? ''));
+            $steamTime  = floatval($report['STEAM TIME (HOUR : MINUTE)'] ?? 0);
+            $konsumsi   = floatval($report['Konsumsi M/E MFO Perhitungan'] ?? 0);
+
+            if ($vesselId && $steamTime > 0 && is_numeric($report['Konsumsi M/E MFO Perhitungan']) && $konsumsi > 0) {
+                $dynamicBlMe = round($konsumsi / $steamTime, 2);
+
+                \App\Models\FuelBaseline::where('vessel_id', $vesselId)
+                    ->update(['dynamic_bl_me' => $dynamicBlMe]);
             }
         }
 
@@ -757,5 +797,23 @@ class UploadDinamisController extends Controller
 
         return redirect('/consumption-analysis/dinamis')
             ->with('success_email', 'All e-mails sent successfully.');
+    }
+
+    private function getMockSeaData(): array
+    {
+        return [
+            'data' => [
+                ['vesselid'=>'ASN','tanggal'=>'2026-06-13 13:39:00','pos'=>null,'departure'=>'Banjarmasin','destination'=>'Jakarta','steam_dist'=>181.50,'ship_speed'=>7.26,'steam_time'=>25.00,'daya_me_kw'=>1850,'me_mfo'=>6150],
+                ['vesselid'=>'BAU','tanggal'=>'2026-06-13 11:27:00','pos'=>null,'departure'=>'Berau','destination'=>'Makassar','steam_dist'=>157.60,'ship_speed'=>9.44,'steam_time'=>16.70,'daya_me_kw'=>720,'me_mfo'=>2672],
+                ['vesselid'=>'BGI','tanggal'=>'2026-06-13 13:25:00','pos'=>null,'departure'=>'Jakarta','destination'=>'Padang','steam_dist'=>209.00,'ship_speed'=>9.29,'steam_time'=>22.50,'daya_me_kw'=>1600,'me_mfo'=>4290],
+                ['vesselid'=>'HAN','tanggal'=>'2026-06-13 11:17:00','pos'=>null,'departure'=>'Timika','destination'=>'Surabaya','steam_dist'=>287.70,'ship_speed'=>11.99,'steam_time'=>24.00,'daya_me_kw'=>1750,'me_mfo'=>7356],
+                ['vesselid'=>'HAS','tanggal'=>'2026-06-13 12:31:00','pos'=>null,'departure'=>'Makassar','destination'=>'Baubau','steam_dist'=>173.30,'ship_speed'=>8.29,'steam_time'=>20.90,'daya_me_kw'=>4200,'me_mfo'=>11758],
+                ['vesselid'=>'HJE','tanggal'=>'2026-06-13 11:22:00','pos'=>null,'departure'=>'Biak','destination'=>'Bau Bau','steam_dist'=>330.10,'ship_speed'=>13.75,'steam_time'=>24.00,'daya_me_kw'=>4800,'me_mfo'=>17131],
+                ['vesselid'=>'HSA','tanggal'=>'2026-06-13 13:19:00','pos'=>null,'departure'=>'Jakarta','destination'=>'Belawan','steam_dist'=>251.50,'ship_speed'=>10.48,'steam_time'=>24.00,'daya_me_kw'=>7200,'me_mfo'=>24150],
+                ['vesselid'=>'MAN','tanggal'=>'2026-06-13 11:24:00','pos'=>null,'departure'=>'Makassar','destination'=>'Banjarmasin','steam_dist'=>199.00,'ship_speed'=>8.29,'steam_time'=>24.00,'daya_me_kw'=>1100,'me_mfo'=>0],
+                ['vesselid'=>'PAH','tanggal'=>'2026-06-13 13:08:00','pos'=>null,'departure'=>'Batam','destination'=>'Jakarta','steam_dist'=>192.60,'ship_speed'=>8.03,'steam_time'=>24.00,'daya_me_kw'=>680,'me_mfo'=>3960],
+                ['vesselid'=>'PRI','tanggal'=>'2026-06-13 12:03:00','pos'=>null,'departure'=>'Surabaya','destination'=>'Berau','steam_dist'=>240.50,'ship_speed'=>10.02,'steam_time'=>24.00,'daya_me_kw'=>1250,'me_mfo'=>9358],
+            ]
+        ];
     }
 }
