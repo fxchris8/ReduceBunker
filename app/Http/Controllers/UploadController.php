@@ -145,7 +145,6 @@ class UploadController extends Controller
             $payload = $basePayload;
             $payload['report_id'] = (string)$reportId;
 
-            /* UNCOMMENT THIS FOR PRODUCTION 
             $response = Http::timeout(120)
             ->withHeaders([
                 'Accept' => 'application/json',
@@ -162,32 +161,6 @@ class UploadController extends Controller
             }
 
             $data = $response->json();
-            */
-
-            // MOCK [START]
-            if (true) {
-                $data = ($reportId == 14) ? $this->getMockPortData() : $this->getMockSeaData();
-            } else {
-                $response = Http::timeout(120)
-                ->withHeaders([
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/json',
-                ])->withBody(json_encode($payload), 'application/json')
-                ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
-
-                if (!$response->successful()) {
-                    return view('po.upload', [
-                        'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
-                        'report14' => [],
-                        'report16' => [],
-                    ]);
-                }
-
-                $data = $response->json();
-            }
-
-            $reports = $data['data'] ?? [];
-            // MOCK [END]
 
             $normalized = array_map(fn($r) => $this->reorderReport($r, $baselines), $reports);
 
@@ -723,41 +696,5 @@ class UploadController extends Controller
 
         return redirect('/consumption-analysis/statis')
             ->with('success_email', 'All e-mails sent successfully.');
-    }
-
-    private function getMockPortData(): array
-    {
-        return [
-            'data' => [
-                ['vesselid'=>'AKA','tanggal'=>'2026-06-13 11:44:00','pos'=>'KAPAL SANDAR DI DERMAGA PANTOLOAN-PALU','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>53,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>35,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'ASR','tanggal'=>'2026-06-13 12:08:00','pos'=>'BERLALU MUARA JAWA','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>2420,'ae_mfo'=>0,'ae_hsd'=>1303,'duration_manuev'=>7.1,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>140,'load_ae_3'=>140,'load_ae_4'=>0,'ae_pararel_duration'=>8,'reefer20'=>1,'reefer40'=>0,'me_manuev_consum'=>340.85],
-                ['vesselid'=>'HAP','tanggal'=>'2026-06-13 10:53:00','pos'=>'sandar dermaga timika','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1870,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>133,'load_ae_2'=>133,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>24,'reefer20'=>17,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'HSG','tanggal'=>'2026-06-13 13:24:00','pos'=>'BERLIAN UTARA SURABAYA','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>2960,'ae_mfo'=>0,'ae_hsd'=>430,'duration_manuev'=>4.8,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>1150,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>6.4,'reefer20'=>0,'reefer40'=>1,'me_manuev_consum'=>616.67],
-                ['vesselid'=>'MHI','tanggal'=>'2026-06-13 12:17:00','pos'=>'2 NM TENGGARA OB MOROSI','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>4493,'ae_hsd'=>0,'duration_manuev'=>1.1,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>2,'crane_duration'=>24,'load_ae_1'=>135,'load_ae_2'=>0,'load_ae_3'=>135,'load_ae_4'=>0,'ae_pararel_duration'=>24,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'OSI','tanggal'=>'2026-06-13 11:14:00','pos'=>'TERNATE','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>2900,'ae_hsd'=>160,'duration_manuev'=>3.3,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>1300,'emg'=>null,'total_crane'=>3,'crane_duration'=>17.7,'load_ae_1'=>200,'load_ae_2'=>200,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>21,'reefer20'=>22,'reefer40'=>4,'me_manuev_consum'=>0],
-                ['vesselid'=>'PSM','tanggal'=>'2026-06-13 13:16:00','pos'=>'SANDAR SAMPIT','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>1848,'ae_mfo'=>0,'ae_hsd'=>310,'duration_manuev'=>8.5,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>340,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>30,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>217.41],
-                ['vesselid'=>'TFL','tanggal'=>'2026-06-13 11:48:00','pos'=>'PELABUHAN KENDARI','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>582,'ae_mfo'=>0,'ae_hsd'=>698,'duration_manuev'=>3.1,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>45,'load_ae_2'=>45,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>3.9,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>187.74],
-                ['vesselid'=>'OJA','tanggal'=>'2026-06-13 12:07:00','pos'=>'Dermaga Berlian Timur Surabaya','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1560,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>1,'crane_duration'=>2,'load_ae_1'=>185,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>2,'reefer20'=>2,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'VEI','tanggal'=>'2026-06-13 12:29:00','pos'=>'BERLABUHJANGKAR REDE TARAKAN','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>165,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>180,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>1,'reefer20'=>10,'reefer40'=>0,'me_manuev_consum'=>0],
-            ]
-        ];
-    }
-
-    private function getMockSeaData(): array
-    {
-        return [
-            'data' => [
-                ['vesselid'=>'ANO','tanggal'=>'2026-06-13 11:00:00','pos'=>'AT SEA SURABAYA - MAKASSAR','departure'=>'IDSUB','destination'=>'IDMAK','steam_dist'=>423,'steam_time'=>26,'ship_speed'=>16.3,'prop_slip'=>3.2,'me_rpm'=>118,'me_mfo'=>4200,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>980,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>210,'load_ae_2'=>210,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>5,'reefer40'=>2,'me_manuev_consum'=>0],
-                ['vesselid'=>'BIM','tanggal'=>'2026-06-13 11:30:00','pos'=>'AT SEA MAKASSAR - BITUNG','departure'=>'IDMAK','destination'=>'IDBTG','steam_dist'=>380,'steam_time'=>25,'ship_speed'=>15.2,'prop_slip'=>4.1,'me_rpm'=>115,'me_mfo'=>3850,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>870,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>185,'load_ae_2'=>185,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>3,'reefer40'=>1,'me_manuev_consum'=>0],
-                ['vesselid'=>'CEN','tanggal'=>'2026-06-13 10:45:00','pos'=>'AT SEA JAKARTA - SURABAYA','departure'=>'IDJKT','destination'=>'IDSUB','steam_dist'=>290,'steam_time'=>24,'ship_speed'=>12.1,'prop_slip'=>5.5,'me_rpm'=>108,'me_mfo'=>5100,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1100,'duration_manuev'=>1.5,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>230,'load_ae_2'=>0,'load_ae_3'=>230,'load_ae_4'=>0,'ae_pararel_duration'=>1.5,'reefer20'=>8,'reefer40'=>3,'me_manuev_consum'=>420],
-                ['vesselid'=>'TFL','tanggal'=>'2026-06-13 12:00:00','pos'=>'AT SEA KENDARI - MAKASSAR','departure'=>'IDKDI','destination'=>'IDMAK','steam_dist'=>310,'steam_time'=>25,'ship_speed'=>12.4,'prop_slip'=>3.8,'me_rpm'=>112,'me_mfo'=>3200,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>750,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>160,'load_ae_2'=>160,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'OSI','tanggal'=>'2026-06-13 09:30:00','pos'=>'AT SEA TERNATE - BITUNG','departure'=>'IDTTE','destination'=>'IDBTG','steam_dist'=>195,'steam_time'=>24,'ship_speed'=>8.1,'prop_slip'=>6.2,'me_rpm'=>102,'me_mfo'=>6800,'me_hsd'=>0,'ae_mfo'=>1200,'ae_hsd'=>300,'duration_manuev'=>2,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>1300,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>200,'load_ae_2'=>200,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>2,'reefer20'=>10,'reefer40'=>4,'me_manuev_consum'=>380],
-                ['vesselid'=>'PWE','tanggal'=>'2026-06-13 11:15:00','pos'=>'AT SEA JAKARTA - PONTIANAK','departure'=>'IDJKT','destination'=>'IDPNK','steam_dist'=>520,'steam_time'=>36,'ship_speed'=>14.4,'prop_slip'=>2.9,'me_rpm'=>116,'me_mfo'=>4500,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1200,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>190,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>4,'reefer40'=>2,'me_manuev_consum'=>0],
-                ['vesselid'=>'HSG','tanggal'=>'2026-06-13 08:00:00','pos'=>'AT SEA SURABAYA - BANJARMASIN','departure'=>'IDSUB','destination'=>'IDBPN','steam_dist'=>350,'steam_time'=>27,'ship_speed'=>13.0,'prop_slip'=>4.5,'me_rpm'=>110,'me_mfo'=>4900,'me_hsd'=>350,'ae_mfo'=>0,'ae_hsd'=>600,'duration_manuev'=>3,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>3,'reefer20'=>0,'reefer40'=>1,'me_manuev_consum'=>510],
-                ['vesselid'=>'LUZ','tanggal'=>'2026-06-13 10:00:00','pos'=>'AT SEA MAKASSAR - SURABAYA','departure'=>'IDMAK','destination'=>'IDSUB','steam_dist'=>410,'steam_time'=>28,'ship_speed'=>14.6,'prop_slip'=>3.3,'me_rpm'=>114,'me_mfo'=>3600,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>950,'duration_manuev'=>1,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>200,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>1,'reefer20'=>12,'reefer40'=>0,'me_manuev_consum'=>650],
-                ['vesselid'=>'BKU','tanggal'=>'2026-06-13 09:00:00','pos'=>'AT SEA BANJARMASIN - SURABAYA','departure'=>'IDBPN','destination'=>'IDSUB','steam_dist'=>330,'steam_time'=>25,'ship_speed'=>13.2,'prop_slip'=>3.0,'me_rpm'=>111,'me_mfo'=>2900,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>680,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>155,'load_ae_2'=>155,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'ASG','tanggal'=>'2026-06-13 07:30:00','pos'=>'AT SEA SURABAYA - MAKASSAR','departure'=>'IDSUB','destination'=>'IDMAK','steam_dist'=>440,'steam_time'=>30,'ship_speed'=>14.7,'prop_slip'=>2.7,'me_rpm'=>117,'me_mfo'=>5300,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1050,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>0,'load_ae_3'=>220,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-            ]
-        ];
     }
 }

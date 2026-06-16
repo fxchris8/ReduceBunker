@@ -904,9 +904,6 @@ class PlanningController extends Controller
             "tanggal_akhir" => $dvs_formattedNextWeekDate,
         ];
 
-
-
-        /* UNCOMMENT THIS FOR PRODUCTION
         try {
             $dvs_reports_raw = $this->fetchPlanningApiData('/get-data-dvs', $dvs_basePayload, 'DVS', 300);
         } catch (\RuntimeException $exception) {
@@ -914,21 +911,6 @@ class PlanningController extends Controller
                 'error' => $exception->getMessage(),
             ]));
         }
-        */
-
-        // MOCK [START]
-        if (true) {
-            $dvs_reports_raw = $this->getMockDvsReports();
-        } else {
-            try {
-                $dvs_reports_raw = $this->fetchPlanningApiData('/get-data-dvs', $dvs_basePayload, 'DVS', 300);
-            } catch (\RuntimeException $exception) {
-                return view('po.planning', array_merge($planningViewData, [
-                    'error' => $exception->getMessage(),
-                ]));
-            }
-        }
-        // MOCK [END]
 
         // filter data valid
         $dvs_reports = array_values(array_filter($dvs_reports_raw, function ($row) {
@@ -952,49 +934,6 @@ class PlanningController extends Controller
             "tanggal" => $noon_report_formattedDate,
         ];
 
-        // MOCK [START]
-        if (true) {
-            $noon_report_groupedByVessel = $this->getMockNoonReportMap();
-        } else {
-            $reportIds = [14, 16];
-            $noon_report_allReports = [];
-
-            foreach ($reportIds as $reportId) {
-                $rob_payload = $noon_report_basePayload;
-                $rob_payload['report_id'] = (string)$reportId;
-
-                try {
-                    $rob_reports = $this->fetchPlanningApiData('/get-bunker-analysis', $rob_payload, 'bunker analysis report_id '.$reportId, 1800);
-                } catch (\RuntimeException $exception) {
-                    return view('po.planning', array_merge($planningViewData, [
-                        'error' => $exception->getMessage(),
-                        'report14' => [],
-                        'report16' => [],
-                    ]));
-                }
-
-                $noon_report_allReports = array_merge($noon_report_allReports, $rob_reports);
-            }
-
-            $noon_report_groupedByVessel = [];
-            foreach ($noon_report_allReports as $row) {
-                $vesselid = $row['vesselid'] ?? null;
-                $tanggal = $row['tanggal'] ?? null;
-
-                if ($vesselid && $tanggal) {
-                    $row['tanggal_obj'] = \Carbon\Carbon::parse($tanggal); // simpan objek Carbon untuk sorting
-
-                    if (!isset($noon_report_groupedByVessel[$vesselid])) {
-                        $noon_report_groupedByVessel[$vesselid] = [];
-                    }
-
-                    $noon_report_groupedByVessel[$vesselid][] = $row;
-                }
-            }
-        }
-        // MOCK [END]
-
-        /* UNCOMMENT THIS FOR PRODUCTION
         $reportIds = [14, 16];
         $noon_report_allReports = [];
 
@@ -1031,28 +970,7 @@ class PlanningController extends Controller
                 $noon_report_groupedByVessel[$vesselid][] = $row;
             }
         }
-        */
 
-        // MOCK [START]
-        if (!true) {
-            // Ambil hanya 1 data terakhir per vessel
-            $noon_report_groupedByVessel = collect($noon_report_groupedByVessel)->map(function ($reports) {
-                return collect($reports)
-                    ->sortByDesc(fn($r) => $r['tanggal_obj'])
-                    ->map(fn($r) => [
-                        'rob_hsd' => $r['rob_hsd'] ?? null,
-                        'rob_mfo' => $r['rob_mfo'] ?? null,
-                        'distance_to_go' => $r['distance_to_go'] ?? null,
-                        'departure' => isset($r['departure']) ? strtoupper($r['departure']) : null,
-                        'destination' => isset($r['destination']) ? strtoupper($r['destination']) : null,
-                        'pos' => isset($r['pos']) ? strtoupper($r['pos']) : null,
-                    ])
-                    ->first();
-            })->toArray();
-        }
-        // MOCK [END]
-
-        /* UNCOMMENT THIS FOR PRODUCTION
         // Ambil hanya 1 data terakhir per vessel
         $noon_report_groupedByVessel = collect($noon_report_groupedByVessel)->map(function ($reports) {
             return collect($reports)
@@ -1067,7 +985,6 @@ class PlanningController extends Controller
                 ])
                 ->first();
         })->toArray();
-        */
 
         ///////////////////////////////////////////////////////////////////////////
 
