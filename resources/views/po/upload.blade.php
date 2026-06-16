@@ -135,7 +135,7 @@
                                                             onclick='showDetailModal(
                                                                 "{{ $row['Vessel ID']['value'] }}",
                                                                 "At Port",
-                                                                0,
+                                                                {{ $row['M/E MFO']['value'] ?? 0 }},
                                                                 {{ $row['M/E HSD']['value'] ?? 0 }},
                                                                 {{ $row['A/E MFO']['value'] ?? 0 }},
                                                                 {{ $row['A/E HSD']['value'] ?? 0 }},
@@ -144,7 +144,16 @@
                                                                 {{ $row['REEFER 40"']['value'] ?? 0 }},
                                                                 {{ $row['BL MFO']['value'] ?? 0 }},
                                                                 {{ $row['BL HSD']['value'] ?? 0 }},
-                                                                {{ $row['BL REFFER']['value'] ?? 0 }}
+                                                                {{ $row['BL REFFER']['value'] ?? 0 }},
+                                                                {{ $row['MANEUVERING TIME (HOURS)']['value'] ?? 0 }},
+                                                                {{ $row['STEAM TIME (HOUR : MINUTE)']['value'] ?? 0 }},
+                                                                {{ $row['PROPELLER SLIP']['value'] ?? 0 }},
+                                                                {{ $row['CRANE DURATION']['value'] ?? 0 }},
+                                                                {{ $row['LOAD A/E 1 (KW)']['value'] ?? 0 }},
+                                                                {{ $row['LOAD A/E 2 (KW)']['value'] ?? 0 }},
+                                                                {{ $row['LOAD A/E 3 (KW)']['value'] ?? 0 }},
+                                                                {{ $row['LOAD A/E 4 (KW)']['value'] ?? 0 }},
+                                                                {{ $row['AE PARAREL DURATION']['value'] ?? 0 }}
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -430,6 +439,7 @@
     <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeDetailModal()"></div>
 
     <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
+        {{-- Header --}}
         <div class="bg-gray-800 px-5 py-4 flex items-center justify-between">
             <div>
                 <p class="text-xs text-gray-400 uppercase tracking-widest mb-0.5">Fuel Consumption Detail</p>
@@ -443,103 +453,241 @@
             </button>
         </div>
 
-        <div class="px-5 py-4 grid grid-cols-2 gap-4">
-            <div class="rounded-lg border border-gray-300 overflow-hidden">
-                <div class="bg-gray-800 px-4 py-2">
-                    <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Baseline</span>
-                </div>
-                <div class="divide-y divide-gray-100">
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">BL MFO</span>
-                        <span id="modal-bl-mfo" class="text-sm font-semibold text-gray-800"></span>
+        {{-- Tab Navigation --}}
+        <div class="flex border-b border-gray-200">
+            <button onclick="switchTab('me')" id="tab-me"
+                class="flex-1 py-3 text-sm font-semibold text-center uppercase border-b-2 transition-colors tab-btn
+                       border-blue-600 text-blue-600">
+                Main Engine (ME)
+            </button>
+            <button onclick="switchTab('ae')" id="tab-ae"
+                class="flex-1 py-3 text-sm font-semibold text-center uppercase border-b-2 transition-colors tab-btn
+                       border-transparent text-gray-500 hover:text-gray-700">
+                Auxiliary Engine (AE)
+            </button>
+            <button onclick="switchTab('genset')" id="tab-genset"
+                class="flex-1 py-3 text-sm font-semibold text-center uppercase border-b-2 transition-colors tab-btn
+                       border-transparent text-gray-500 hover:text-gray-700">
+                Genset
+            </button>
+        </div>
+
+        {{-- Tab Content --}}
+        <div class="px-5 py-4 max-h-[60vh] overflow-y-auto">
+
+            {{-- ME TAB --}}
+            <div id="tab-content-me">
+                <div class="grid grid-cols-2 gap-4">
+                    {{-- Baseline --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Baseline</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL ME (L/Hour)</span>
+                                <span id="me-bl-lhour" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL ME (L/Day)</span>
+                                <span id="me-bl-lday" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">BL HSD</span>
-                        <span id="modal-bl-hsd" class="text-sm font-semibold text-gray-800"></span>
+                    {{-- Operational --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Operational</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Steam Time (Hours)</span>
+                                <span id="me-steam-time" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Maneuvering Time (Hours)</span>
+                                <span id="me-manuev-time" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Propeller Slip (%)</span>
+                                <span id="me-prop-slip" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">BL Reefer</span>
-                        <span id="modal-bl-reffer" class="text-sm font-semibold text-gray-800"></span>
+                    {{-- Consumption --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">MFO</span>
+                                <span id="me-mfo" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">HSD</span>
+                                <span id="me-hsd" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm font-bold text-gray-700">Total Consumption</span>
+                                <span id="me-total" class="text-sm font-bold text-gray-700"></span>
+                            </div>
+                        </div>
+                    </div>
+                    {{-- Ideal & Excess --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Ideal Cost & Excess</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm font-bold text-gray-800">Ideal Cost</span>
+                                <span id="me-ideal-cost" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm font-bold text-gray-800">Excess</span>
+                                <span id="me-excess" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="rounded-lg border border-gray-300 overflow-hidden">
-                <div class="bg-gray-800 px-4 py-2">
-                    <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Auxiliary Engine (AE)</span>
-                </div>
-                <div class="divide-y divide-gray-100">
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">AE MFO</span>
-                        <span id="modal-ae-mfo" class="text-sm font-semibold text-gray-800"></span>
+
+            {{-- AE TAB --}}
+            <div id="tab-content-ae" class="hidden">
+                <div class="grid grid-cols-2 gap-4">
+                    {{-- Baseline --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Baseline</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL AE (L/Hour)</span>
+                                <span id="ae-bl-lhour" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL AE (L/Day)</span>
+                                <span id="ae-bl-lday" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL Reefer</span>
+                                <span id="ae-bl-reffer" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">AE HSD</span>
-                        <span id="modal-ae-hsd" class="text-sm font-semibold text-gray-800"></span>
+                    {{-- Consumption --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">MFO</span>
+                                <span id="ae-mfo" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">HSD</span>
+                                <span id="ae-hsd" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm font-bold text-gray-700">Total Consumption</span>
+                                <span id="ae-total" class="text-sm font-bold text-gray-700"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm font-bold text-gray-800">Excess</span>
+                                <span id="ae-excess" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">Genset Consumption HSD</span>
-                        <span id="modal-genset-hsd" class="text-sm font-semibold text-gray-800"></span>
+                    {{-- Crane --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Crane</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Crane Duration (Hours)</span>
+                                <span id="ae-crane-dur" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm font-bold text-gray-700">Total AE</span>
-                        <span id="modal-ae-total" class="text-sm font-bold text-gray-700"></span>
+                    {{-- Operational --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Operational</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Maneuvering Time (Hours)</span>
+                                <span id="ae-manuev-time" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">AE Pararel Duration (Hours)</span>
+                                <span id="ae-pararel-dur" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
+                    </div>
+                    {{-- AE Load --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">AE Load</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Load A/E 1 (KW)</span>
+                                <span id="ae-load1" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Load A/E 2 (KW)</span>
+                                <span id="ae-load2" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Load A/E 3 (KW)</span>
+                                <span id="ae-load3" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Load A/E 4 (KW)</span>
+                                <span id="ae-load4" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
+                    </div>
+                    {{-- Reefer --}}
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Reefer</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Reefer 20"</span>
+                                <span id="ae-reefer20" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Reefer 40"</span>
+                                <span id="ae-reefer40" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm font-bold text-gray-700">Total Reefer</span>
+                                <span id="ae-reefer-total" class="text-sm font-bold text-gray-700"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="rounded-lg border border-gray-300 overflow-hidden">
-                <div class="bg-gray-800 px-4 py-2">
-                    <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Main Engine (ME)</span>
-                </div>
-                <div class="divide-y divide-gray-100">
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">ME MFO</span>
-                        <span id="modal-me-mfo" class="text-sm font-semibold text-gray-800"></span>
-                    </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">ME HSD</span>
-                        <span id="modal-me-hsd" class="text-sm font-semibold text-gray-800"></span>
-                    </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm font-bold text-gray-700">Total ME</span>
-                        <span id="modal-me-total" class="text-sm font-bold text-gray-700"></span>
-                    </div>
-                </div>
-            </div>
-            <div class="rounded-lg border border-gray-300 overflow-hidden">
-                <div class="bg-gray-800 px-4 py-2">
-                    <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Reefer</span>
-                </div>
-                <div class="divide-y divide-gray-100">
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">Reefer 20"</span>
-                        <span id="modal-reefer20" class="text-sm font-semibold text-gray-800"></span>
-                    </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">Reefer 40"</span>
-                        <span id="modal-reefer40" class="text-sm font-semibold text-gray-800"></span>
-                    </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm font-bold text-gray-700">Total Reefer</span>
-                        <span id="modal-reefer-total" class="text-sm font-bold text-gray-700"></span>
-                    </div>
-                </div>
-            </div>
-            <div class="rounded-lg border border-gray-800 overflow-hidden col-span-2">
-                <div class="bg-gray-800 px-4 py-2">
-                    <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Total Fuel Consumption</span>
-                </div>
-                <div class="divide-y divide-gray-100">
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">MFO</span>
-                        <span id="modal-total-mfo" class="text-sm font-semibold text-gray-800"></span>
-                    </div>
-                    <div class="flex justify-between items-center px-4 py-2.5">
-                        <span class="text-sm text-gray-500">HSD</span>
-                        <span id="modal-total-hsd" class="text-sm font-semibold text-gray-800"></span>
-                    </div>
-                    <div class="flex justify-between items-center px-4 py-2.5 bg-gray-800">
-                        <span class="text-sm font-bold text-white">Total Fuel</span>
-                        <span id="modal-total-fuel" class="text-sm font-bold text-white"></span>
+
+            {{-- GENSET TAB --}}
+            <div id="tab-content-genset" class="hidden">
+                <div class="w-full">
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2">
+                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Genset Consumption HSD</span>
+                                <span id="genset-hsd" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -548,92 +696,109 @@
     </div>
 </div>
 
-@if(session('success_email'))
-    <script>
-        window.onload = function() {
-            alert("{{ session('success_email') }}");
-        }
-    </script>
-@endif
-
 <script>
-    function showLoader() {
-        document.getElementById("loader").classList.remove("hidden");
-    }
-    function hideLoader() {
-        document.getElementById("loader").classList.add("hidden");
-    }
-
-    window.addEventListener("load", hideLoader);
-
-    document.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll("a").forEach(function(link) {
-            link.addEventListener("click", function(e) {
-                if (link.target === "_blank" || link.getAttribute("href").startsWith("#") || link.hostname !== window.location.hostname) {
-                    return;
-                }
-                e.preventDefault();
-                showLoader();
-                window.location = link.href;
-            });
+    function switchTab(tab) {
+        ['me','ae','genset'].forEach(t => {
+            document.getElementById('tab-content-' + t).classList.add('hidden');
+            document.getElementById('tab-' + t).classList.remove('border-blue-600','text-blue-600');
+            document.getElementById('tab-' + t).classList.add('border-transparent','text-gray-500');
         });
-
-        const form = document.getElementById("emailForm");
-        if (form) {
-            form.addEventListener("submit", function() {
-                showLoader();
-            });
-        }
-    });
+        document.getElementById('tab-content-' + tab).classList.remove('hidden');
+        document.getElementById('tab-' + tab).classList.add('border-blue-600','text-blue-600');
+        document.getElementById('tab-' + tab).classList.remove('border-transparent','text-gray-500');
+    }
 
     function fmt(val) {
         const num = parseFloat(val) || 0;
         return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' L';
     }
+    function fmtNum(val, suffix = '') {
+        const num = parseFloat(val) || 0;
+        return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (suffix ? ' ' + suffix : '');
+    }
 
-    function showDetailModal(vesselId, vesselType, meMfo, meHsd, aeMfo, aeHsd, gensetHsd, reefer20, reefer40, blMfo, blHsd, blReffer) {
-        meMfo     = parseFloat(meMfo)     || 0;
-        meHsd     = parseFloat(meHsd)     || 0;
-        aeMfo     = parseFloat(aeMfo)     || 0;
-        aeHsd     = parseFloat(aeHsd)     || 0;
-        gensetHsd = parseFloat(gensetHsd) || 0;
-        reefer20  = parseFloat(reefer20)  || 0;
-        reefer40  = parseFloat(reefer40)  || 0;
-        blMfo     = parseFloat(blMfo)     || 0;
-        blHsd     = parseFloat(blHsd)     || 0;
-        blReffer  = parseFloat(blReffer)  || 0;
+    function showDetailModal(
+        vesselId, vesselType,
+        meMfo, meHsd,
+        aeMfo, aeHsd, gensetHsd,
+        reefer20, reefer40,
+        blMfo, blHsd, blReffer,
+        maneuvTime, steamTime, propSlip,
+        craneDur, craneQty,
+        loadAe1, loadAe2, loadAe3, loadAe4,
+        aePararelDur
+    ) {
+        meMfo       = parseFloat(meMfo)       || 0;
+        meHsd       = parseFloat(meHsd)       || 0;
+        aeMfo       = parseFloat(aeMfo)       || 0;
+        aeHsd       = parseFloat(aeHsd)       || 0;
+        gensetHsd   = parseFloat(gensetHsd)   || 0;
+        reefer20    = parseFloat(reefer20)    || 0;
+        reefer40    = parseFloat(reefer40)    || 0;
+        blMfo       = parseFloat(blMfo)       || 0;
+        blHsd       = parseFloat(blHsd)       || 0;
+        blReffer    = parseFloat(blReffer)    || 0;
+        maneuvTime  = parseFloat(maneuvTime)  || 0;
+        steamTime   = parseFloat(steamTime)   || 0;
+        propSlip    = parseFloat(propSlip)    || 0;
+        craneDur    = parseFloat(craneDur)    || 0;
+        loadAe1     = parseFloat(loadAe1)     || 0;
+        loadAe2     = parseFloat(loadAe2)     || 0;
+        loadAe3     = parseFloat(loadAe3)     || 0;
+        loadAe4     = parseFloat(loadAe4)     || 0;
+        aePararelDur = parseFloat(aePararelDur) || 0;
 
-        const aeTotal   = aeMfo + aeHsd + gensetHsd;
         const meTotal   = meMfo + meHsd;
-        const totalMfo  = aeMfo + meMfo;
-        const totalHsd  = aeHsd + meHsd + gensetHsd;
-        const totalFuel = totalMfo + totalHsd;
-        const totalReefer = reefer20 + reefer40;
+        const blMeLHour = blMfo;
+        const blMeLDay  = blMfo * 24;
+        const idealCost = blMeLHour * (steamTime + maneuvTime);
+        const meExcess  = idealCost - meTotal;
+
+        const aeTotal   = aeMfo + aeHsd;
+        const blAeLHour = blHsd;
+        const blAeLDay  = blHsd * 24;
+        const aeExcess  = blAeLDay - aeTotal;
 
         document.getElementById('modal-vessel-id').textContent   = vesselId;
         document.getElementById('modal-vessel-type').textContent = vesselType;
+        document.getElementById('me-bl-lhour').textContent    = fmtNum(blMeLHour, 'L/H');
+        document.getElementById('me-bl-lday').textContent     = fmtNum(blMeLDay, 'L/Day');
+        document.getElementById('me-steam-time').textContent  = fmtNum(steamTime, 'H');
+        document.getElementById('me-manuev-time').textContent = fmtNum(maneuvTime, 'H');
+        document.getElementById('me-prop-slip').textContent   = fmtNum(propSlip, '%');
+        document.getElementById('me-mfo').textContent         = fmt(meMfo);
+        document.getElementById('me-hsd').textContent         = fmt(meHsd);
+        document.getElementById('me-total').textContent       = fmt(meTotal);
+        document.getElementById('me-ideal-cost').textContent  = fmt(idealCost);
 
-        document.getElementById('modal-bl-mfo').textContent    = fmt(blMfo);
-        document.getElementById('modal-bl-hsd').textContent    = fmt(blHsd);
-        document.getElementById('modal-bl-reffer').textContent = blReffer.toLocaleString('id-ID');
+        const meExcessEl = document.getElementById('me-excess');
+        meExcessEl.textContent = fmt(meExcess);
+        meExcessEl.className = 'text-sm font-semibold ' + (meExcess < 0 ? 'text-red-600' : 'text-green-600');
 
-        document.getElementById('modal-ae-mfo').textContent    = fmt(aeMfo);
-        document.getElementById('modal-ae-hsd').textContent    = fmt(aeHsd);
-        document.getElementById('modal-genset-hsd').textContent = fmt(gensetHsd);
-        document.getElementById('modal-ae-total').textContent  = fmt(aeTotal);
+        document.getElementById('ae-bl-lhour').textContent     = fmtNum(blAeLHour, 'L/H');
+        document.getElementById('ae-bl-lday').textContent      = fmtNum(blAeLDay, 'L/Day');
+        document.getElementById('ae-bl-reffer').textContent    = Math.round(blReffer).toLocaleString('id-ID');
+        document.getElementById('ae-mfo').textContent          = fmt(aeMfo);
+        document.getElementById('ae-hsd').textContent          = fmt(aeHsd);
+        document.getElementById('ae-total').textContent        = fmt(aeTotal);
+        document.getElementById('ae-crane-dur').textContent    = fmtNum(craneDur, 'H');
+        document.getElementById('ae-manuev-time').textContent  = fmtNum(maneuvTime, 'H');
+        document.getElementById('ae-pararel-dur').textContent  = fmtNum(aePararelDur, 'H');
+        document.getElementById('ae-load1').textContent        = fmtNum(loadAe1, 'KW');
+        document.getElementById('ae-load2').textContent        = fmtNum(loadAe2, 'KW');
+        document.getElementById('ae-load3').textContent        = fmtNum(loadAe3, 'KW');
+        document.getElementById('ae-load4').textContent        = fmtNum(loadAe4, 'KW');
+        document.getElementById('ae-reefer20').textContent     = Math.round(reefer20).toLocaleString('id-ID');
+        document.getElementById('ae-reefer40').textContent     = Math.round(reefer40).toLocaleString('id-ID');
+        document.getElementById('ae-reefer-total').textContent = Math.round(reefer20 + reefer40).toLocaleString('id-ID');
 
-        document.getElementById('modal-me-mfo').textContent   = fmt(meMfo);
-        document.getElementById('modal-me-hsd').textContent   = fmt(meHsd);
-        document.getElementById('modal-me-total').textContent = fmt(meTotal);
+        const aeExcessEl = document.getElementById('ae-excess');
+        aeExcessEl.textContent = fmt(aeExcess);
+        aeExcessEl.className = 'text-sm font-semibold ' + (aeExcess < 0 ? 'text-red-600' : 'text-green-600');
 
-        document.getElementById('modal-reefer20').textContent     = reefer20.toLocaleString('id-ID');
-        document.getElementById('modal-reefer40').textContent     = reefer40.toLocaleString('id-ID');
-        document.getElementById('modal-reefer-total').textContent = totalReefer.toLocaleString('id-ID');
+        document.getElementById('genset-hsd').textContent = fmt(gensetHsd);
 
-        document.getElementById('modal-total-mfo').textContent  = fmt(totalMfo);
-        document.getElementById('modal-total-hsd').textContent  = fmt(totalHsd);
-        document.getElementById('modal-total-fuel').textContent = fmt(totalFuel);
-
+        switchTab('me');
         document.getElementById('detailModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
