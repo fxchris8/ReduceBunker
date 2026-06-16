@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FuelBaseline extends Model
 {
+    protected $primaryKey = 'vessel_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'vessel_id',
         'static_bl_me',

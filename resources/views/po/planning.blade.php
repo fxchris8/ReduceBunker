@@ -106,6 +106,18 @@
                             required
                             placeholder="0">
                     </div>
+                    <div>
+                        <label for="baseline_type" class="block text-sm font-medium text-gray-700 mb-1">Baseline</label>
+                        <select name="baseline_type" id="baseline_type"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48">
+                            <option value="statis" {{ request('baseline_type', 'statis') === 'statis' ? 'selected' : '' }}>
+                                Baseline Statis
+                            </option>
+                            <option value="dinamis" {{ request('baseline_type') === 'dinamis' ? 'selected' : '' }}>
+                                Baseline Dinamis
+                            </option>
+                        </select>
+                    </div>
                     <button type="submit" data-loading-text="Loading..."
                         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow">
                         Hit API
@@ -193,9 +205,13 @@
                                     <th class="px-4 py-2 text-center border border-black">ROB HSD</th>
                                     <th class="px-4 py-2 text-center border border-black">Distance next voyage</th>
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan MFO</th>
+                                    @if(($baselineType ?? 'statis') === 'statis')
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan HSD</th>
+                                    @endif
                                     <th class="px-4 py-2 text-center border border-black">Isi BBM MFO</th>
+                                    @if(($baselineType ?? 'statis') === 'statis')
                                     <th class="px-4 py-2 text-center border border-black">Isi BBM HSD</th>
+                                    @endif
                                     <th class="px-4 py-2 text-center border border-black">Keterangan</th>
                                     <th class="px-4 py-2 text-center border border-black">Aksi</th>
                                 </tr>
@@ -221,9 +237,13 @@
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robHsd) ? number_format($robHsd, 2, '.', ',') : $robHsd }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? number_format($distanceNextVoyage, 2, '.', ',') : $distanceNextVoyage }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfo) ? number_format($kebutuhanMfo, 2, '.', ',') : $kebutuhanMfo }}</td>
+                                        @if(($baselineType ?? 'statis') === 'statis')
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanHsd) ? number_format($kebutuhanHsd, 2, '.', ',') : $kebutuhanHsd }}</td>
+                                        @endif
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfo) ? number_format($isiBbmMfo, 2, '.', ',') : $isiBbmMfo }}</td>
+                                        @if(($baselineType ?? 'statis') === 'statis')
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsd) ? number_format($isiBbmHsd, 2, '.', ',') : $isiBbmHsd }}</td>
+                                        @endif
                                         <td class="px-4 py-2 text-center border border-black">{{ $keterangan }}</td>
                                         <td class="px-4 py-2 text-center border border-black">
                                             @if(isset($row['_detail']))
@@ -385,11 +405,11 @@
                             html += '<div class="divide-y divide-red-100">';
                             if (d.beli_pertamina_mfo > 0) {
                                 html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-800">Estimasi Beli MFO</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.beli_pertamina_mfo) + ' L</span></div>';
-                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-800">Estimasi Biaya MFO</span><span class="text-sm font-semibold text-gray-800">' + fmtRp(d.biaya_mfo) + '</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-800 font-bold">Estimasi Biaya MFO</span><span class="text-sm font-bold text-red-600">' + fmtRp(d.biaya_mfo) + '</span></div>';
                             }
                             if (d.beli_pertamina_hsd > 0) {
-                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-500">Estimasi Beli HSD</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
-                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-500">Estimasi Biaya HSD</span><span class="text-sm font-semibold text-red-600">' + fmtRp(d.biaya_hsd) + '</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-800">Estimasi Beli HSD</span><span class="text-sm font-semibold text-gray-800">' + fmt(d.beli_pertamina_hsd) + ' L</span></div>';
+                                html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-100"><span class="text-sm text-gray-800 font-bold">Estimasi Biaya HSD</span><span class="text-sm font-bold text-red-600">' + fmtRp(d.biaya_hsd) + '</span></div>';
                             }
                             html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-400"><span class="text-sm font-bold text-white">Total Dibutuhkan</span><span class="text-sm font-bold text-white">' + fmtRp(d.biaya_mfo + d.biaya_hsd) + '</span></div>';
                             html += '<div class="flex justify-between items-center px-4 py-2.5 bg-red-400"><span class="text-sm font-bold text-white">Kekurangan Saldo</span><span class="text-sm font-bold text-white">' + fmtRp((d.biaya_mfo + d.biaya_hsd) - d.sisa_saldo) + '</span></div>';
