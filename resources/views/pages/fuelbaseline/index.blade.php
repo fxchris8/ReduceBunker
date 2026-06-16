@@ -205,7 +205,7 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 border border-gray-200 text-gray-500 text-xs">
-                                    {{ $baseline->updated_at->format('d M Y H:i') }}
+                                    {{ ($baseline->updated_at ?? $baseline->created_at)?->format('d M Y H:i') ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 border border-gray-200">
                                     <div class="flex justify-center gap-2">

@@ -26,7 +26,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('fuel-baseline.update', $fuelBaselines->id) }}">
+            <form method="POST" action="{{ route('fuel-baseline.update', $fuelBaselines->vessel_id) }}">
                 @csrf
                 @method('PUT')
 
