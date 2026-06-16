@@ -86,7 +86,7 @@
                                         'BL MFO','BL HSD','BL REFFER'
                                     ];
                                     $compactHeaders_port = ['tanggal','POSITION', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'GENSET CONSUMPTION - HSD', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION', 
-                                                            'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)',
+                                                            'TOTAL CRANE', 'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)',
                                                             'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"', 'BL M/E', 'ME Maneuvering Cons. (L/H)',
                                                             'SELISIH ME Maneuvering', 'BL A/E (L/Day)', 'AE Consumption', 'EXCESS AE'
                                     ];
@@ -149,6 +149,7 @@
                                                                 {{ $row['STEAM TIME (HOUR : MINUTE)']['value'] ?? 0 }},
                                                                 {{ $row['PROPELLER SLIP']['value'] ?? 0 }},
                                                                 {{ $row['CRANE DURATION']['value'] ?? 0 }},
+                                                                {{ $row['TOTAL CRANE']['value'] ?? 0 }},
                                                                 {{ $row['LOAD A/E 1 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['LOAD A/E 2 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['LOAD A/E 3 (KW)']['value'] ?? 0 }},
@@ -607,6 +608,10 @@
                         </div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Total Crane</span>
+                                <span id="ae-crane-qty" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">Crane Duration (Hours)</span>
                                 <span id="ae-crane-dur" class="text-sm font-semibold text-gray-800"></span>
                             </div>
@@ -742,6 +747,7 @@
         steamTime   = parseFloat(steamTime)   || 0;
         propSlip    = parseFloat(propSlip)    || 0;
         craneDur    = parseFloat(craneDur)    || 0;
+        craneQty    = parseFloat(craneQty)    || 0;
         loadAe1     = parseFloat(loadAe1)     || 0;
         loadAe2     = parseFloat(loadAe2)     || 0;
         loadAe3     = parseFloat(loadAe3)     || 0;
@@ -782,6 +788,7 @@
         document.getElementById('ae-hsd').textContent          = fmt(aeHsd);
         document.getElementById('ae-total').textContent        = fmt(aeTotal);
         document.getElementById('ae-crane-dur').textContent    = fmtNum(craneDur, 'H');
+        document.getElementById('ae-crane-qty').textContent   = fmtNum(craneQty);
         document.getElementById('ae-manuev-time').textContent  = fmtNum(maneuvTime, 'H');
         document.getElementById('ae-pararel-dur').textContent  = fmtNum(aePararelDur, 'H');
         document.getElementById('ae-load1').textContent        = fmtNum(loadAe1, 'KW');
