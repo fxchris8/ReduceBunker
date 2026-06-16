@@ -30,62 +30,92 @@
                 @csrf
                 @method('PUT')
 
-                <div class="grid grid-cols-5 gap-4 mb-4">
+                <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vessel Code</label>
                         <input type="text"
-                               value="{{ $fuelBaselines->vessel->vessel_id }}"
-                               disabled
-                               class="border border-gray-200 bg-gray-100 text-gray-500 rounded-md px-4 py-2 w-full text-sm cursor-not-allowed">
+                            value="{{ $fuelBaselines->vessel->vessel_id }}"
+                            disabled
+                            class="border border-gray-200 bg-gray-100 text-gray-500 rounded-md px-4 py-2 w-full text-sm cursor-not-allowed">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vessel Name</label>
                         <input type="text"
-                               value="{{ $fuelBaselines->vessel->vessel_name }}"
-                               disabled
-                               class="border border-gray-200 bg-gray-100 text-gray-500 rounded-md px-4 py-2 w-full text-sm cursor-not-allowed">
+                            value="{{ $fuelBaselines->vessel->vessel_name }}"
+                            disabled
+                            class="border border-gray-200 bg-gray-100 text-gray-500 rounded-md px-4 py-2 w-full text-sm cursor-not-allowed">
+                    </div>
+                </div>
+
+                {{-- Static Baseline --}}
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Static Baseline</p>
+                <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ME (L/Hours)</label>
+                        <input type="number" step="1" name="static_bl_me"
+                            value="{{ old('static_bl_me', $fuelBaselines->static_bl_me) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">BL MFO (L/day)</label>
-                        <input type="number" step="1" name="bl_mfo"
-                               value="{{ old('bl_mfo', $fuelBaselines->bl_mfo) }}"
-                               class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">AE (L/Hours)</label>
+                        <input type="number" step="1" name="static_bl_ae"
+                            value="{{ old('static_bl_ae', $fuelBaselines->static_bl_ae) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">BL HSD (L/day)</label>
-                        <input type="number" step="1" name="bl_hsd"
-                               value="{{ old('bl_hsd', $fuelBaselines->bl_hsd) }}"
-                               class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">AE 1 Reefer</label>
+                        <input type="number" step="1" name="bl_ae_1_reffer"
+                            value="{{ old('bl_ae_1_reffer', $fuelBaselines->bl_ae_1_reffer) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">BL AE1 Reffer (L/day)</label>
-                        <input type="number" step="1" name="bl_ae1_reffer"
-                            value="{{ old('bl_ae1_reffer', $fuelBaselines->bl_ae1_reffer) }}"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">AE Parallel 2</label>
+                        <input type="number" step="1" name="ae_parallel_2"
+                            value="{{ old('ae_parallel_2', $fuelBaselines->ae_parallel_2) }}"
                             class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4 mb-6">
+                {{-- Dynamic Baseline --}}
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Dynamic Baseline</p>
+                <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ME (L/Hours)</label>
+                        <input type="number" step="1" name="dynamic_bl_me"
+                            value="{{ old('dynamic_bl_me', $fuelBaselines->dynamic_bl_me) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+                </div>
+
+                {{-- Other --}}
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Other</p>
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Density</label>
+                        <input type="number" step="1" name="density"
+                            value="{{ old('density', $fuelBaselines->density) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Speed (Knot)</label>
                         <input type="number" step="1" name="speed"
-                               value="{{ old('speed', $fuelBaselines->speed) }}"
-                               class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                            value="{{ old('speed', $fuelBaselines->speed) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Safety Stock Multiplier MFO</label>
-                        <select name="ss_multiplier_mfo"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">SS Multiplier ME</label>
+                        <select name="ss_multiplier_me"
                                 class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
-                            <option value="2" {{ old('ss_multiplier_mfo', $fuelBaselines->ss_multiplier_mfo) == 2 ? 'selected' : '' }}>2x</option>
-                            <option value="3" {{ old('ss_multiplier_mfo', $fuelBaselines->ss_multiplier_mfo) == 3 ? 'selected' : '' }}>3x</option>
+                            <option value="2" {{ old('ss_multiplier_me', $fuelBaselines->ss_multiplier_me) == 2 ? 'selected' : '' }}>2x</option>
+                            <option value="3" {{ old('ss_multiplier_me', $fuelBaselines->ss_multiplier_me) == 3 ? 'selected' : '' }}>3x</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Safety Stock Multiplier HSD</label>
-                        <select name="ss_multiplier_hsd"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">SS Multiplier AE</label>
+                        <select name="ss_multiplier_ae"
                                 class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
-                            <option value="2" {{ old('ss_multiplier_hsd', $fuelBaselines->ss_multiplier_hsd) == 2 ? 'selected' : '' }}>2x</option>
-                            <option value="3" {{ old('ss_multiplier_hsd', $fuelBaselines->ss_multiplier_hsd) == 3 ? 'selected' : '' }}>3x</option>
+                            <option value="2" {{ old('ss_multiplier_ae', $fuelBaselines->ss_multiplier_ae) == 2 ? 'selected' : '' }}>2x</option>
+                            <option value="3" {{ old('ss_multiplier_ae', $fuelBaselines->ss_multiplier_ae) == 3 ? 'selected' : '' }}>3x</option>
                         </select>
                     </div>
                 </div>

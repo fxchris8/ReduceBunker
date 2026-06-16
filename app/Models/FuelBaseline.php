@@ -9,20 +9,25 @@ class FuelBaseline extends Model
 {
     protected $fillable = [
         'vessel_id',
-        'bl_mfo',
-        'bl_hsd',
-        'bl_ae_1_reffer',
+        'static_bl_me',
+        'static_bl_ae',
+        'dynamic_bl_me',
+        'ae_parallel_2',
+        'density',
         'speed',
-        'ss_multiplier_mfo',
-        'ss_multiplier_hsd',
+        'ss_multiplier_me',
+        'ss_multiplier_ae',
+        'bl_ae_1_reffer',
     ];
 
     protected $casts = [
-        'bl_mfo'            => 'integer',
-        'bl_hsd'            => 'integer',
+        'static_bl_me'      => 'integer',
+        'static_bl_ae'      => 'integer',
+        'dynamic_bl_me'     => 'integer',
+        'density'           => 'integer',
         'speed'             => 'integer',
-        'ss_multiplier_mfo' => 'integer',
-        'ss_multiplier_hsd' => 'integer',
+        'ss_multiplier_me'  => 'integer',
+        'ss_multiplier_ae'  => 'integer',
     ];
 
     public function vessel(): BelongsTo
@@ -30,13 +35,13 @@ class FuelBaseline extends Model
         return $this->belongsTo(Vessel::class, 'vessel_id', 'vessel_id');
     }
 
-    public function getSsMfoAttribute(): float
+    public function getSsMeAttribute(): float
     {
-        return $this->bl_mfo * $this->ss_multiplier_mfo;
+        return $this->static_bl_me * $this->ss_multiplier_me;
     }
 
-    public function getSsHsdAttribute(): float
+    public function getSsAeAttribute(): float
     {
-        return $this->bl_hsd * $this->ss_multiplier_hsd;
+        return $this->static_bl_ae * $this->ss_multiplier_ae;
     }
 }

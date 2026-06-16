@@ -67,12 +67,15 @@ class FuelBaselineController extends Controller
             'new_vessel_id'     => 'nullable|string|size:3|uppercase|unique:vessels,vessel_id',
             'new_vessel_name'   => 'nullable|string|max:255|required_with:new_vessel_id',
             'vessel_id'         => 'nullable|exists:vessels,vessel_id',
-            'bl_mfo'            => 'required|numeric|min:0',
-            'bl_hsd'            => 'required|numeric|min:0',
+            'static_bl_me'      => 'required|integer|min:0',
+            'static_bl_ae'      => 'required|integer|min:0',
+            'dynamic_bl_me'     => 'required|integer|min:0',
+            'ae_parallel_2'     => 'nullable|integer|min:0',
+            'density'           => 'required|integer|min:0',
             'bl_ae_1_reffer'    => 'nullable|integer|min:0',
-            'speed'             => 'required|numeric|min:0',
-            'ss_multiplier_mfo' => 'required|in:2,3',
-            'ss_multiplier_hsd' => 'required|in:2,3',
+            'speed'             => 'required|integer|min:0',
+            'ss_multiplier_me'  => 'required|in:2,3',
+            'ss_multiplier_ae'  => 'required|in:2,3',
         ]);
 
         if (!empty($validated['new_vessel_id'])) {
@@ -92,11 +95,15 @@ class FuelBaselineController extends Controller
 
         FuelBaseline::create([
             'vessel_id'         => $vessel_id,
-            'bl_mfo'            => $validated['bl_mfo'],
-            'bl_hsd'            => $validated['bl_hsd'],
+            'static_bl_me'      => $validated['static_bl_me'],
+            'static_bl_ae'      => $validated['static_bl_ae'],
+            'dynamic_bl_me'     => $validated['dynamic_bl_me'],
+            'ae_parallel_2'     => $validated['ae_parallel_2'] ?? null,
+            'density'           => $validated['density'],
+            'bl_ae_1_reffer'    => $validated['bl_ae_1_reffer'] ?? null,
             'speed'             => $validated['speed'],
-            'ss_multiplier_mfo' => $validated['ss_multiplier_mfo'],
-            'ss_multiplier_hsd' => $validated['ss_multiplier_hsd'],
+            'ss_multiplier_me'  => $validated['ss_multiplier_me'],
+            'ss_multiplier_ae'  => $validated['ss_multiplier_ae'],
         ]);
 
         return redirect()->route('fuel-baseline.index')->with('success', 'Data baseline berhasil ditambahkan.');
@@ -112,12 +119,15 @@ class FuelBaselineController extends Controller
     public function update(Request $request, FuelBaseline $fuel_baseline)
     {
         $validated = $request->validate([
-            'bl_mfo'            => 'required|numeric|min:0',
-            'bl_hsd'            => 'required|numeric|min:0',
+            'static_bl_me'      => 'required|integer|min:0',
+            'static_bl_ae'      => 'required|integer|min:0',
+            'dynamic_bl_me'     => 'required|integer|min:0',
+            'ae_parallel_2'     => 'nullable|integer|min:0',
+            'density'           => 'required|integer|min:0',
             'bl_ae_1_reffer'    => 'nullable|integer|min:0',
-            'speed'             => 'required|numeric|min:0',
-            'ss_multiplier_mfo' => 'required|in:2,3',
-            'ss_multiplier_hsd' => 'required|in:2,3',
+            'speed'             => 'required|integer|min:0',
+            'ss_multiplier_me'  => 'required|in:2,3',
+            'ss_multiplier_ae'  => 'required|in:2,3',
         ]);
 
         $fuel_baseline->update($validated);

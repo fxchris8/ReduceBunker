@@ -139,16 +139,23 @@
                 <table class="w-full text-sm text-center border border-gray-200 rounded">
                     <thead class="bg-gray-100 text-gray-700 sticky top-0 z-10">
                         <tr>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Vessel Code</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Vessel Name</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">BL MFO (L/day)</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">BL HSD (L/day)</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">BL AE 1 Reffer</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Speed (Knot)</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Safety Stock MFO</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Safety Stock HSD</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Last Updated</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Actions</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Vessel Code</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Vessel Name</th>
+                            <th colspan="4" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Static Baseline</th>
+                            <th colspan="1" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Dynamic Baseline</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Density</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Speed (Knot)</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock ME</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock AE</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Last Updated</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Actions</th>
+                        </tr>
+                        <tr>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">ME (L/Hours)</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE (L/Hours)</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE 1 Reefer</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE Parallel 2</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">ME (L/Hours)</th>
                         </tr>
                     </thead>
 
@@ -158,45 +165,48 @@
                                 <td class="px-4 py-3 border border-gray-200 font-semibold">
                                     {{ $baseline->vessel->vessel_id }}
                                 </td>
-
                                 <td class="px-4 py-3 border border-gray-200 text-left">
                                     {{ $baseline->vessel->vessel_name }}
                                 </td>
-
+                                {{-- Static Baseline --}}
                                 <td class="px-4 py-3 border border-gray-200">
-                                    {{ $baseline->bl_mfo }}
+                                    {{ $baseline->static_bl_me }}
                                 </td>
-
                                 <td class="px-4 py-3 border border-gray-200">
-                                    {{ $baseline->bl_hsd }}
+                                    {{ $baseline->static_bl_ae }}
                                 </td>
-
                                 <td class="px-4 py-3 border border-gray-200">
-                                    {{ $baseline->bl_ae_1_reffer }}
+                                    {{ $baseline->bl_ae_1_reffer ?? '-' }}
                                 </td>
-
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->ae_parallel_2 ?? '-' }}
+                                </td>
+                                {{-- Dynamic Baseline --}}
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->dynamic_bl_me }}
+                                </td>
+                               
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->density }}
+                                </td>
                                 <td class="px-4 py-3 border border-gray-200">
                                     {{ $baseline->speed }}
                                 </td>
-
                                 <td class="px-4 py-3 border border-gray-200 font-semibold">
-                                    {{ $baseline->ss_mfo }}
+                                    {{ $baseline->ss_me }}
                                     <span class="text-xs text-gray-400 font-normal">
-                                        ({{ $baseline->ss_multiplier_mfo }}x)
+                                        ({{ $baseline->ss_multiplier_me }}x)
                                     </span>
                                 </td>
-
                                 <td class="px-4 py-3 border border-gray-200 font-semibold">
-                                    {{ $baseline->ss_hsd }}
+                                    {{ $baseline->ss_ae }}
                                     <span class="text-xs text-gray-400 font-normal">
-                                        ({{ $baseline->ss_multiplier_hsd }}x)
+                                        ({{ $baseline->ss_multiplier_ae }}x)
                                     </span>
                                 </td>
-
                                 <td class="px-4 py-3 border border-gray-200 text-gray-500 text-xs">
                                     {{ $baseline->updated_at->format('d M Y H:i') }}
                                 </td>
-
                                 <td class="px-4 py-3 border border-gray-200">
                                     <div class="flex justify-center gap-2">
                                         <a href="{{ route('fuel-baseline.edit', $baseline) }}"
@@ -248,7 +258,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-gray-400 text-center">
+                                <td colspan="13" class="px-4 py-8 text-gray-400 text-center">
                                     No fuel baseline data available.
                                 </td>
                             </tr>
