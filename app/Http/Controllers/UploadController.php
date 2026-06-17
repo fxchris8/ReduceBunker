@@ -161,6 +161,7 @@ class UploadController extends Controller
             }
 
             $data = $response->json();
+            $reports = $data['data'] ?? [];
 
             $normalized = array_map(fn($r) => $this->reorderReport($r, $baselines), $reports);
 
