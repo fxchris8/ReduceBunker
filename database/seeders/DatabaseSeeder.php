@@ -21,7 +21,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
         //     VesselSeeder::class,
-            BaselineRefferSeeder::class,
+        //     BaselineRefferSeeder::class,
+            FuelBaselineSeeder::class,
         ]);
     }
 }
