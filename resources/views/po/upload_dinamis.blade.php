@@ -1,3 +1,5 @@
+{{-- upload_dinamis.blade.php --}}
+
 @extends('layouts.app')
 
 @section('title', 'Consumption Analysis Dinamis')

@@ -1,19 +1,23 @@
 @extends('layouts.app')
 
-@section('title', 'Consumption Analysis Statis')
+@section('title', 'Consumption Analysis')
 
+@if(!$isDinamis)
 @section('loader')
 <div id="loader" class="fixed inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-50 hidden">
     <div class="w-16 h-16 border-4 border-gray-300 border-t-red-600 rounded-full animate-spin"></div>
     <p class="mt-4 text-red-600 font-semibold">Loading Consumption Analysis...</p>
 </div>
 @endsection
+@endif
 
 @section('content')
 <div class="container mx-auto py-6 px-4">
     <div class="bg-white rounded-lg shadow-md">
         <div class="bg-gray-50 px-4 py-4 border-b">
-            <h1 class="text-xl font-bold">Consumption Analysis Statis</h1>
+            <h1 class="text-xl font-bold">
+                Consumption Analysis
+            </h1>
         </div>
 
         <div class="border rounded-md p-6">
@@ -23,75 +27,73 @@
                 </div>
             @endif
 
-            <div class="px-4 py-2 rounded-md text-lg">
-                <label for="analysis_type" class="block text-sm font-medium text-gray-700 mb-1">    
-                    Baseline
-                </label>
-                <select id="analysis_type"
-                        class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                        onchange="if(this.value) window.location.href=this.value;">
-                    <option value="">-- Pilih Jenis Baseline --</option>
-                    <option value="{{ route('po.upload') }}"
-                        {{ request()->is('consumption-analysis/statis') ? 'selected' : '' }}>
-                        Baseline Statis
-                    </option>
-                    <option value="{{ route('po.upload_dinamis') }}"
-                        {{ request()->is('consumption-analysis/dinamis') ? 'selected' : '' }}>
-                        Baseline Dinamis
-                    </option>
-                </select>
-            </div>
-
-            <div class="px-4 py-2 rounded-md text-lg">
-                <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
-                    Tanggal Laporan
-                </label>
-                <form method="GET" action="{{ route('po.upload') }}" class="flex items-center gap-3">
+            <form method="GET" action="{{ route('po.upload') }}" class="px-4 py-2 rounded-md text-lg">
+                <div class="mb-4">
+                    <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
+                        Tanggal Laporan
+                    </label>
                     <input type="date" id="report_date" name="report_date"
                         class="border border-gray-300 rounded-md px-4 py-2 w-64"
                         value="{{ request('report_date') }}">
-                    <button type="submit"
-                        class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                        Tampilkan
-                    </button>
-                </form>
-            </div>
-            
-            @if((is_array($report14)) || is_array($report16))
+                </div>
+
+                <div class="mb-4">
+                    <label for="density" class="block text-sm font-medium text-gray-700 mb-2">
+                        Masukkan Density (g/L):
+                    </label>
+                    <input type="number" step="any" name="density" id="density"
+                        value="{{ request('density', 950) }}"
+                        class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700
+                            focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-gray-600 transition duration-150 ease-in-out">
+                </div>
+
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    Tampilkan
+                </button>
+            </form>
+
+            @php
+                $hasData = $isDinamis
+                    ? is_array($report16 ?? null)
+                    : (is_array($report14 ?? null) || is_array($report16 ?? null));
+            @endphp
+
+            @if($hasData)
                 <form action="{{ route('send.email') }}" method="POST">
                     @csrf
-                    <div x-data="{ compact: true }">
-                        <div class="mt-3 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
-                            <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
-                                At PORT
-                            </h2>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium text-gray-700">Ringkas</span>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" x-model="compact" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
-                                                peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                                                after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
-                                                peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                                </label>
+                    @if(!$isDinamis && !empty($report14))
+                        @php
+                            $excludedHeaders_port = [
+                                'DEPARTURE PORT','DESTINATION','STEAM. DIST.','STEAM TIME (HOUR : MINUTE)',
+                                'SHIP SPEED','PROPELLER SLIP','ME RPM','BL L/NM','L/NM','EXCESS ME MFO L/NM (%)',
+                                'BL MFO','BL HSD','BL REFFER', 'SELISIH ME Maneuvering',
+                            ];
+                            $compactHeaders_port = [
+                                'tanggal','POSITION','M/E HSD', 'GENSET CONSUMPTION - HSD', 'M/E MFO', 'A/E MFO','A/E HSD',
+                                'MANEUVERING TIME (HOURS)','CRANE DURATION', 'TOTAL CRANE','LOAD A/E 1 (KW)','LOAD A/E 2 (KW)',
+                                'LOAD A/E 3 (KW)','LOAD A/E 4 (KW)', 'AE PARAREL DURATION','REEFER 20"','REEFER 40"','BL M/E',
+                                'ME Maneuvering Cons. (L/H)', 'BL A/E (L/Day)','AE Consumption','EXCESS AE'
+                            ];
+                        @endphp
+
+                        <div x-data="{ compact: true }">
+                            <div class="mt-3 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
+                                <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
+                                    At PORT
+                                </h2>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-medium text-gray-700">Ringkas</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" x-model="compact" class="sr-only peer" checked>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
+                                                    peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                                    after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
+                                                    peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                    </label>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                            @if(!empty($report14))
-                                @php
-                                    $excludedHeaders_port = [
-                                        'DEPARTURE PORT','DESTINATION','STEAM. DIST.','STEAM TIME (HOUR : MINUTE)',
-                                        'SHIP SPEED','PROPELLER SLIP','ME RPM','BL L/NM','L/NM','EXCESS ME MFO L/NM (%)',
-                                        'BL MFO','BL HSD','BL REFFER'
-                                    ];
-                                    $compactHeaders_port = ['tanggal','POSITION', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'GENSET CONSUMPTION - HSD', 'MANEUVERING TIME (HOURS)', 'CRANE DURATION', 
-                                                            'TOTAL CRANE', 'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)',
-                                                            'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"', 'BL M/E', 'ME Maneuvering Cons. (L/H)',
-                                                            'SELISIH ME Maneuvering', 'BL A/E (L/Day)', 'AE Consumption', 'EXCESS AE'
-                                    ];
-                                @endphp
-
+                            <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
                                 <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
                                     <thead class="bg-gray-300 sticky top-0 z-30">
                                         <tr>
@@ -130,7 +132,6 @@
                                                 @endforeach
                                                 <td class="px-4 py-2 text-center border border-black">
                                                     <div class="flex items-center justify-center gap-2">
-                                                        {{-- Tombol Detail --}}
                                                         <button type="button"
                                                             onclick='showDetailModal(
                                                                 "{{ $row['Vessel ID']['value'] }}",
@@ -154,7 +155,8 @@
                                                                 {{ $row['LOAD A/E 2 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['LOAD A/E 3 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['LOAD A/E 4 (KW)']['value'] ?? 0 }},
-                                                                {{ $row['AE PARAREL DURATION']['value'] ?? 0 }}
+                                                                {{ $row['AE PARAREL DURATION']['value'] ?? 0 }},
+                                                                "", "", ""
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -163,7 +165,6 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                             </svg>
                                                         </button>
-                                                        {{-- Checkbox Select --}}
                                                         <input type="checkbox" name="selected_rows_port[]" value="{{ $index }}" class="form-checkbox">
                                                     </div>
                                                 </td>
@@ -171,13 +172,30 @@
                                         @endforeach
                                     </tbody>
                                 </table>
-                            @else
-                                <p class="text-center py-4">Tidak ada data untuk At Port.</p>
-                            @endif
+                            </div>
                         </div>
-                    </div>
+                    @endif
+                    
+                    @if(!empty($report16 ?? null))
+                        @php
+                            $excludedHeaders_sea = ['POSITION', 'SELISIH ME Maneuvering', 'BL MFO', 'BL HSD', 'BL REFFER', 'REMARKS', 'DECK DAILY WORK', 'ENGINE DAILY WORK'];
 
-                    <div x-data="{ compact: true }">
+                            $seaRows    = $report16 ?? [];
+                            $seaHeaders = array_filter(array_keys($seaRows[0] ?? []), fn($k) => $k !== '_row_class');
+
+                            $compactHeaders_sea = [
+                                'tanggal','DEPARTURE PORT','DESTINATION','STEAM. DIST.',
+                                'STEAM TIME (HOUR : MINUTE)','M/E MFO','M/E HSD','A/E MFO','A/E HSD',
+                                'GENSET CONSUMPTION - HSD','MANEUVERING TIME (HOURS)','CRANE DURATION',
+                                'LOAD A/E 1 (KW)','LOAD A/E 2 (KW)','LOAD A/E 3 (KW)','LOAD A/E 4 (KW)',
+                                'AE PARAREL DURATION','REEFER 20"','REEFER 40"',
+                                'ME Maneuvering Cons. (L/H)', 'BL M/E Static (L/Day)', 'BL A/E (L/Day)',
+                                'BL L/NM','L/NM','EXCESS ME MFO L/NM (%)',
+                                'AE Consumption','EXCESS AE',
+                            ];
+                        @endphp
+
+                        <div x-data="{ compact: true }">
                         <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
                             <h2 class="text-xl font-semibold text-blue-700 bg-blue-100 inline-block px-2 rounded">
                                 At SEA
@@ -195,115 +213,137 @@
                         </div>
 
                         <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                            @if(!empty($report16))
-                                @php
-                                    $excludedHeaders_sea = ['POSITION', 'BL MFO', 'BL HSD', 'BL REFFER'];
-                                    $compactHeaders_sea = ['tanggal','DEPARTURE PORT', 'DESTINATION', 'STEAM. DIST.', 'STEAM TIME (HOUR : MINUTE)', 
-                                                            'M/E MFO', 'M/E HSD', 'A/E MFO', 'A/E HSD', 'GENSET CONSUMPTION - HSD', 'MANEUVERING TIME (HOURS)', 
-                                                            'CRANE DURATION', 'LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)',
-                                                            'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"', 'BL M/E', 'ME Maneuvering Cons. (L/H)',
-                                                            'SELISIH ME Maneuvering', 'BL L/NM', 'L/NM', 'EXCESS ME MFO L/NM (%)',
-                                                            'BL A/E (L/Day)', 'AE Consumption', 'EXCESS AE',
-                                    ];
-                                @endphp
-
-                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
-                                    <thead class="bg-gray-300 sticky top-0 z-30">
-                                        <tr>
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
-                                                Vessel ID
-                                            </th>
-                                            @foreach($headers_sea as $header)
-                                                @if($header !== 'Vessel ID' && !in_array($header, $excludedHeaders_sea))
-                                                    @php $isCompact = in_array($header, $compactHeaders_sea); @endphp
-                                                    <th x-show="!compact || $el.dataset.compact === 'true'"
-                                                        data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                        class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
-                                                        {{ ucfirst($header) }}
-                                                    </th>
+                            <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                <thead class="bg-gray-300 sticky top-0 z-30">
+                                    <tr>
+                                        <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                            Vessel ID
+                                        </th>
+                                        @foreach($seaHeaders as $header)
+                                            @if($header !== 'Vessel ID' && !in_array($header, $excludedHeaders_sea))
+                                                @php
+                                                    $dinamisCols = [
+                                                        'Ideal Consumption Static (L/Day)',
+                                                        'DAYA ME (KW)',
+                                                        'Ideal Consumption Dynamic (L/Day)',
+                                                        'Konsumsi M/E MFO Aktual',
+                                                        'Konsumsi M/E MFO Perhitungan',
+                                                        'Gap',
+                                                        'Error',
+                                                    ];
+                                                    $alwaysShow   = in_array($header, $dinamisCols);
+                                                    $isCompact    = in_array($header, $compactHeaders_sea);
+                                                    $dataCompact  = $alwaysShow ? 'false' : ($isCompact ? 'true' : 'false');
+                                                @endphp
+                                                <th x-show="!compact || $el.dataset.compact === 'true'"
+                                                    data-compact="{{ $dataCompact }}"
+                                                    class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                                    {{ ucfirst($header) }}
+                                                </th>
+                                            @endif
+                                        @endforeach
+                                        <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                            Aksi
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    @foreach($seaRows as $index => $row)
+                                        @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
+                                        <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
+                                            <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                                {{ $row['Vessel ID']['value'] }}
+                                            </td>
+                                            @foreach($row as $colIndex => $cell)
+                                                @if($colIndex !== 'Vessel ID' && $colIndex !== '_row_class' && !in_array($colIndex, $excludedHeaders_sea))
+                                                    @php
+                                                        $alwaysShow  = in_array($colIndex, $dinamisCols);
+                                                        $isCompact   = in_array($colIndex, $compactHeaders_sea);
+                                                        $dataCompact = $alwaysShow ? 'false' : ($isCompact ? 'true' : 'false');
+                                                    @endphp
+                                                    <td x-show="!compact || $el.dataset.compact === 'true'"
+                                                        data-compact="{{ $dataCompact }}"
+                                                        title="{{ $cell['message'] ?? '' }}"
+                                                        class="px-4 py-2 text-center border border-black {{ $rowClass ? '' : ($cell['class'] ?? '') }}">
+                                                        {{ is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value'] }}
+                                                    </td>
                                                 @endif
                                             @endforeach
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">Aksi</th>
+                                            <td class="px-4 py-2 text-center border border-black">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <button type="button"
+                                                        onclick='showDetailModal(
+                                                        "{{ $row['Vessel ID']['value'] }}",
+                                                        "At Sea",
+                                                        {{ $row['M/E MFO']['value'] ?? 0 }},
+                                                        {{ $row['M/E HSD']['value'] ?? 0 }},
+                                                        {{ $row['A/E MFO']['value'] ?? 0 }},
+                                                        {{ $row['A/E HSD']['value'] ?? 0 }},
+                                                        {{ $row['GENSET CONSUMPTION - HSD']['value'] ?? 0 }},
+                                                        {{ $row['REEFER 20"']['value'] ?? 0 }},
+                                                        {{ $row['REEFER 40"']['value'] ?? 0 }},
+                                                        {{ $row['BL MFO']['value'] ?? 0 }},
+                                                        {{ $row['BL HSD']['value'] ?? 0 }},
+                                                        {{ $row['BL REFFER']['value'] ?? 0 }},
+                                                        {{ $row['MANEUVERING TIME (HOURS)']['value'] ?? 0 }},
+                                                        {{ $row['STEAM TIME (HOUR : MINUTE)']['value'] ?? 0 }},
+                                                        {{ $row['PROPELLER SLIP']['value'] ?? 0 }},
+                                                        {{ $row['CRANE DURATION']['value'] ?? 0 }},
+                                                        {{ $row['TOTAL CRANE']['value'] ?? 0 }},
+                                                        {{ $row['LOAD A/E 1 (KW)']['value'] ?? 0 }},
+                                                        {{ $row['LOAD A/E 2 (KW)']['value'] ?? 0 }},
+                                                        {{ $row['LOAD A/E 3 (KW)']['value'] ?? 0 }},
+                                                        {{ $row['LOAD A/E 4 (KW)']['value'] ?? 0 }},
+                                                        {{ $row['AE PARAREL DURATION']['value'] ?? 0 }},
+                                                        "{{ $row['REMARKS']['value'] ?? '-' }}",
+                                                        "{{ $row['DECK DAILY WORK']['value'] ?? '-' }}",
+                                                        "{{ $row['ENGINE DAILY WORK']['value'] ?? '-' }}"
+                                                    )'
+                                                        class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
+                                                        title="Lihat Detail">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                    </button>
+                                                    <input type="checkbox" name="selected_rows_sea[]" value="{{ $index }}" class="form-checkbox">
+                                                </div>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200">
-                                        @foreach($report16 as $index => $row)
-                                            @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                            <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
-                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
-                                                    {{ $row['Vessel ID']['value'] }}
-                                                </td>
-                                                @foreach ($row as $colIndex => $cell)
-                                                    @if($colIndex !== 'Vessel ID' && $colIndex !== '_row_class' && !in_array($colIndex, $excludedHeaders_sea))
-                                                        @php $isCompact = in_array($colIndex, $compactHeaders_sea); @endphp
-                                                        <td x-show="!compact || $el.dataset.compact === 'true'"
-                                                            data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                            class="px-4 py-2 text-center border border-black {{ $rowClass ? '' : $cell['class'] }}">
-                                                            {{ is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value'] }}
-                                                        </td>
-                                                    @endif
-                                                @endforeach
-                                                <td class="px-4 py-2 text-center border border-black">
-                                                    <div class="flex items-center justify-center gap-2">
-                                                        <button type="button"
-                                                            onclick='showDetailModal(
-                                                                "{{ $row['Vessel ID']['value'] }}",
-                                                                "At Sea",
-                                                                {{ $row['M/E MFO']['value'] ?? 0 }},
-                                                                {{ $row['M/E HSD']['value'] ?? 0 }},
-                                                                {{ $row['A/E MFO']['value'] ?? 0 }},
-                                                                {{ $row['A/E HSD']['value'] ?? 0 }},
-                                                                {{ $row['GENSET CONSUMPTION - HSD']['value'] ?? 0 }},
-                                                                {{ $row['REEFER 20"']['value'] ?? 0 }},
-                                                                {{ $row['REEFER 40"']['value'] ?? 0 }},
-                                                                {{ $row['BL MFO']['value'] ?? 0 }},
-                                                                {{ $row['BL HSD']['value'] ?? 0 }},
-                                                                {{ $row['BL REFFER']['value'] ?? 0 }}
-                                                            )'
-                                                            class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
-                                                            title="Lihat Detail">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                            </svg>
-                                                        </button>
-                                                        {{-- Checkbox Select --}}
-                                                        <input type="checkbox" name="selected_rows_sea[]" value="{{ $index }}" class="form-checkbox">
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            @else
-                                <p class="text-center py-4">Tidak ada data untuk At Sea.</p>
-                            @endif
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
 
-                    <div x-data="{ compact: true }">
-                        <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
-                            <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
-                                Port & Sea
-                            </h2>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium text-gray-700">Ringkas</span>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" x-model="compact" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
-                                                peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                                                after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
-                                                peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                                </label>
+                        </div>
+
+                    @else
+                        <p class="text-center py-4 mt-4">Tidak ada data untuk At Sea.</p>
+                    @endif
+
+                    @if(!$isDinamis && !empty($port_sea_data ?? null))
+                        @php
+                            $compactHeaders_port_sea = array_values(array_unique(array_merge($compactHeaders_port, $compactHeaders_sea)));
+                        @endphp
+
+                        <div x-data="{ compact: true }">
+                            <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
+                                <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
+                                    Port & Sea
+                                </h2>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm font-medium text-gray-700">Ringkas</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" x-model="compact" class="sr-only peer" checked>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
+                                                    peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                                                    after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
+                                                    peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                                    </label>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                            @if(!empty($port_sea_data))
-                                @php
-                                    $compactHeaders_port_sea = array_values(array_unique(array_merge($compactHeaders_port, $compactHeaders_sea)));
-                                @endphp
-
+                            <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
                                 <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
                                     <thead class="bg-gray-300 sticky top-0 z-30">
                                         <tr>
@@ -325,7 +365,6 @@
                                     </thead>
                                     <tbody class="divide-y divide-gray-200">
                                         @foreach($port_sea_data as $index => $row)
-                                            {{-- Baris Port --}}
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
                                             <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
                                                 <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
@@ -369,8 +408,6 @@
                                                     </div>
                                                 </td>
                                             </tr>
-                                            {{-- Baris Sea --}}
-                                            @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
                                             <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
                                                 <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
                                                     {{ $row['Vessel ID']['sea'] ?? '' }}
@@ -416,11 +453,9 @@
                                         @endforeach
                                     </tbody>
                                 </table>
-                            @else
-                                <p class="text-center py-4">Tidak ada data untuk Port & Sea.</p>
-                            @endif
+                            </div>
                         </div>
-                    </div>
+                    @endif
 
                     <div class="mt-6 flex justify-end">
                         <button type="submit" class="py-2 px-4 bg-green-600 text-white rounded-md">
@@ -429,18 +464,18 @@
                     </div>
                 </form>
             @else
-                <p>Tidak ada data tersedia.</p>
+                <p class="px-4 py-4">Tidak ada data tersedia.</p>
             @endif
         </div>
     </div>
 </div>
 
 {{-- FUEL CONSUMPTION MODAL --}}
+@if(!$isDinamis)
 <div id="detailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
     <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeDetailModal()"></div>
 
     <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
-        {{-- Header --}}
         <div class="bg-gray-800 px-5 py-4 flex items-center justify-between">
             <div>
                 <p class="text-xs text-gray-400 uppercase tracking-widest mb-0.5">Fuel Consumption Detail</p>
@@ -454,7 +489,6 @@
             </button>
         </div>
 
-        {{-- Tab Navigation --}}
         <div class="flex border-b border-gray-200">
             <button onclick="switchTab('me')" id="tab-me"
                 class="flex-1 py-3 text-sm font-semibold text-center uppercase border-b-2 transition-colors tab-btn
@@ -473,17 +507,13 @@
             </button>
         </div>
 
-        {{-- Tab Content --}}
         <div class="px-5 py-4 max-h-[60vh] overflow-y-auto">
 
             {{-- ME TAB --}}
             <div id="tab-content-me">
                 <div class="grid grid-cols-2 gap-4">
-                    {{-- Baseline --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Baseline</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Baseline</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">BL ME (L/Hour)</span>
@@ -495,11 +525,8 @@
                             </div>
                         </div>
                     </div>
-                    {{-- Operational --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Operational</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Operational</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">Steam Time (Hours)</span>
@@ -515,11 +542,8 @@
                             </div>
                         </div>
                     </div>
-                    {{-- Consumption --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">MFO</span>
@@ -533,20 +557,12 @@
                                 <span class="text-sm font-bold text-gray-700">Total Consumption</span>
                                 <span id="me-total" class="text-sm font-bold text-gray-700"></span>
                             </div>
-                        </div>
-                    </div>
-                    {{-- Ideal & Excess --}}
-                    <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Ideal Cost & Excess</span>
-                        </div>
-                        <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm font-bold text-gray-800">Ideal Cost</span>
+                                <span class="text-sm font-bold text-gray-700">Ideal Consumption</span>
                                 <span id="me-ideal-cost" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                             <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm font-bold text-gray-800">Excess</span>
+                                <span class="text-sm font-bold text-gray-700">Excess</span>
                                 <span id="me-excess" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                         </div>
@@ -557,11 +573,8 @@
             {{-- AE TAB --}}
             <div id="tab-content-ae" class="hidden">
                 <div class="grid grid-cols-2 gap-4">
-                    {{-- Baseline --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Baseline</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Baseline</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">BL AE (L/Hour)</span>
@@ -577,11 +590,8 @@
                             </div>
                         </div>
                     </div>
-                    {{-- Consumption --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">MFO</span>
@@ -599,13 +609,14 @@
                                 <span class="text-sm font-bold text-gray-800">Excess</span>
                                 <span id="ae-excess" class="text-sm font-semibold text-gray-800"></span>
                             </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm font-bold text-gray-800">Excess Tolerance</span>
+                                <span id="ae-excess-tolerance" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
                         </div>
                     </div>
-                    {{-- Crane --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Crane</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Crane</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">Total Crane</span>
@@ -617,11 +628,8 @@
                             </div>
                         </div>
                     </div>
-                    {{-- Operational --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Operational</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Operational</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">Maneuvering Time (Hours)</span>
@@ -633,48 +641,21 @@
                             </div>
                         </div>
                     </div>
-                    {{-- AE Load --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">AE Load</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">AE Load</span></div>
                         <div class="divide-y divide-gray-100">
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm text-gray-500">Load A/E 1 (KW)</span>
-                                <span id="ae-load1" class="text-sm font-semibold text-gray-800"></span>
-                            </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm text-gray-500">Load A/E 2 (KW)</span>
-                                <span id="ae-load2" class="text-sm font-semibold text-gray-800"></span>
-                            </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm text-gray-500">Load A/E 3 (KW)</span>
-                                <span id="ae-load3" class="text-sm font-semibold text-gray-800"></span>
-                            </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm text-gray-500">Load A/E 4 (KW)</span>
-                                <span id="ae-load4" class="text-sm font-semibold text-gray-800"></span>
-                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">Load A/E 1 (KW)</span><span id="ae-load1" class="text-sm font-semibold text-gray-800"></span></div>
+                            <div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">Load A/E 2 (KW)</span><span id="ae-load2" class="text-sm font-semibold text-gray-800"></span></div>
+                            <div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">Load A/E 3 (KW)</span><span id="ae-load3" class="text-sm font-semibold text-gray-800"></span></div>
+                            <div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">Load A/E 4 (KW)</span><span id="ae-load4" class="text-sm font-semibold text-gray-800"></span></div>
                         </div>
                     </div>
-                    {{-- Reefer --}}
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Reefer</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Reefer</span></div>
                         <div class="divide-y divide-gray-100">
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm text-gray-500">Reefer 20"</span>
-                                <span id="ae-reefer20" class="text-sm font-semibold text-gray-800"></span>
-                            </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm text-gray-500">Reefer 40"</span>
-                                <span id="ae-reefer40" class="text-sm font-semibold text-gray-800"></span>
-                            </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm font-bold text-gray-700">Total Reefer</span>
-                                <span id="ae-reefer-total" class="text-sm font-bold text-gray-700"></span>
-                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">Reefer 20"</span><span id="ae-reefer20" class="text-sm font-semibold text-gray-800"></span></div>
+                            <div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm text-gray-500">Reefer 40"</span><span id="ae-reefer40" class="text-sm font-semibold text-gray-800"></span></div>
+                            <div class="flex justify-between items-center px-4 py-2.5"><span class="text-sm font-bold text-gray-700">Total Reefer</span><span id="ae-reefer-total" class="text-sm font-bold text-gray-700"></span></div>
                         </div>
                     </div>
                 </div>
@@ -684,9 +665,7 @@
             <div id="tab-content-genset" class="hidden">
                 <div class="w-full">
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
-                        <div class="bg-gray-800 px-4 py-2">
-                            <span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span>
-                        </div>
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">Consumption</span></div>
                         <div class="divide-y divide-gray-100">
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">Genset Consumption HSD</span>
@@ -696,11 +675,36 @@
                     </div>
                 </div>
             </div>
-
+        </div>
+        <div class="border-t border-gray-200 px-5 py-3 bg-gray-50">
+            <div class="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-700 uppercase tracking-wider text-xs font-bold">Remarks</span>
+                    <p id="modal-remarks" class="text-gray-700 mt-1"></p>
+                </div>
+                <div>
+                    <span class="text-gray-700 uppercase tracking-wider text-xs font-bold">Deck Daily Work</span>
+                    <p id="modal-deck-work" class="text-gray-700 mt-1"></p>
+                </div>
+                <div>
+                    <span class="text-gray-700 uppercase tracking-wider text-xs font-bold">Engine Daily Work</span>
+                    <p id="modal-engine-work" class="text-gray-700 mt-1"></p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+@endif
 
+@if(session('success_email'))
+<script>
+    window.onload = function() {
+        alert("{{ session('success_email') }}");
+    }
+</script>
+@endif
+
+@if(!$isDinamis)
 <script>
     function switchTab(tab) {
         ['me','ae','genset'].forEach(t => {
@@ -715,43 +719,45 @@
 
     function fmt(val) {
         const num = parseFloat(val) || 0;
-        return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' L';
+        const isInt = Number.isInteger(num);
+        return num.toLocaleString('id-ID', {
+            minimumFractionDigits: isInt ? 0 : 2,
+            maximumFractionDigits: isInt ? 0 : 2
+        }) + ' L';
     }
     function fmtNum(val, suffix = '') {
         const num = parseFloat(val) || 0;
-        return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (suffix ? ' ' + suffix : '');
+        const isInt = Number.isInteger(num);
+        return num.toLocaleString('id-ID', {
+            minimumFractionDigits: isInt ? 0 : 2,
+            maximumFractionDigits: isInt ? 0 : 2
+        }) + (suffix ? ' ' + suffix : '');
     }
 
     function showDetailModal(
-        vesselId, vesselType,
-        meMfo, meHsd,
-        aeMfo, aeHsd, gensetHsd,
-        reefer20, reefer40,
-        blMfo, blHsd, blReffer,
-        maneuvTime, steamTime, propSlip,
-        craneDur, craneQty,
-        loadAe1, loadAe2, loadAe3, loadAe4,
-        aePararelDur
+        vesselId, vesselType, meMfo, meHsd, aeMfo, aeHsd, gensetHsd, reefer20, reefer40,
+        blMfo, blHsd, blReffer, maneuvTime, steamTime, propSlip, craneDur, craneQty,
+        loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork
     ) {
-        meMfo       = parseFloat(meMfo)       || 0;
-        meHsd       = parseFloat(meHsd)       || 0;
-        aeMfo       = parseFloat(aeMfo)       || 0;
-        aeHsd       = parseFloat(aeHsd)       || 0;
-        gensetHsd   = parseFloat(gensetHsd)   || 0;
-        reefer20    = parseFloat(reefer20)    || 0;
-        reefer40    = parseFloat(reefer40)    || 0;
-        blMfo       = parseFloat(blMfo)       || 0;
-        blHsd       = parseFloat(blHsd)       || 0;
-        blReffer    = parseFloat(blReffer)    || 0;
-        maneuvTime  = parseFloat(maneuvTime)  || 0;
-        steamTime   = parseFloat(steamTime)   || 0;
-        propSlip    = parseFloat(propSlip)    || 0;
-        craneDur    = parseFloat(craneDur)    || 0;
-        craneQty    = parseFloat(craneQty)    || 0;
-        loadAe1     = parseFloat(loadAe1)     || 0;
-        loadAe2     = parseFloat(loadAe2)     || 0;
-        loadAe3     = parseFloat(loadAe3)     || 0;
-        loadAe4     = parseFloat(loadAe4)     || 0;
+        meMfo        = parseFloat(meMfo)        || 0;
+        meHsd        = parseFloat(meHsd)        || 0;
+        aeMfo        = parseFloat(aeMfo)        || 0;
+        aeHsd        = parseFloat(aeHsd)        || 0;
+        gensetHsd    = parseFloat(gensetHsd)    || 0;
+        reefer20     = parseFloat(reefer20)     || 0;
+        reefer40     = parseFloat(reefer40)     || 0;
+        blMfo        = parseFloat(blMfo)        || 0;
+        blHsd        = parseFloat(blHsd)        || 0;
+        blReffer     = parseFloat(blReffer)     || 0;
+        maneuvTime   = parseFloat(maneuvTime)   || 0;
+        steamTime    = parseFloat(steamTime)    || 0;
+        propSlip     = parseFloat(propSlip)     || 0;
+        craneDur     = parseFloat(craneDur)     || 0;
+        craneQty     = parseFloat(craneQty)     || 0;
+        loadAe1      = parseFloat(loadAe1)      || 0;
+        loadAe2      = parseFloat(loadAe2)      || 0;
+        loadAe3      = parseFloat(loadAe3)      || 0;
+        loadAe4      = parseFloat(loadAe4)      || 0;
         aePararelDur = parseFloat(aePararelDur) || 0;
 
         const meTotal   = meMfo + meHsd;
@@ -760,7 +766,7 @@
         const idealCost = blMeLHour * (steamTime + maneuvTime);
         const meExcess  = idealCost - meTotal;
 
-        const aeTotal   = aeMfo + aeHsd;
+        const aeTotal   = aeMfo + aeHsd + gensetHsd;
         const blAeLHour = blHsd;
         const blAeLDay  = blHsd * 24;
         const aeExcess  = blAeLDay - aeTotal;
@@ -781,29 +787,38 @@
         meExcessEl.textContent = fmt(meExcess);
         meExcessEl.className = 'text-sm font-semibold ' + (meExcess < 0 ? 'text-red-600' : 'text-green-600');
 
-        document.getElementById('ae-bl-lhour').textContent     = fmtNum(blAeLHour, 'L/H');
-        document.getElementById('ae-bl-lday').textContent      = fmtNum(blAeLDay, 'L/Day');
-        document.getElementById('ae-bl-reffer').textContent    = Math.round(blReffer).toLocaleString('id-ID');
-        document.getElementById('ae-mfo').textContent          = fmt(aeMfo);
-        document.getElementById('ae-hsd').textContent          = fmt(aeHsd);
-        document.getElementById('ae-total').textContent        = fmt(aeTotal);
-        document.getElementById('ae-crane-dur').textContent    = fmtNum(craneDur, 'H');
+        document.getElementById('ae-bl-lhour').textContent    = fmtNum(blAeLHour, 'L/H');
+        document.getElementById('ae-bl-lday').textContent     = fmtNum(blAeLDay, 'L/Day');
+        document.getElementById('ae-bl-reffer').textContent   = Math.round(blReffer).toLocaleString('id-ID');
+        document.getElementById('ae-mfo').textContent         = fmt(aeMfo);
+        document.getElementById('ae-hsd').textContent         = fmt(aeHsd);
+        document.getElementById('ae-total').textContent       = fmt(aeTotal);
+        document.getElementById('ae-crane-dur').textContent   = fmtNum(craneDur, 'H');
         document.getElementById('ae-crane-qty').textContent   = fmtNum(craneQty);
-        document.getElementById('ae-manuev-time').textContent  = fmtNum(maneuvTime, 'H');
-        document.getElementById('ae-pararel-dur').textContent  = fmtNum(aePararelDur, 'H');
-        document.getElementById('ae-load1').textContent        = fmtNum(loadAe1, 'KW');
-        document.getElementById('ae-load2').textContent        = fmtNum(loadAe2, 'KW');
-        document.getElementById('ae-load3').textContent        = fmtNum(loadAe3, 'KW');
-        document.getElementById('ae-load4').textContent        = fmtNum(loadAe4, 'KW');
-        document.getElementById('ae-reefer20').textContent     = Math.round(reefer20).toLocaleString('id-ID');
-        document.getElementById('ae-reefer40').textContent     = Math.round(reefer40).toLocaleString('id-ID');
+        document.getElementById('ae-manuev-time').textContent = fmtNum(maneuvTime, 'H');
+        document.getElementById('ae-pararel-dur').textContent = fmtNum(aePararelDur, 'H');
+        document.getElementById('ae-load1').textContent       = fmtNum(loadAe1, 'KW');
+        document.getElementById('ae-load2').textContent       = fmtNum(loadAe2, 'KW');
+        document.getElementById('ae-load3').textContent       = fmtNum(loadAe3, 'KW');
+        document.getElementById('ae-load4').textContent       = fmtNum(loadAe4, 'KW');
+        document.getElementById('ae-reefer20').textContent    = Math.round(reefer20).toLocaleString('id-ID');
+        document.getElementById('ae-reefer40').textContent    = Math.round(reefer40).toLocaleString('id-ID');
         document.getElementById('ae-reefer-total').textContent = Math.round(reefer20 + reefer40).toLocaleString('id-ID');
 
         const aeExcessEl = document.getElementById('ae-excess');
         aeExcessEl.textContent = fmt(aeExcess);
         aeExcessEl.className = 'text-sm font-semibold ' + (aeExcess < 0 ? 'text-red-600' : 'text-green-600');
 
+        const aeExcessTolerance = blAeLDay + (aePararelDur * blAeLHour) - aeTotal;
+        const aeExcessToleranceEl = document.getElementById('ae-excess-tolerance');
+        aeExcessToleranceEl.textContent = fmt(aeExcessTolerance);
+        aeExcessToleranceEl.className = 'text-sm font-semibold ' + (aeExcessTolerance < 0 ? 'text-red-600' : 'text-green-600');
+
         document.getElementById('genset-hsd').textContent = fmt(gensetHsd);
+
+        document.getElementById('modal-remarks').textContent     = remarks || '-';
+        document.getElementById('modal-deck-work').textContent   = deckWork || '-';
+        document.getElementById('modal-engine-work').textContent = engineWork || '-';
 
         switchTab('me');
         document.getElementById('detailModal').classList.remove('hidden');
@@ -819,4 +834,6 @@
         if (e.key === 'Escape') closeDetailModal();
     });
 </script>
+@endif
+
 @endsection

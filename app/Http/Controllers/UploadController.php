@@ -1,5 +1,7 @@
 <?php
 
+// UploadController.php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Log;
@@ -83,9 +85,9 @@ class UploadController extends Controller
             'REEFER 20"' => $grouped['reefer20'] ?? null,
             'REEFER 40"' => $grouped['reefer40'] ?? null,
             
-            'BL M/E'  => $bl_me,
+            'BL M/E Static (L/Day)'       => $bl_me,
             'ME Maneuvering Cons. (L/H)' => $grouped['me_manuev_consum'] ?? null,
-            'SELISIH ME Maneuvering' => $bl_me - ($grouped['me_manuev_consum'] ?? 0),
+            'SELISIH ME Maneuvering'     => ($bl_me * 24) - ($grouped['me_manuev_consum'] ?? 0),
 
             'BL L/NM' => $bl_l_nm,
 
@@ -109,9 +111,12 @@ class UploadController extends Controller
                     : 0
             ) : 0,
 
-            'BL A/E (L/Day)' => $bl_ae,
-            'AE Consumption' => ($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0),
-            'EXCESS AE' => $bl_ae - (($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0)),
+            'BL A/E (L/Day)'    => $bl_ae * 24,
+            'AE Consumption'    => ($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0),
+            'EXCESS AE'         => ($bl_ae * 24) - (($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0)),
+            'REMARKS'           => $grouped['remarks'] ?? '-',
+            'DECK DAILY WORK'   => $grouped['deck_daily_work'] ?? '-',
+            'ENGINE DAILY WORK' => $grouped['engine_daily_work'] ?? '-',
             ];
 
         return $ordered;
@@ -123,9 +128,11 @@ class UploadController extends Controller
         
         if (!$request->filled('report_date')) {
             return view('po.upload', [
-                'report14' => null,
-                'report16' => null,
+                'report14'      => null,
+                'report16'      => null,
                 'port_sea_data' => null,
+                'isDinamis'     => false,
+                'density'       => 950,
             ]);
         }
         
@@ -145,22 +152,29 @@ class UploadController extends Controller
             $payload = $basePayload;
             $payload['report_id'] = (string)$reportId;
 
-            $response = Http::timeout(120)
-            ->withHeaders([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])->withBody(json_encode($payload), 'application/json')
-            ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
+            // True  -> Using Mock Data
+            // False -> Using API
+            if (false) {
+                $data = ($reportId == 14) ? $this->getMockPortData() : $this->getMockSeaData();
+            } else {
+                $response = Http::timeout(120)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])->withBody(json_encode($payload), 'application/json')
+                ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
 
-            if (!$response->successful()) {
-                return view('po.upload', [
-                    'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
-                    'report14' => [],
-                    'report16' => [],
-                ]);
+                if (!$response->successful()) {
+                    return view('po.upload', [
+                        'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
+                        'report14' => [],
+                        'report16' => [],
+                    ]);
+                }
+
+                $data = $response->json();
             }
 
-            $data = $response->json();
             $reports = $data['data'] ?? [];
 
             $normalized = array_map(fn($r) => $this->reorderReport($r, $baselines), $reports);
@@ -216,7 +230,7 @@ class UploadController extends Controller
             }
         }
 
-        $greenColumns = ['BL M/E', 'BL A/E (L/Day)', 'BL L/NM'];
+        $greenColumns = ['BL M/E Static (L/Day)', 'BL A/E (L/Day)', 'BL L/NM'];
         $analysisColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME MFO L/NM (%)'];
 
         $colored_port = array_map(function ($row) use ($greenColumns, $analysisColumns, $baselines) {
@@ -341,6 +355,65 @@ class UploadController extends Controller
             return $newRow;
         }, $sea_data);
 
+        $density     = floatval($request->input('density', 950));
+        if (false) {
+            $dinamisRaw = $this->getMockSeaData();
+        } else {
+            $dinamisPayload = [
+                "tanggal"   => $formattedDate,
+                "report_id" => "16",
+            ];
+
+            $dinamisResponse = Http::timeout(120)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])
+                ->withBody(json_encode($dinamisPayload), 'application/json')
+                ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
+
+            $dinamisRaw = $dinamisResponse->successful() ? $dinamisResponse->json() : ['data' => []];
+        }
+
+        $dinamisNorm = array_map(
+            fn($r) => (new UploadDinamisController())->reorderReport($r),
+            $dinamisRaw['data'] ?? []
+        );
+
+        $dinamisKeyed = $this->getDinamisSeaData($dinamisNorm, $density);
+
+        $fetchedVesselIds = array_keys($dinamisKeyed);
+        if (!empty($fetchedVesselIds)) {
+            \App\Models\FuelBaseline::whereIn('vessel_id', $fetchedVesselIds)
+                ->update(['density' => $density]);
+        }
+
+        foreach ($colored_sea as &$row) {
+            $vid      = $row['Vessel ID']['value'] ?? '';
+            $dinamis  = $dinamisKeyed[$vid] ?? [];
+            $blMeDay  = $row['BL M/E Static (L/Day)']['value'] ?? 0;
+            $steamTime   = floatval($row['STEAM TIME (HOUR : MINUTE)']['value'] ?? 0);
+            $maneuvTime  = floatval($row['MANEUVERING TIME (HOURS)']['value'] ?? 0);
+            $idealStatic = ($blMeDay > 0 && ($steamTime + $maneuvTime) > 0)
+                ? round($blMeDay * ($steamTime + $maneuvTime) / 24, 2)
+                : '';
+            $sfocKw = $dinamis['SFOC_KW'] ?? 0;
+            $dayaMeVal = floatval($dinamis['DAYA ME (KW)'] ?? 0);
+            $idealDynamic = $sfocKw > 0
+                ? round($sfocKw * ($steamTime + $maneuvTime) * $dayaMeVal, 2)
+                : '';
+                
+            $row['Ideal Consumption Static (L/Day)']  = ['value' => $idealStatic, 'class' => ''];
+            $row['DAYA ME (KW)']                       = ['value' => $dinamis['DAYA ME (KW)'] ?? '',                'class' => ''];
+            $row['Ideal Consumption Dynamic (L/Day)']  = ['value' => $idealDynamic, 'class' => ''];
+            $row['BL M/E Dynamic (L/Day)']             = ['value' => $dinamis['BL M/E Dynamic (L/Day)'] ?? '', 'class' => ''];
+            $row['Konsumsi M/E MFO Aktual']            = ['value' => $dinamis['Konsumsi M/E MFO Aktual'] ?? '',     'class' => ''];
+            $row['Konsumsi M/E MFO Perhitungan']       = ['value' => $dinamis['Konsumsi M/E MFO Perhitungan'] ?? '','class' => ''];
+            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '',                          'class' => $dinamis['Gap'] === 'Tidak ada data kurva' ? 'bg-yellow-200 font-semibold' : ''];
+            $row['Error']                              = ['value' => $dinamis['Error'] ?? '',                        'class' => ''];
+        }
+        unset($row);
+
         $headers_port = array_filter(array_keys($colored_port[0] ?? []), fn($k) => $k !== '_row_class');
         $headers_sea  = array_filter(array_keys($colored_sea[0] ?? []), fn($k) => $k !== '_row_class');
 
@@ -352,7 +425,9 @@ class UploadController extends Controller
             'headers_sea' => $headers_sea,
             'report16' => $colored_sea,
             'port_sea_header' => array_keys($port_sea_data[0] ?? []),
-            'port_sea_data' => $port_sea_data
+            'port_sea_data' => $port_sea_data,
+            'density' => $density,
+            'isDinamis' => false,
         ]);
     }
 
@@ -697,5 +772,89 @@ class UploadController extends Controller
 
         return redirect('/consumption-analysis/statis')
             ->with('success_email', 'All e-mails sent successfully.');
+    }
+
+    private function getDinamisSeaData(array $sea_data, float $density): array
+    {
+        $dinamisController = new UploadDinamisController();
+
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/Titik Ori Grafik.xlsx'))->getActiveSheet();
+        $raw   = $sheet->toArray(null, true, true, true);
+
+        $titik = [];
+        $vessels_titik = [];
+        foreach ($raw[1] as $col => $header) {
+            $parts = explode(' ', trim($header));
+            if (count($parts) == 2) {
+                [$vessel, $axis] = $parts;
+                $values = [];
+                foreach (array_slice($raw, 1) as $row) {
+                    if (isset($row[$col]) && $row[$col] !== null) $values[] = $row[$col];
+                }
+                if (!in_array($vessel, $vessels_titik)) $vessels_titik[] = strtoupper($vessel);
+                $titik[$vessel][$axis] = $values;
+            }
+        }
+
+        $konstan_data = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/SFOC Konstan.xlsx'))
+            ->getActiveSheet()->toArray(null, true, true, true);
+        $konstan_kurva = [];
+        $vessels_konstan = [];
+        foreach (array_slice($konstan_data, 1) as $row) {
+            $vessel = strtoupper(trim($row['A']));
+            if ($vessel && !in_array($vessel, $vessels_konstan)) {
+                $konstan_kurva[$vessel] = ['SFOC' => trim($row['B'] ?? ''), 'SATUAN' => trim($row['C'] ?? '')];
+                $vessels_konstan[] = $vessel;
+            }
+        }
+
+        $power_data = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/power.xlsx'))
+            ->getActiveSheet()->toArray(null, true, true, true);
+        $power = [];
+        foreach (array_slice($power_data, 1) as $row) {
+            $vessel = strtoupper(trim($row['A']));
+            if ($vessel) $power[$vessel] = ['KW' => floatval(trim($row['C'] ?? '0'))];
+        }
+
+        $all_vessels = array_unique(array_merge($vessels_titik, $vessels_konstan));
+
+        $result = [];
+        foreach ($sea_data as $report) {
+            $vesselId        = strtoupper(trim($report['Vessel ID'] ?? ''));
+            $powerKw         = $power[$vesselId]['KW'] ?? 0;
+            $dayaMe          = floatval($report['DAYA ME (KW)'] ?? 0);
+            $konsumsi_aktual = floatval($report['Konsumsi M/E MFO Aktual'] ?? 0);
+
+            $perhitungan = '';
+            $gap         = '';
+            $error       = '';
+
+            $sfoc_kw = 0;
+
+            if ($dayaMe <= $powerKw && $powerKw > 0 && $konsumsi_aktual > 0) {
+                $k = $dinamisController->hitungKonsumsi($report, $titik, $density, $konstan_kurva, $all_vessels);
+                if (is_numeric($k)) {
+                    $steamTime   = floatval($report['STEAM TIME (HOUR : MINUTE)'] ?? 0);
+                    $sfoc_kw     = ($dayaMe > 0 && $steamTime > 0) ? $k / ($dayaMe * $steamTime) : 0;
+                    $perhitungan = $k;
+                    $gap         = $k - $konsumsi_aktual;
+                    $error       = $k != 0 ? round((($k - $konsumsi_aktual) / $k) * 100, 2) . ' %' : '';
+                } else {
+                    $gap = 'Tidak ada data kurva';
+                }
+            }
+
+            $result[$vesselId] = [
+                'DAYA ME (KW)'                 => $dayaMe,
+                'Konsumsi M/E MFO Aktual'      => $konsumsi_aktual,
+                'Konsumsi M/E MFO Perhitungan' => $perhitungan,
+                'SFOC_KW'                      => $sfoc_kw,
+                'BL M/E Dynamic (L/Day)'       => $sfoc_kw > 0 ? round($sfoc_kw * $dayaMe * 24, 2) : '',
+                'Gap'                          => $gap,
+                'Error'                        => $error,
+            ];
+        }
+
+        return $result;
     }
 }

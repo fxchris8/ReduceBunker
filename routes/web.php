@@ -26,7 +26,9 @@ Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
     Route::get('/menu', [BunkerController::class, 'index'])->name('menu');
 
     Route::any('/consumption-analysis/statis', [UploadController::class, 'show'])->name('po.upload');
-    Route::any('/consumption-analysis/dinamis', [UploadDinamisController::class, 'show'])->name('po.upload_dinamis');
+    Route::any('/consumption-analysis/dinamis', function () {
+        return redirect()->route('po.upload');
+    })->name('po.upload_dinamis');
 
     // Route::post('/send-email/upload', [UploadController::class, 'upload'])->name('upload.file');
     Route::post('/send-email/send', [UploadController::class, 'sendEmail'])->name('send.email');

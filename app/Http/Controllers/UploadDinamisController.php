@@ -1,5 +1,7 @@
 <?php
 
+//UploadDinamisController.php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Log;
@@ -91,7 +93,7 @@ class UploadDinamisController extends Controller
         return $x;
     }
 
-    private function hitungKonsumsi(array $report, array $titik, float $density, array $konstan_kurva, array $all_vessels)
+    public function hitungKonsumsi(array $report, array $titik, float $density, array $konstan_kurva, array $all_vessels)
     {
         $selectedVessel = strtoupper($report['Vessel ID']);
         $power_kw = floatval($report['DAYA ME (KW)'] ?? 0);
@@ -209,11 +211,10 @@ class UploadDinamisController extends Controller
     public function show(Request $request)
     {   
         if (!$request->filled('report_date')) {
-            return view('po.upload_dinamis', [
-                'report16'    => null,
-                'colored_sea' => null,
-                'headers_sea' => [],
-                'density'     => 950,
+            return view('po.upload', [
+                'report16'  => null,
+                'isDinamis' => true,
+                'density'   => 950,
             ]);
         }
 
@@ -227,23 +228,30 @@ class UploadDinamisController extends Controller
             "report_id" => "16",
         ];
 
-        $response = Http::timeout(120)
-            ->withHeaders([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])
-            ->withBody(json_encode($basePayload), 'application/json')
-            ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
-        
-        if (!$response->successful()) {
-            return view('po.upload_dinamis', [
-                'error'    => 'Gagal ambil data API (report_id: 16, status: '.$response->status().')',
-                'sea_data' => [],
-            ]);
-        }
+        // True  -> Using Mock Data
+        // False -> Using API
+        if (false) {
+            $data    = $this->getMockSeaData();
+            $reports = $data['data'] ?? [];
+        } else {
+            $response = Http::timeout(120)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])
+                ->withBody(json_encode($basePayload), 'application/json')
+                ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
+            
+            if (!$response->successful()) {
+                return view('po.upload', [
+                    'error'    => 'Gagal ambil data API (report_id: 16, status: '.$response->status().')',
+                    'sea_data' => [],
+                ]);
+            }
 
-        $data    = $response->json();
-        $reports = $data['data'] ?? [];
+            $data    = $response->json();
+            $reports = $data['data'] ?? [];
+        }
 
         $normalized = array_map([$this, 'reorderReport'], $reports);
 
@@ -431,11 +439,14 @@ class UploadDinamisController extends Controller
 
         session(['headers_sea' => $headers_sea, 'sea_anomaly' => $sea_data, 'report_date' => $reportDate, 'density' => $density, 'colored_sea' => $colored_sea]);
 
-        return view('po.upload_dinamis', [
-            'headers_sea' => $headers_sea,
-            'report16' => $sea_data,
-            'density' => $density,
-            'colored_sea' => $colored_sea,
+        return view('po.upload', [
+            'headers_sea'  => $headers_sea,
+            'report16'     => $sea_data,
+            'density'      => $density,
+            'colored_sea'  => $colored_sea,
+            'isDinamis'    => true,
+            'report14'     => null,
+            'port_sea_data'=> null,
         ]);
     }
 
@@ -770,5 +781,16 @@ class UploadDinamisController extends Controller
 
         return redirect('/consumption-analysis/dinamis')
             ->with('success_email', 'All e-mails sent successfully.');
+    }
+
+    private function getMockSeaData(): array
+    {
+        return [
+            'data' => [
+                ['vesselid'=>'ASR','tanggal'=>'2026-05-28T11:34:58Z','pos'=>null,'departure'=>'SURABAYA','destination'=>'BANJARMASIN','steam_dist'=>158.9,'ship_speed'=>8.03,'steam_time'=>19.8,'daya_me_kw'=>4094,'me_mfo'=>6630,'ae'=>1,'ae_1_rf'=>8,'ae_hsd'=>1035,'ae_mfo'=>0,'ae_pararel_duration'=>0,'bl_ae'=>1032,'bl_me_hsd'=>455,'boiler_hsd'=>0,'boiler_mfo'=>0,'crane_duration'=>0,'daya_ae_1_kw'=>537,'deck_daily_work'=>'-','distance_to_go'=>121.8,'duration_manuev'=>0,'emg'=>0,'engine_daily_work'=>'-','excess_ae_hsd'=>-3,'excess_ae_mfo'=>0,'excess_mefo'=>0.39,'genset_consum_hsd'=>0,'id'=>393178,'jml_crane'=>0,'l_ae_cr'=>0,'l_ae_cr_h'=>0,'l_ae_rf'=>-1.5,'l_ae_rf_cr'=>0,'l_ae_rf_cr_h'=>0,'l_ae_rf_h'=>0,'load_ae_1'=>160,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'manuev'=>0,'me_hsd'=>0,'me_manuev_consum'=>0,'me_rpm'=>670,'prop_slip'=>4.74,'propeller_slip'=>4.74,'reefer20'=>1,'reefer40'=>1,'remarks'=>'-','rob_hsd'=>22373,'rob_mfo'=>74443,'selisih'=>455,'total_crane'=>0,'total_rf'=>2],
+                ['vesselid'=>'HAN','tanggal'=>'2026-05-28T13:18:01Z','pos'=>null,'departure'=>'Makassar','destination'=>'Bau bau','steam_dist'=>76,'ship_speed'=>10.86,'steam_time'=>7,'daya_me_kw'=>1482.7,'me_mfo'=>2188,'ae'=>2,'ae_1_rf'=>16,'ae_hsd'=>2637,'ae_mfo'=>0,'ae_pararel_duration'=>24,'bl_ae'=>1500,'bl_me_hsd'=>416,'boiler_hsd'=>0,'boiler_mfo'=>0,'crane_duration'=>0,'daya_ae_1_kw'=>488,'deck_daily_work'=>'-','distance_to_go'=>162,'duration_manuev'=>1,'emg'=>0,'engine_daily_work'=>'-','excess_ae_hsd'=>-1137,'excess_ae_mfo'=>0,'excess_mefo'=>0.78,'genset_consum_hsd'=>0,'id'=>393247,'jml_crane'=>0,'l_ae_cr'=>0,'l_ae_cr_h'=>0,'l_ae_rf'=>-13.87,'l_ae_rf_cr'=>0,'l_ae_rf_cr_h'=>0,'l_ae_rf_h'=>-1,'load_ae_1'=>185,'load_ae_2'=>0,'load_ae_3'=>180,'load_ae_4'=>0,'manuev'=>0,'me_hsd'=>302,'me_manuev_consum'=>302,'me_rpm'=>119,'prop_slip'=>15.75,'propeller_slip'=>15.75,'reefer20'=>41,'reefer40'=>0,'remarks'=>'-','rob_hsd'=>96764,'rob_mfo'=>168968,'selisih'=>114,'total_crane'=>0,'total_rf'=>41],
+                ['vesselid'=>'OSI','tanggal'=>'2026-05-28T12:26:55Z','pos'=>null,'departure'=>'BITUNG','destination'=>'SURABAYA','steam_dist'=>358.5,'ship_speed'=>14.94,'steam_time'=>24,'daya_me_kw'=>7702,'me_mfo'=>23280,'ae'=>1,'ae_1_rf'=>18,'ae_hsd'=>0,'ae_mfo'=>1632,'ae_pararel_duration'=>0,'bl_ae'=>1560,'bl_me_hsd'=>750,'boiler_hsd'=>0,'boiler_mfo'=>810,'crane_duration'=>0,'daya_ae_1_kw'=>619,'deck_daily_work'=>'-','distance_to_go'=>342.1,'duration_manuev'=>0,'emg'=>0,'engine_daily_work'=>'-','excess_ae_hsd'=>0,'excess_ae_mfo'=>-72,'excess_mefo'=>-0.29,'genset_consum_hsd'=>1300,'id'=>393205,'jml_crane'=>0,'l_ae_cr'=>0,'l_ae_cr_h'=>0,'l_ae_rf'=>-2.32,'l_ae_rf_cr'=>0,'l_ae_rf_cr_h'=>0,'l_ae_rf_h'=>0,'load_ae_1'=>0,'load_ae_2'=>200,'load_ae_3'=>0,'load_ae_4'=>0,'manuev'=>0,'me_hsd'=>0,'me_manuev_consum'=>0,'me_rpm'=>100,'prop_slip'=>0,'propeller_slip'=>0,'reefer20'=>27,'reefer40'=>4,'remarks'=>'-','rob_hsd'=>37931,'rob_mfo'=>181967,'selisih'=>750,'total_crane'=>0,'total_rf'=>31],
+            ]
+        ];
     }
 }
