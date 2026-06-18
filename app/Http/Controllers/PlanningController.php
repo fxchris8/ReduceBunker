@@ -112,12 +112,12 @@ class PlanningController extends Controller
     }
 
     private function applyTankerBalances(
-        array $reports, 
-        float $initialMfo, 
-        float $initialHsd, 
-        array $fuelBaselineMap = [], 
-        float $hargaMfo = 0, 
-        float $hargaHsd = 0, 
+        array $reports,
+        float $initialMfo,
+        float $initialHsd,
+        array $fuelBaselineMap = [],
+        float $hargaMfo = 0,
+        float $hargaHsd = 0,
         float $saldo = 0
     ): array
     {
@@ -135,23 +135,29 @@ class PlanningController extends Controller
                 $report['Keterangan']  = 'Fuel Baseline not found';
             } 
             else {
-                $jarakNext = (float)($report['Jarak Next Voyage'] ?? 0);
-                $day       = ($jarakNext / $baseline['speed']) / 24;
+                $robMfoRaw = (float)($report['ROB MFO Arrival'] ?? $report['ROB MFO Sebelumnya'] ?? 0);
+                $robHsdRaw = (float)($report['ROB HSD Arrival'] ?? $report['ROB HSD Sebelumnya'] ?? 0);
+                $robMfo = floor(max(0, $robMfoRaw) / 1000) * 1000;
+                $robHsd = floor(max(0, $robHsdRaw) / 1000) * 1000;
 
-                $robMfo = max(0, (float)($report['ROB MFO Arrival'] ?? $report['ROB MFO Sebelumnya'] ?? 0));
-                $robHsd = max(0, (float)($report['ROB HSD Arrival'] ?? $report['ROB HSD Sebelumnya'] ?? 0));
+                $jarakNext = floor((float)($report['Jarak Next Voyage'] ?? 0));
 
-                $konsMe   = $baseline['bl_me'] * $day;
-                $konsAe   = $baseline['bl_ae'] * $day;
+                $day = ($baseline['speed'] > 0) ? ($jarakNext / $baseline['speed']) / 24 : 0;
 
-                $report['Kebutuhan MFO Next Route'] = $konsMe;
-                $report['Kebutuhan HSD Next Route'] = $konsAe;
+                $konsStaticMe  = ceil(($baseline['static_bl_me']  * $day) / 1000) * 1000;
+                $konsStaticAe  = ceil(($baseline['static_bl_ae']  * $day) / 1000) * 1000;
+                $konsDynamicMe = ceil(($baseline['dynamic_bl_me'] * $day) / 1000) * 1000;
 
-                $ss_me    = $baseline['ss_me'];
-                $ss_ae    = $baseline['ss_ae'];
+                $ss_me = $baseline['ss_me'];
+                $ss_ae = $baseline['ss_ae'];
 
-                $robNewMe = $robMfo - $konsMe;
-                $robNewAe = $robHsd - $konsAe;
+                $robNewMe = $robMfo - $konsStaticMe;
+                $robNewAe = $robHsd - $konsStaticAe;
+
+                $report['Kebutuhan MFO Static']  = $konsStaticMe;
+                $report['Kebutuhan HSD Static']  = $konsStaticAe;
+                $report['Kebutuhan MFO Dynamic'] = $konsDynamicMe;
+                $report['Kebutuhan HSD Dynamic'] = 0;
 
                 $keterangan = [];
 
@@ -168,24 +174,23 @@ class PlanningController extends Controller
 
                 $saldoSebelum = $saldoBalance;
 
-                // ME
-                if ($robNewMe >= $ss_me) {
-                    $isiBbmMfo = 0;
-                } else {
-                    $isiBbmMfo = $ss_me - $robNewMe;
-                    if ($mfoBalance < $isiBbmMfo) {
-                        $beliMfo = $isiBbmMfo - $mfoBalance;
-                        $biayaMfo = $beliMfo * $hargaMfo;
-                    }
+                $robNewMeDynamic = $robMfo - $konsDynamicMe;
+
+                $isiBbmMfoStatic = $robNewMe >= $ss_me ? 0 : $ss_me - $robNewMe;
+                $isiBbmMfoDynamic = $robNewMeDynamic >= $ss_me ? 0 : $ss_me - $robNewMeDynamic;
+
+                $isiBbmMfo = ceil(($isiBbmMfoStatic + $isiBbmMfoDynamic) / 1000) * 1000;
+                if ($mfoBalance < $isiBbmMfo) {
+                    $beliMfo  = $isiBbmMfo - $mfoBalance;
+                    $biayaMfo = $beliMfo * $hargaMfo;
                 }
 
-                // HSD
                 if ($robNewAe >= $ss_ae) {
                     $isiBbmHsd = 0;
                 } else {
-                    $isiBbmHsd = $ss_ae - $robNewAe;
+                    $isiBbmHsd = ceil(($ss_ae - $robNewAe) / 1000) * 1000;
                     if ($hsdBalance < $isiBbmHsd) {
-                        $beliHsd = $isiBbmHsd - $hsdBalance;
+                        $beliHsd  = $isiBbmHsd - $hsdBalance;
                         $biayaHsd = $beliHsd * $hargaHsd;
                     }
                 }
@@ -904,15 +909,21 @@ class PlanningController extends Controller
             "tanggal_akhir" => $dvs_formattedNextWeekDate,
         ];
 
-        try {
-            $dvs_reports_raw = $this->fetchPlanningApiData('/get-data-dvs', $dvs_basePayload, 'DVS', 300);
-        } catch (\RuntimeException $exception) {
-            return view('po.planning', array_merge($planningViewData, [
-                'error' => $exception->getMessage(),
-            ]));
+        // True  -> Using Mock Data
+        // False -> Using API
+        if (false) {
+            $dvs_reports_raw = $this->getMockDvsReports();
+        } else {
+            try {
+                $dvs_reports_raw = $this->fetchPlanningApiData('/get-data-dvs', $dvs_basePayload, 'DVS', 300);
+            } catch (\RuntimeException $exception) {
+                return view('po.planning', array_merge($planningViewData, [
+                    'error' => $exception->getMessage(),
+                ]));
+            }
         }
 
-        // filter data valid
+         // filter data valid
         $dvs_reports = array_values(array_filter($dvs_reports_raw, function ($row) {
             return isset($row['vesselid']) && trim($row['vesselid']) !== '' && trim($row['etb']) !== '';
         }));
@@ -934,57 +945,64 @@ class PlanningController extends Controller
             "tanggal" => $noon_report_formattedDate,
         ];
 
-        $reportIds = [14, 16];
-        $noon_report_allReports = [];
-
-        foreach ($reportIds as $reportId) {
-            $rob_payload = $noon_report_basePayload;
-            $rob_payload['report_id'] = (string)$reportId;
-
-            try {
-                $rob_reports = $this->fetchPlanningApiData('/get-bunker-analysis', $rob_payload, 'bunker analysis report_id '.$reportId, 1800);
-            } catch (\RuntimeException $exception) {
-                return view('po.planning', array_merge($planningViewData, [
-                    'error' => $exception->getMessage(),
-                    'report14' => [],
-                    'report16' => [],
-                ]));
-            }
-
-            $noon_report_allReports = array_merge($noon_report_allReports, $rob_reports);
-        } 
         
-        $noon_report_groupedByVessel = [];
+        // True  -> Using Mock Data
+        // False -> Using API
+        if (false) {
+            $noon_report_groupedByVessel = $this->getMockNoonReportMap();
+        } else { 
+            $reportIds = [14, 16];
+            $noon_report_allReports = [];
 
-        foreach ($noon_report_allReports as $row) {
-            $vesselid = $row['vesselid'] ?? null;
-            $tanggal = $row['tanggal'] ?? null;
+            foreach ($reportIds as $reportId) {
+                $rob_payload = $noon_report_basePayload;
+                $rob_payload['report_id'] = (string)$reportId;
 
-            if ($vesselid && $tanggal) {
-                $row['tanggal_obj'] = \Carbon\Carbon::parse($tanggal); // simpan objek Carbon untuk sorting
-
-                if (!isset($noon_report_groupedByVessel[$vesselid])) {
-                    $noon_report_groupedByVessel[$vesselid] = [];
+                try {
+                    $rob_reports = $this->fetchPlanningApiData('/get-bunker-analysis', $rob_payload, 'bunker analysis report_id '.$reportId, 1800);
+                } catch (\RuntimeException $exception) {
+                    return view('po.planning', array_merge($planningViewData, [
+                        'error' => $exception->getMessage(),
+                        'report14' => [],
+                        'report16' => [],
+                    ]));
                 }
 
-                $noon_report_groupedByVessel[$vesselid][] = $row;
-            }
-        }
+                $noon_report_allReports = array_merge($noon_report_allReports, $rob_reports);
+            } 
 
-        // Ambil hanya 1 data terakhir per vessel
-        $noon_report_groupedByVessel = collect($noon_report_groupedByVessel)->map(function ($reports) {
-            return collect($reports)
-                ->sortByDesc(fn($r) => $r['tanggal_obj'])
-                ->map(fn($r) => [
-                    'rob_hsd' => $r['rob_hsd'] ?? null,
-                    'rob_mfo' => $r['rob_mfo'] ?? null,
-                    'distance_to_go' => $r['distance_to_go'] ?? null,
-                    'departure' => isset($r['departure']) ? strtoupper($r['departure']) : null,
-                    'destination' => isset($r['destination']) ? strtoupper($r['destination']) : null,
-                    'pos' => isset($r['pos']) ? strtoupper($r['pos']) : null,
-                ])
-                ->first();
-        })->toArray();
+            $noon_report_groupedByVessel = [];
+
+            foreach ($noon_report_allReports as $row) {
+                $vesselid = $row['vesselid'] ?? null;
+                $tanggal = $row['tanggal'] ?? null;
+
+                if ($vesselid && $tanggal) {
+                    $row['tanggal_obj'] = \Carbon\Carbon::parse($tanggal); // simpan objek Carbon untuk sorting
+
+                    if (!isset($noon_report_groupedByVessel[$vesselid])) {
+                        $noon_report_groupedByVessel[$vesselid] = [];
+                    }
+
+                    $noon_report_groupedByVessel[$vesselid][] = $row;
+                }
+            }
+
+            // Ambil hanya 1 data terakhir per vessel
+            $noon_report_groupedByVessel = collect($noon_report_groupedByVessel)->map(function ($reports) {
+                return collect($reports)
+                    ->sortByDesc(fn($r) => $r['tanggal_obj'])
+                    ->map(fn($r) => [
+                        'rob_hsd' => $r['rob_hsd'] ?? null,
+                        'rob_mfo' => $r['rob_mfo'] ?? null,
+                        'distance_to_go' => $r['distance_to_go'] ?? null,
+                        'departure' => isset($r['departure']) ? strtoupper($r['departure']) : null,
+                        'destination' => isset($r['destination']) ? strtoupper($r['destination']) : null,
+                        'pos' => isset($r['pos']) ? strtoupper($r['pos']) : null,
+                    ])
+                    ->first();
+            })->toArray();
+        }
 
         ///////////////////////////////////////////////////////////////////////////
 
@@ -998,61 +1016,80 @@ class PlanningController extends Controller
             "disc_port" => "-",
         ];
 
-        try {
-            $master_route_data = $this->fetchPlanningApiData('/get-master-route', $master_route_payload, 'master route', 86400);
-        } catch (\RuntimeException $exception) {
-            return view('po.planning', array_merge($planningViewData, [
-                'error' => $exception->getMessage(),
-            ]));
-        }
-
-        $port_id_map = [];
-
-        foreach ($master_route_data as $port) {
-            $discportname = trim($port['discportname'] ?? '');
-            $discport_unportid = trim($port['discport_unportid'] ?? '');
-
-            $loadportname = trim($port['loadportname'] ?? '');
-            $loadport_unportid = trim($port['loadport_unportid'] ?? '');
-
-            if ($discportname !== '') {
-                $port_id_map[$discportname] = $discport_unportid;
+        // True  -> Using Mock Data
+        // False -> Using API
+        if (false) {
+            $port_id_map = [
+                'BENGKULU'=>'IDBKS',  'JAKARTA'=>'IDJKT',   'BALIKPAPAN'=>'IDBPN',
+                'SAMARINDA'=>'IDSRI', 'SURABAYA'=>'IDSUB',  'SAMPIT'=>'IDSPT',
+                'BATULICIN'=>'IDBTW', 'TERNATE'=>'IDTTE',   'TIMIKA'=>'IDTIM',
+                'KENDARI'=>'IDKDI',   'TARAKAN'=>'IDTRK',   'MAKASSAR'=>'IDMAK',
+                'BANJARMASIN'=>'IDBDJ','PONTIANAK'=>'IDPNK','BELAWAN'=>'IDBLW',
+                'BAUBAU'=>'IDBUW',    'BAU BAU'=>'IDBUW',   'TABONEO'=>'IDTAB',
+                'MANOKWARI'=>'IDMKW', 'MERAUKE'=>'IDMKQ',   'JAYAPURA'=>'IDDJJ',
+                'AMBON'=>'IDAMQ',     'TUAL'=>'IDTUA',      'GORONTALO'=>'IDGTO',
+                'PANTOLOAN'=>'IDPAL', 'PALU'=>'IDPAL',      'KUALA TANJUNG'=>'IDKTJ',
+                'PADANG'=>'IDPDG',    'BATAM'=>'IDBTM',     'PERAWANG'=>'IDPER',
+                'KETAPANG'=>'IDKTG',
+            ];
+            $jarak_map = $this->getMockJarakMap();
+        } else {
+            try {
+                $master_route_data = $this->fetchPlanningApiData('/get-master-route', $master_route_payload, 'master route', 86400);
+            } catch (\RuntimeException $exception) {
+                return view('po.planning', array_merge($planningViewData, [
+                    'error' => $exception->getMessage(),
+                ]));
             }
 
-            if ($loadportname !== '') {
-                $port_id_map[$loadportname] = $loadport_unportid;
+            $port_id_map = [];
+
+            foreach ($master_route_data as $port) {
+                $discportname = trim($port['discportname'] ?? '');
+                $discport_unportid = trim($port['discport_unportid'] ?? '');
+
+                $loadportname = trim($port['loadportname'] ?? '');
+                $loadport_unportid = trim($port['loadport_unportid'] ?? '');
+
+                if ($discportname !== '') {
+                    $port_id_map[$discportname] = $discport_unportid;
+                }
+
+                if ($loadportname !== '') {
+                    $port_id_map[$loadportname] = $loadport_unportid;
+                }
+
             }
 
-        }
+            $port_id_map['BAUBAU'] = 'IDBUW';
+            $port_id_map['SAMARINDA'] = 'IDSRI';
+            $port_id_map['BALIKPAPAN'] = 'IDBPN';
+            $port_id_map['CILEGON'] = 'IDCGN';
+            $port_id_map['LAMPUNG'] = 'IDTKG';
+            $port_id_map['PALEMBANG'] = 'IDPLM';
+            $port_id_map['BOMBANA'] = 'IDBOE';
+            $port_id_map['MAKASAR'] = 'IDMAK';
+            $port_id_map['SBY'] = 'IDSUB';
+            $port_id_map['BAU BAU'] = 'IDBUW';
+            $port_id_map['KUALATANJUNG'] = 'IDKTJ';
+            $port_id_map['KUALA TANJUNG'] = 'IDKTJ';
 
-        $port_id_map['BAUBAU'] = 'IDBUW';
-        $port_id_map['SAMARINDA'] = 'IDSRI';
-        $port_id_map['BALIKPAPAN'] = 'IDBPN';
-        $port_id_map['CILEGON'] = 'IDCGN';
-        $port_id_map['LAMPUNG'] = 'IDTKG';
-        $port_id_map['PALEMBANG'] = 'IDPLM';
-        $port_id_map['BOMBANA'] = 'IDBOE';
-        $port_id_map['MAKASAR'] = 'IDMAK';
-        $port_id_map['SBY'] = 'IDSUB';
-        $port_id_map['BAU BAU'] = 'IDBUW';
-        $port_id_map['KUALATANJUNG'] = 'IDKTJ';
-        $port_id_map['KUALA TANJUNG'] = 'IDKTJ';
+            //////////////////////////////////////////////////////////////////////
 
-        //////////////////////////////////////////////////////////////////////
+            $jarak_map = [];
 
-        $jarak_map = [];
+            foreach ($master_route_data as $route) {
+                $from = trim($route['loadport_unportid'] ?? '');
+                $to   = trim($route['discport_unportid'] ?? '');
+                $dist = floatval($route['nmile'] ?? 0);
 
-        foreach ($master_route_data as $route) {
-            $from = trim($route['loadport_unportid'] ?? '');
-            $to   = trim($route['discport_unportid'] ?? '');
-            $dist = floatval($route['nmile'] ?? 0);
+                $from_name = trim($route['loadportname'] ?? '');
+                $to_name   = trim($route['discportname'] ?? '');
 
-            $from_name = trim($route['loadportname'] ?? '');
-            $to_name   = trim($route['discportname'] ?? '');
-
-            if ($from !== '' && $to !== '') {
-                if (!isset($jarak_map[$from][$to]) || $jarak_map[$from][$to] < $dist) {
-                    $jarak_map[$from][$to] = $dist;
+                if ($from !== '' && $to !== '') {
+                    if (!isset($jarak_map[$from][$to]) || $jarak_map[$from][$to] < $dist) {
+                        $jarak_map[$from][$to] = $dist;
+                    }
                 }
             }
         }
@@ -1065,8 +1102,7 @@ class PlanningController extends Controller
             $dvs_reports
         );
 
-        $baselineType    = $request->input('baseline_type', 'statis');
-        $fuelBaselineMap = $this->loadFuelBaselineMap($baselineType);
+        $fuelBaselineMap = $this->loadFuelBaselineMap();
         $all_dvs_Reports = $this->applyTankerBalances($all_dvs_Reports, $robTankerMfo, $robTankerHsd, $fuelBaselineMap, $hargaMfo, $hargaHsd, $saldo);
 
         //////////////////////////////////////////////////////////////////////////
@@ -1089,7 +1125,6 @@ class PlanningController extends Controller
 
         return view('po.planning', [
             'reportDate'   => $dvs_formattedDate,
-            'baselineType' => $baselineType,
             'nextWeekDate' => $dvs_formattedNextWeekDate,
             'headerRows' => $headerRows,
             'report' => $all_dvs_Reports,
@@ -1113,7 +1148,7 @@ class PlanningController extends Controller
         return response()->download($filePath, $filename)->deleteFileAfterSend(true);
     }
 
-    private function loadFuelBaselineMap(string $baselineType = 'statis'): array
+    private function loadFuelBaselineMap(): array
     {
         try {
             $rows = DB::table('fuel_baselines')
@@ -1122,16 +1157,13 @@ class PlanningController extends Controller
 
             $map = [];
             foreach ($rows as $row) {
-                $blMe = $baselineType === 'dinamis'
-                    ? (float) $row->dynamic_bl_me * 24
-                    : (float) $row->static_bl_me * 24;
-
                 $map[strtoupper(trim($row->vessel_id))] = [
-                    'bl_me'  => $blMe,
-                    'bl_ae'  => $baselineType === 'dinamis' ? 0 : (float) $row->static_bl_ae * 24,
-                    'speed'  => (float) $row->speed,
-                    'ss_me'  => $baselineType === 'dinamis' ? 0 : $row->static_bl_me * $row->ss_multiplier_me,
-                    'ss_ae'  => $baselineType === 'dinamis' ? 0 : $row->static_bl_ae * $row->ss_multiplier_ae,
+                    'static_bl_me'  => (float) $row->static_bl_me * 24,
+                    'static_bl_ae'  => (float) $row->static_bl_ae * 24,
+                    'dynamic_bl_me' => (float) $row->dynamic_bl_me * 24,
+                    'speed'         => (float) $row->speed,
+                    'ss_me' => (float) $row->static_bl_me * 24 * (float) $row->ss_multiplier_me,
+                    'ss_ae' => (float) $row->static_bl_ae * 24 * (float) $row->ss_multiplier_ae,
                 ];
             }
             return $map;
@@ -1140,66 +1172,5 @@ class PlanningController extends Controller
             Log::error('Failed to load fuel_baselines', ['message' => $e->getMessage()]);
             return [];
         }
-    }
-
-    private function getMockDvsReports(): array
-    {
-        return [
-            ['vesselid'=>'OPA','voyage'=>'11/2026','from_port'=>'IDBLW.IDJKT.IDMRK.IDBTM.IDMRK.IDJKT.IDPDG.IDBKS.IDJKT','sailing_route'=>'IDJKT-IDBDJ-IDJKT','eta'=>'15/06/2026 18:38','etb'=>'16/06/2026 03:47','etd'=>'17/06/2026 08:00'],
-            ['vesselid'=>'KLE','voyage'=>'019/2026','from_port'=>'IDJKT.IDBPN.IDJKT.IDBPN.IDJKT.IDBPN.IDJKT.IDBPN.IDJKT','sailing_route'=>'IDJKT-IDBPN-IDJKT','eta'=>'16/06/2026 02:45','etb'=>'16/06/2026 04:45','etd'=>'16/06/2026 23:00'],
-            ['vesselid'=>'RAH','voyage'=>'15/2026','from_port'=>'IDSRI.IDSUB','sailing_route'=>'IDSUB-IDSRI-IDSUB','eta'=>'16/06/2026 11:00','etb'=>'16/06/2026 19:30','etd'=>'17/06/2026 16:00'],
-            ['vesselid'=>'BSA','voyage'=>'13/2026','from_port'=>'IDSRI.IDSRG.IDJKT.IDKTG.IDPNK.IDJKT.IDJKT','sailing_route'=>'IDJKT-IDBDJ-IDJKT','eta'=>'14/06/2026 12:30','etb'=>'16/06/2026 20:30','etd'=>'17/06/2026 21:00'],
-            ['vesselid'=>'PSM','voyage'=>'15/2026','from_port'=>'IDSPT.IDSUB','sailing_route'=>'IDSUB-IDSPT-IDBTW-IDSUB','eta'=>'16/06/2026 08:00','etb'=>'17/06/2026 01:00','etd'=>'17/06/2026 11:00'],
-            ['vesselid'=>'OSI','voyage'=>'08/2026','from_port'=>'IDJKT.IDMAK.IDBIT.IDTTE.IDSUB','sailing_route'=>'IDSUB-IDJKT-IDMAK-IDBIT-IDTTE-IDSUB','eta'=>'17/06/2026 08:00','etb'=>'17/06/2026 14:00','etd'=>'20/06/2026 09:00'],
-            ['vesselid'=>'HAN','voyage'=>'06/2026','from_port'=>'IDMAK.IDBUW.IDTIM.IDSUB','sailing_route'=>'IDSUB-IDMAK-IDTIM-IDMKQ-IDSUB','eta'=>'16/06/2026 23:00','etb'=>'17/06/2026 17:00','etd'=>'19/06/2026 06:00'],
-            ['vesselid'=>'TFL','voyage'=>'13/2026','from_port'=>'IDMAK.IDBUW.IDKDI.IDSUB','sailing_route'=>'IDSUB-IDBLW-IDSUB','eta'=>'18/06/2026 01:00','etb'=>'18/06/2026 07:00','etd'=>'20/06/2026 06:00'],
-            ['vesselid'=>'VEI','voyage'=>'11/2026','from_port'=>'IDBPN.IDNNX.IDTRK.IDSUB','sailing_route'=>'IDSUB-IDTRK-IDNNX-IDSUB','eta'=>'18/06/2026 06:00','etb'=>'20/06/2026 16:00','etd'=>'22/06/2026 23:00'],
-            ['vesselid'=>'PHK','voyage'=>'11/2026','from_port'=>'IDSRI.IDSUB','sailing_route'=>'IDSUB-IDMAK-IDBUW-IDKDI-IDSUB','eta'=>'19/06/2026 20:00','etb'=>'19/06/2026 23:00','etd'=>'21/06/2026 06:00'],
-        ];
-    }
-
-    private function getMockNoonReportMap(): array
-    {
-        return [
-            'OPA'  => ['rob_hsd'=>26490,  'rob_mfo'=>25098,   'distance_to_go'=>65,    'departure'=>'BENGKULU',  'destination'=>'JAKARTA',   'pos'=>'KAPAL SANDAR BENGKULU'],
-            'KLE'  => ['rob_hsd'=>21477,  'rob_mfo'=>133602,  'distance_to_go'=>134,   'departure'=>'BALIKPAPAN','destination'=>'JAKARTA',   'pos'=>'KAPAL SANDAR BALIKPAPAN'],
-            'RAH'  => ['rob_hsd'=>25168,  'rob_mfo'=>37184,   'distance_to_go'=>250.9, 'departure'=>'SAMARINDA', 'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR SAMARINDA'],
-            'BSA'  => ['rob_hsd'=>20606,  'rob_mfo'=>30768,   'distance_to_go'=>null,  'departure'=>null,        'destination'=>null,        'pos'=>'BERLABUH OB-TABONEO'],
-            'PSM'  => ['rob_hsd'=>47791,  'rob_mfo'=>0,       'distance_to_go'=>116,   'departure'=>'SAMPIT',    'destination'=>'BATULICIN', 'pos'=>'KAPAL SANDAR SAMPIT'],
-            'OSI'  => ['rob_hsd'=>23319,  'rob_mfo'=>105227,  'distance_to_go'=>672.2, 'departure'=>'TERNATE',   'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR TERNATE'],
-            'HAN'  => ['rob_hsd'=>59947,  'rob_mfo'=>102657,  'distance_to_go'=>421.3, 'departure'=>'TIMIKA',    'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR TIMIKA'],
-            'TFL'  => ['rob_hsd'=>24488,  'rob_mfo'=>56970,   'distance_to_go'=>550.7, 'departure'=>'KENDARI',   'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR KENDARI'],
-            'VEI'  => ['rob_hsd'=>71702,  'rob_mfo'=>70750,   'distance_to_go'=>749,   'departure'=>'TARAKAN',   'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR TARAKAN'],
-            'PHK'  => ['rob_hsd'=>29158,  'rob_mfo'=>52177,   'distance_to_go'=>null,  'departure'=>null,        'destination'=>null,        'pos'=>'REDE MUARA PEGAH SAMARINDA'],
-        ];
-    }
-
-    private function getMockJarakMap(): array
-    {
-        return [
-            'IDJKT' => ['IDBDJ'=>986,  'IDBPN'=>1563, 'IDPNK'=>820,  'IDBLW'=>1770, 'IDPDG'=>1147, 'IDBTM'=>1012, 'IDPER'=>279,  'IDKTG'=>700],
-            'IDBDJ' => ['IDJKT'=>986],
-            'IDBPN' => ['IDJKT'=>1563, 'IDSRI'=>537],
-            'IDSRI' => ['IDBPN'=>537,  'IDSUB'=>537,  'IDJKT'=>1734],
-            'IDSUB' => ['IDMAK'=>861,  'IDSRI'=>537,  'IDBDJ'=>488,  'IDBLW'=>1771, 'IDTRK'=>1809, 'IDSPT'=>522,  'IDBTW'=>333,  'IDTIM'=>1553,'IDMKQ'=>1620,'IDKDI'=>699, 'IDMKW'=>2408,'IDTTE'=>1520],
-            'IDMAK' => ['IDSUB'=>861,  'IDBIT'=>714,  'IDTTE'=>659,  'IDBUW'=>603,  'IDKDI'=>338,  'IDTGK'=>338,  'IDTIM'=>692,  'IDAMQ'=>764, 'IDMKW'=>1648,'IDJKT'=>1563],
-            'IDBIT' => ['IDMAK'=>714,  'IDTTE'=>200,  'IDSUB'=>714],
-            'IDTTE' => ['IDMAK'=>659,  'IDBIT'=>200,  'IDSUB'=>1520],
-            'IDBUW' => ['IDSUB'=>603,  'IDMAK'=>603,  'IDKDI'=>338],
-            'IDKDI' => ['IDSUB'=>699,  'IDBUW'=>338,  'IDMAK'=>338],
-            'IDTIM' => ['IDSUB'=>1553, 'IDMAK'=>692,  'IDMKQ'=>400],
-            'IDMKQ' => ['IDSUB'=>1620, 'IDTIM'=>400],
-            'IDTRK' => ['IDSUB'=>1809, 'IDNNX'=>357],
-            'IDNNX' => ['IDTRK'=>357,  'IDSUB'=>1500],
-            'IDSPT' => ['IDSUB'=>522,  'IDBTW'=>333],
-            'IDBTW' => ['IDSUB'=>333,  'IDSPT'=>333],
-            'IDBLW' => ['IDJKT'=>1770, 'IDKTJ'=>200,  'IDSUB'=>1771],
-            'IDKTJ' => ['IDBLW'=>200,  'IDJKT'=>1570],
-            'IDMKW' => ['IDMAK'=>1648, 'IDNBX'=>357,  'IDSUB'=>2408],
-            'IDNBX' => ['IDMKW'=>357,  'IDSUB'=>2000],
-            'IDAMQ' => ['IDMAK'=>764,  'IDSOQ'=>357],
-            'IDSOQ' => ['IDAMQ'=>357,  'IDDJJ'=>407],
-            'IDDJJ' => ['IDSOQ'=>407,  'IDMAK'=>764],
-        ];
     }
 }

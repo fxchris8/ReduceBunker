@@ -43,53 +43,39 @@
                         <label for="rob_tanker_mfo" class="block text-sm font-medium text-gray-700 mb-1">
                             MFO (kL)
                         </label>
-                        <input type="number" step="any" id="rob_tanker_mfo" name="rob_tanker_mfo"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-48
-                            [appearance:textfield]
-                            [&::-webkit-outer-spin-button]:appearance-none
-                            [&::-webkit-inner-spin-button]:appearance-none"
-                            value="{{ request('rob_tanker_mfo') }}"
-                            required
-                            placeholder="0">
+                        <input type="text" id="rob_tanker_mfo" name="rob_tanker_mfo"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48"
+                            value="{{ request('rob_tanker_mfo') ? number_format((float)request('rob_tanker_mfo'), 0, ',', '.') : '' }}"
+                            oninput="formatRibuan(this)" required placeholder="0">
                     </div>
                     <div>
                         <label for="rob_tanker_hsd" class="block text-sm font-medium text-gray-700 mb-1">
                             HSD (kL)
                         </label>
-                        <input type="number" step="any" id="rob_tanker_hsd" name="rob_tanker_hsd"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-48
-                            [appearance:textfield]
-                            [&::-webkit-outer-spin-button]:appearance-none
-                            [&::-webkit-inner-spin-button]:appearance-none"
-                            value="{{ request('rob_tanker_hsd') }}"
-                            required
-                            placeholder="0">
+                        <input type="text" id="rob_tanker_hsd" name="rob_tanker_hsd"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48"
+                            value="{{ request('rob_tanker_hsd') ? number_format((float)request('rob_tanker_hsd'), 0, ',', '.') : '' }}"
+                            oninput="formatRibuan(this)" required placeholder="0">
                     </div>
                     <div>
                         <label for="harga_mfo" class="block text-sm font-medium text-gray-700 mb-1">
                             MFO Price (per L)
                         </label>
-                        <input type="number" step="any" id="harga_mfo" name="harga_mfo"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-48
-                            [appearance:textfield]
-                            [&::-webkit-outer-spin-button]:appearance-none
-                            [&::-webkit-inner-spin-button]:appearance-none"
-                            value="{{ request('harga_mfo') }}"
-                            required
-                            placeholder="0">
+                        <input type="text" id="harga_mfo" name="harga_mfo"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48"
+                            value="{{ request('harga_mfo') ? number_format((float)request('harga_mfo'), 0, ',', '.') : '' }}"
+                            oninput="formatRibuan(this)" required placeholder="0">
+                        <input type="hidden" id="harga_mfo_raw" name="harga_mfo_raw">
                     </div>
                     <div>
                         <label for="harga_hsd" class="block text-sm font-medium text-gray-700 mb-1">
                             HSD Price (per L)
                         </label>
-                        <input type="number" step="any" id="harga_hsd" name="harga_hsd"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-48
-                            [appearance:textfield]
-                            [&::-webkit-outer-spin-button]:appearance-none
-                            [&::-webkit-inner-spin-button]:appearance-none"
-                            value="{{ request('harga_hsd') }}"
-                            required
-                            placeholder="0">
+                        <input type="text" id="harga_hsd" name="harga_hsd"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48"
+                            value="{{ request('harga_hsd') ? number_format((float)request('harga_hsd'), 0, ',', '.') : '' }}"
+                            oninput="formatRibuan(this)" required placeholder="0">
+                        <input type="hidden" id="harga_hsd_raw" name="harga_hsd_raw">
                     </div>
                 </div>
                 <div class="flex flex-wrap items-end gap-4 mb-4">
@@ -97,32 +83,36 @@
                         <label for="input_saldo_rp" class="block text-lg font-medium mb-2">
                             Input Saldo (IDR)
                         </label>
-                        <input type="number" step="any" id="input_saldo_rp" name="input_saldo_rp"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-48
-                                [appearance:textfield]
-                                [&::-webkit-outer-spin-button]:appearance-none
-                                [&::-webkit-inner-spin-button]:appearance-none"
-                            value="{{ request('input_saldo_rp') }}"
-                            required
-                            placeholder="0">
-                    </div>
-                    <div>
-                        <label for="baseline_type" class="block text-sm font-medium text-gray-700 mb-1">Baseline</label>
-                        <select name="baseline_type" id="baseline_type"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-48">
-                            <option value="statis" {{ request('baseline_type', 'statis') === 'statis' ? 'selected' : '' }}>
-                                Baseline Statis
-                            </option>
-                            <option value="dinamis" {{ request('baseline_type') === 'dinamis' ? 'selected' : '' }}>
-                                Baseline Dinamis
-                            </option>
-                        </select>
+                        <input type="text" id="input_saldo_rp" name="input_saldo_rp"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-48"
+                            value="{{ request('input_saldo_rp') ? number_format((float)request('input_saldo_rp'), 0, ',', '.') : '' }}"
+                            oninput="formatRibuan(this)" required placeholder="0">
                     </div>
                     <button type="submit" data-loading-text="Loading..."
                         class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow">
                         Hit API
                     </button>
                 </div>
+                <script>
+                function formatRibuan(input) {
+                    let raw = input.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+                    input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+                    input.dataset.raw = raw;
+                }
+
+                function showPlanningLoading(form) {
+                    ['harga_mfo', 'harga_hsd', 'input_saldo_rp', 'rob_tanker_mfo', 'rob_tanker_hsd'].forEach(function(name) {
+                        const el = form.querySelector('[name="' + name + '"]');
+                        if (el) el.value = el.value.replace(/\./g, '');
+                    });
+
+                    const button = form.querySelector('button[type="submit"]');
+                    if (!button) return;
+                    button.disabled = true;
+                    button.textContent = button.dataset.loadingText;
+                    button.classList.add('opacity-75', 'cursor-wait');
+                }
+                </script>
             </form>
             <script>
                 function showPlanningLoading(form) {
@@ -175,7 +165,7 @@
                                     $_robMfo   = $row['ROB MFO Arrival'] ?? $row['ROB MFO Sebelumnya'] ?? null;
                                     $_robHsd   = $row['ROB HSD Arrival'] ?? $row['ROB HSD Sebelumnya'] ?? null;
                                     $isNegativeRob = (is_numeric($_robMfo) && $_robMfo < 0) || (is_numeric($_robHsd) && $_robHsd < 0);
-                                    $excludeFromMain = ['Kebutuhan MFO Next Route', 'Kebutuhan HSD Next Route', 'Isi BBM MFO', 'Isi BBM HSD', 'Keterangan', '_detail'];
+                                   $excludeFromMain = ['Kebutuhan MFO Static', 'Kebutuhan MFO Dynamic', 'Kebutuhan HSD Static', 'Kebutuhan HSD Dynamic', 'Isi BBM MFO', 'Isi BBM HSD', 'Keterangan', '_detail'];
                                 @endphp
                                 <tr class="text-center {{ $isNegativeRob ? 'bg-red-200' : '' }}"
                                      data-port="{{ $portFrom }}">
@@ -200,20 +190,22 @@
                         <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
                             <thead class="bg-gray-300 sticky top-0 z-20">
                                 <tr>
-                                    <th class="px-4 py-2 text-center border border-black">ID Vessel</th>
-                                    <th class="px-4 py-2 text-center border border-black">ROB MFO</th>
-                                    <th class="px-4 py-2 text-center border border-black">ROB HSD</th>
-                                    <th class="px-4 py-2 text-center border border-black">Distance next voyage</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">ID Vessel</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">ROB MFO</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">ROB HSD</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Distance Next Voyage</th>
+                                    <th colspan="2" class="px-4 py-2 text-center border border-black">Static Baseline</th>
+                                    <th colspan="2" class="px-4 py-2 text-center border border-black">Dynamic Baseline</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Isi BBM MFO</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Isi BBM HSD</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Keterangan</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Aksi</th>
+                                </tr>
+                                <tr>
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan MFO</th>
-                                    @if(($baselineType ?? 'statis') === 'statis')
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan HSD</th>
-                                    @endif
-                                    <th class="px-4 py-2 text-center border border-black">Isi BBM MFO</th>
-                                    @if(($baselineType ?? 'statis') === 'statis')
-                                    <th class="px-4 py-2 text-center border border-black">Isi BBM HSD</th>
-                                    @endif
-                                    <th class="px-4 py-2 text-center border border-black">Keterangan</th>
-                                    <th class="px-4 py-2 text-center border border-black">Aksi</th>
+                                    <th class="px-4 py-2 text-center border border-black">Kebutuhan MFO</th>
+                                    <th class="px-4 py-2 text-center border border-black">Kebutuhan HSD</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200" id="rekom-table-body">
@@ -222,8 +214,10 @@
                                         $robMfo           = $row['ROB MFO Arrival'] ?? $row['ROB MFO Berthing'] ?? $row['ROB MFO Sebelumnya'] ?? '';
                                         $robHsd           = $row['ROB HSD Arrival'] ?? $row['ROB HSD Berthing'] ?? $row['ROB HSD Sebelumnya'] ?? '';
                                         $distanceNextVoyage = $row['Jarak Next Voyage'] ?? '';
-                                        $kebutuhanMfo     = $row['Kebutuhan MFO Next Route'] ?? '';
-                                        $kebutuhanHsd     = $row['Kebutuhan HSD Next Route'] ?? '';
+                                        $kebutuhanMfoStatic  = $row['Kebutuhan MFO Static'] ?? '';
+                                        $kebutuhanMfoDynamic = $row['Kebutuhan MFO Dynamic'] ?? '';
+                                        $kebutuhanHsdStatic  = $row['Kebutuhan HSD Static'] ?? '';
+                                        $kebutuhanHsdDynamic = $row['Kebutuhan HSD Dynamic'] ?? '';
                                         $isiBbmMfo        = $row['Isi BBM MFO'] ?? '';
                                         $isiBbmHsd        = $row['Isi BBM HSD'] ?? '';
                                         $keterangan       = $row['Keterangan'] ?? '';
@@ -233,17 +227,15 @@
                                     <tr class="text-center {{ $isNegativeRob ? 'bg-red-200' : '' }}"
                                         data-port="{{ $portFrom }}">
                                         <td class="px-4 py-2 text-center border border-black">{{ $row['Vessel ID'] ?? '' }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robMfo) ? number_format($robMfo, 2, '.', ',') : $robMfo }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robHsd) ? number_format($robHsd, 2, '.', ',') : $robHsd }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? number_format($distanceNextVoyage, 2, '.', ',') : $distanceNextVoyage }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfo) ? number_format($kebutuhanMfo, 2, '.', ',') : $kebutuhanMfo }}</td>
-                                        @if(($baselineType ?? 'statis') === 'statis')
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanHsd) ? number_format($kebutuhanHsd, 2, '.', ',') : $kebutuhanHsd }}</td>
-                                        @endif
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfo) ? number_format($isiBbmMfo, 2, '.', ',') : $isiBbmMfo }}</td>
-                                        @if(($baselineType ?? 'statis') === 'statis')
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsd) ? number_format($isiBbmHsd, 2, '.', ',') : $isiBbmHsd }}</td>
-                                        @endif
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robMfo) ? number_format(floor($robMfo / 1000) * 1000, 0, ',', '.') : $robMfo }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robHsd) ? number_format(floor($robHsd / 1000) * 1000, 0, ',', '.') : $robHsd }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? number_format($distanceNextVoyage, 0, ',', '.') : $distanceNextVoyage }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfoStatic)  ? number_format($kebutuhanMfoStatic,  0, ',', '.') : $kebutuhanMfoStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanHsdStatic)  ? number_format($kebutuhanHsdStatic,  0, ',', '.') : $kebutuhanHsdStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfoDynamic) ? number_format($kebutuhanMfoDynamic, 0, ',', '.') : $kebutuhanMfoDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">0</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfo) ? number_format($isiBbmMfo, 0, ',', '.') : $isiBbmMfo }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsd) ? number_format($isiBbmHsd, 0, ',', '.') : $isiBbmHsd }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ $keterangan }}</td>
                                         <td class="px-4 py-2 text-center border border-black">
                                             @if(isset($row['_detail']))
