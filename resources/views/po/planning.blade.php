@@ -165,7 +165,13 @@
                                     $_robMfo   = $row['ROB MFO Arrival'] ?? $row['ROB MFO Sebelumnya'] ?? null;
                                     $_robHsd   = $row['ROB HSD Arrival'] ?? $row['ROB HSD Sebelumnya'] ?? null;
                                     $isNegativeRob = (is_numeric($_robMfo) && $_robMfo < 0) || (is_numeric($_robHsd) && $_robHsd < 0);
-                                   $excludeFromMain = ['Kebutuhan MFO Static', 'Kebutuhan MFO Dynamic', 'Kebutuhan HSD Static', 'Kebutuhan HSD Dynamic', 'Isi BBM MFO', 'Isi BBM HSD', 'Keterangan', '_detail'];
+                                    $excludeFromMain = [
+                                        'BL ME Static', 'BL AE Static', 'BL ME Dynamic', 'BL AE Dynamic',
+                                        'Kebutuhan MFO Static', 'Kebutuhan MFO Dynamic', 'Kebutuhan HSD Static', 
+                                        'Kebutuhan HSD Dynamic', 'Isi BBM MFO', 'Isi BBM HSD', 'Isi BBM MFO Static', 
+                                        'Isi BBM MFO Dynamic', 'Isi BBM HSD Static', 'Isi BBM HSD Dynamic', 'Keterangan', 
+                                        '_detail'
+                                    ];
                                 @endphp
                                 <tr class="text-center {{ $isNegativeRob ? 'bg-red-200' : '' }}"
                                      data-port="{{ $portFrom }}">
@@ -194,35 +200,47 @@
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">ROB MFO</th>
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">ROB HSD</th>
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Distance Next Voyage</th>
-                                    <th colspan="2" class="px-4 py-2 text-center border border-black">Static Baseline</th>
-                                    <th colspan="2" class="px-4 py-2 text-center border border-black">Dynamic Baseline</th>
-                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Isi BBM MFO</th>
-                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Isi BBM HSD</th>
+                                    <th colspan="6" class="px-4 py-2 text-center border border-black">Static Baseline</th>
+                                    <th colspan="6" class="px-4 py-2 text-center border border-black">Dynamic Baseline</th>
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Keterangan</th>
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Aksi</th>
                                 </tr>
                                 <tr>
+                                    <th class="px-4 py-2 text-center border border-black">Baseline ME</th>
+                                    <th class="px-4 py-2 text-center border border-black">Baseline AE</th>
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan MFO</th>
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan HSD</th>
+                                    <th class="px-4 py-2 text-center border border-black">Isi BBM MFO</th>
+                                    <th class="px-4 py-2 text-center border border-black">Isi BBM HSD</th>
+                                    <th class="px-4 py-2 text-center border border-black">Baseline ME</th>
+                                    <th class="px-4 py-2 text-center border border-black">Baseline AE</th>
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan MFO</th>
                                     <th class="px-4 py-2 text-center border border-black">Kebutuhan HSD</th>
+                                    <th class="px-4 py-2 text-center border border-black">Isi BBM MFO</th>
+                                    <th class="px-4 py-2 text-center border border-black">Isi BBM HSD</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200" id="rekom-table-body">
                                 @foreach($report as $row)
                                     @php
-                                        $robMfo           = $row['ROB MFO Arrival'] ?? $row['ROB MFO Berthing'] ?? $row['ROB MFO Sebelumnya'] ?? '';
-                                        $robHsd           = $row['ROB HSD Arrival'] ?? $row['ROB HSD Berthing'] ?? $row['ROB HSD Sebelumnya'] ?? '';
-                                        $distanceNextVoyage = $row['Jarak Next Voyage'] ?? '';
+                                        $robMfo              = $row['ROB MFO Arrival'] ?? $row['ROB MFO Berthing'] ?? $row['ROB MFO Sebelumnya'] ?? '';
+                                        $robHsd              = $row['ROB HSD Arrival'] ?? $row['ROB HSD Berthing'] ?? $row['ROB HSD Sebelumnya'] ?? '';
+                                        $distanceNextVoyage  = $row['Jarak Next Voyage'] ?? '';
+                                        $blMeStatic          = $row['BL ME Static'] ?? '';
+                                        $blAeStatic          = $row['BL AE Static'] ?? '';
+                                        $blMeDynamic         = $row['BL ME Dynamic'] ?? '';
+                                        $blAeDynamic         = $row['BL AE Dynamic'] ?? '';
                                         $kebutuhanMfoStatic  = $row['Kebutuhan MFO Static'] ?? '';
                                         $kebutuhanMfoDynamic = $row['Kebutuhan MFO Dynamic'] ?? '';
                                         $kebutuhanHsdStatic  = $row['Kebutuhan HSD Static'] ?? '';
                                         $kebutuhanHsdDynamic = $row['Kebutuhan HSD Dynamic'] ?? '';
-                                        $isiBbmMfo        = $row['Isi BBM MFO'] ?? '';
-                                        $isiBbmHsd        = $row['Isi BBM HSD'] ?? '';
-                                        $keterangan       = $row['Keterangan'] ?? '';
-                                        $portFrom         = Str::upper(trim($row['New Current Voyage (FROM)'] ?? ''));
-                                        $isNegativeRob = (is_numeric($robMfo) && $robMfo < 0) || (is_numeric($robHsd) && $robHsd < 0);
+                                        $isiBbmMfoStatic     = $row['Isi BBM MFO Static'] ?? '';
+                                        $isiBbmMfoDynamic    = $row['Isi BBM MFO Dynamic'] ?? '';
+                                        $isiBbmHsdStatic     = $row['Isi BBM HSD Static'] ?? '';
+                                        $isiBbmHsdDynamic    = $row['Isi BBM HSD Dynamic'] ?? '';
+                                        $keterangan          = $row['Keterangan'] ?? '';
+                                        $portFrom            = Str::upper(trim($row['New Current Voyage (FROM)'] ?? ''));
+                                        $isNegativeRob       = (is_numeric($robMfo) && $robMfo < 0) || (is_numeric($robHsd) && $robHsd < 0);
                                     @endphp
                                     <tr class="text-center {{ $isNegativeRob ? 'bg-red-200' : '' }}"
                                         data-port="{{ $portFrom }}">
@@ -230,12 +248,18 @@
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robMfo) ? number_format(floor($robMfo / 1000) * 1000, 0, ',', '.') : $robMfo }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robHsd) ? number_format(floor($robHsd / 1000) * 1000, 0, ',', '.') : $robHsd }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? number_format($distanceNextVoyage, 0, ',', '.') : $distanceNextVoyage }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blMeStatic) ? number_format($blMeStatic, 0, ',', '.') : $blMeStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blAeStatic) ? number_format($blAeStatic, 0, ',', '.') : $blAeStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blMeDynamic) ? number_format($blMeDynamic, 0, ',', '.') : $blMeDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blAeDynamic) ? number_format($blAeDynamic, 0, ',', '.') : $blAeDynamic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfoStatic)  ? number_format($kebutuhanMfoStatic,  0, ',', '.') : $kebutuhanMfoStatic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanHsdStatic)  ? number_format($kebutuhanHsdStatic,  0, ',', '.') : $kebutuhanHsdStatic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfoDynamic) ? number_format($kebutuhanMfoDynamic, 0, ',', '.') : $kebutuhanMfoDynamic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">0</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfo) ? number_format($isiBbmMfo, 0, ',', '.') : $isiBbmMfo }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsd) ? number_format($isiBbmHsd, 0, ',', '.') : $isiBbmHsd }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfoStatic)  ? number_format($isiBbmMfoStatic,  0, ',', '.') : $isiBbmMfoStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsdStatic)  ? number_format($isiBbmHsdStatic,  0, ',', '.') : $isiBbmHsdStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfoDynamic) ? number_format($isiBbmMfoDynamic, 0, ',', '.') : $isiBbmMfoDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsdDynamic) ? number_format($isiBbmHsdDynamic, 0, ',', '.') : $isiBbmHsdDynamic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ $keterangan }}</td>
                                         <td class="px-4 py-2 text-center border border-black">
                                             @if(isset($row['_detail']))

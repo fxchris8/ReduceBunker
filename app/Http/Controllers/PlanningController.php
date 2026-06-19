@@ -154,11 +154,15 @@ class PlanningController extends Controller
                 $robNewMe = $robMfo - $konsStaticMe;
                 $robNewAe = $robHsd - $konsStaticAe;
 
+                $report['BL ME Static']  = $baseline['static_bl_me'];
+                $report['BL AE Static']  = $baseline['static_bl_ae'];
+                $report['BL ME Dynamic'] = $baseline['dynamic_bl_me'];
+                $report['BL AE Dynamic'] = 0;
+
                 $report['Kebutuhan MFO Static']  = $konsStaticMe;
                 $report['Kebutuhan HSD Static']  = $konsStaticAe;
                 $report['Kebutuhan MFO Dynamic'] = $konsDynamicMe;
                 $report['Kebutuhan HSD Dynamic'] = 0;
-
                 $keterangan = [];
 
                 $beliMfo = 0;
@@ -176,24 +180,32 @@ class PlanningController extends Controller
 
                 $robNewMeDynamic = $robMfo - $konsDynamicMe;
 
-                $isiBbmMfoStatic = $robNewMe >= $ss_me ? 0 : $ss_me - $robNewMe;
-                $isiBbmMfoDynamic = $robNewMeDynamic >= $ss_me ? 0 : $ss_me - $robNewMeDynamic;
+                $isiBbmMfoStatic  = $robNewMe >= $ss_me ? 0 : ceil(($ss_me - $robNewMe) / 1000) * 1000;
+                $isiBbmMfoDynamic = $robNewMeDynamic >= $ss_me ? 0 : ceil(($ss_me - $robNewMeDynamic) / 1000) * 1000;
 
-                $isiBbmMfo = ceil(($isiBbmMfoStatic + $isiBbmMfoDynamic) / 1000) * 1000;
+                $isiBbmMfo = $isiBbmMfoStatic + $isiBbmMfoDynamic;
                 if ($mfoBalance < $isiBbmMfo) {
                     $beliMfo  = $isiBbmMfo - $mfoBalance;
                     $biayaMfo = $beliMfo * $hargaMfo;
                 }
 
                 if ($robNewAe >= $ss_ae) {
-                    $isiBbmHsd = 0;
+                    $isiBbmHsdStatic = 0;
                 } else {
-                    $isiBbmHsd = ceil(($ss_ae - $robNewAe) / 1000) * 1000;
-                    if ($hsdBalance < $isiBbmHsd) {
-                        $beliHsd  = $isiBbmHsd - $hsdBalance;
-                        $biayaHsd = $beliHsd * $hargaHsd;
-                    }
+                    $isiBbmHsdStatic = ceil(($ss_ae - $robNewAe) / 1000) * 1000;
                 }
+                $isiBbmHsdDynamic = 0;
+
+                $isiBbmHsd = $isiBbmHsdStatic + $isiBbmHsdDynamic;
+                if ($isiBbmHsd > 0 && $hsdBalance < $isiBbmHsd) {
+                    $beliHsd  = $isiBbmHsd - $hsdBalance;
+                    $biayaHsd = $beliHsd * $hargaHsd;
+                }
+
+                $report['Isi BBM MFO Static']  = $isiBbmMfoStatic;
+                $report['Isi BBM MFO Dynamic'] = $isiBbmMfoDynamic;
+                $report['Isi BBM HSD Static']  = $isiBbmHsdStatic;
+                $report['Isi BBM HSD Dynamic'] = $isiBbmHsdDynamic;
 
                 $totalBiaya = $biayaMfo + $biayaHsd;
 
@@ -221,6 +233,10 @@ class PlanningController extends Controller
                         'isi_bbm_mfo'        => $isiBbmMfo,
                         'isi_bbm_hsd'        => $isiBbmHsd,
                         'saldo_tidak_cukup'  => true,
+                        'isi_bbm_mfo_static'  => $isiBbmMfoStatic,
+                        'isi_bbm_mfo_dynamic' => $isiBbmMfoDynamic,
+                        'isi_bbm_hsd_static'  => $isiBbmHsdStatic,
+                        'isi_bbm_hsd_dynamic' => $isiBbmHsdDynamic,
                     ];
                     continue;
                 }
@@ -245,6 +261,10 @@ class PlanningController extends Controller
                                 'isi_bbm_mfo'        => $isiBbmMfo,
                                 'isi_bbm_hsd'        => $isiBbmHsd,
                                 'saldo_tidak_cukup'  => true,
+                                'isi_bbm_mfo_static'  => $isiBbmMfoStatic,
+                                'isi_bbm_mfo_dynamic' => $isiBbmMfoDynamic,
+                                'isi_bbm_hsd_static'  => $isiBbmHsdStatic,
+                                'isi_bbm_hsd_dynamic' => $isiBbmHsdDynamic,
                             ];
                             continue;
                         }
@@ -279,6 +299,10 @@ class PlanningController extends Controller
                                 'isi_bbm_mfo'        => $isiBbmMfo,
                                 'isi_bbm_hsd'        => $isiBbmHsd,
                                 'saldo_tidak_cukup'  => true,
+                                'isi_bbm_mfo_static'  => $isiBbmMfoStatic,
+                                'isi_bbm_mfo_dynamic' => $isiBbmMfoDynamic,
+                                'isi_bbm_hsd_static'  => $isiBbmHsdStatic,
+                                'isi_bbm_hsd_dynamic' => $isiBbmHsdDynamic,
                             ];
                             continue;
                         }
@@ -316,6 +340,10 @@ class PlanningController extends Controller
                     'isi_bbm_mfo'        => $isiBbmMfo,
                     'isi_bbm_hsd'        => $isiBbmHsd,
                     'saldo_tidak_cukup'  => false,
+                    'isi_bbm_mfo_static'  => $isiBbmMfoStatic,
+                    'isi_bbm_mfo_dynamic' => $isiBbmMfoDynamic,
+                    'isi_bbm_hsd_static'  => $isiBbmHsdStatic,
+                    'isi_bbm_hsd_dynamic' => $isiBbmHsdDynamic,
                 ];
             }
         }
