@@ -85,7 +85,7 @@ class UploadController extends Controller
             'REEFER 20"' => $grouped['reefer20'] ?? null,
             'REEFER 40"' => $grouped['reefer40'] ?? null,
             
-            'BL M/E Static (L/Day)'       => $bl_me,
+            'BL M/E Static (L/Day)'       => $bl_me * 24,
             'ME Maneuvering Cons. (L/H)' => $grouped['me_manuev_consum'] ?? null,
             'SELISIH ME Maneuvering'     => ($bl_me * 24) - ($grouped['me_manuev_consum'] ?? 0),
 
