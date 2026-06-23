@@ -41,11 +41,11 @@ class FuelBaseline extends Model
 
     public function getSsMeAttribute(): float
     {
-        return $this->static_bl_me * $this->ss_multiplier_me;
+        return $this->static_bl_me * $this->ss_multiplier_me * 24;
     }
 
     public function getSsAeAttribute(): float
     {
-        return $this->static_bl_ae * $this->ss_multiplier_ae;
+        return $this->static_bl_ae * $this->ss_multiplier_ae * 24;
     }
 }

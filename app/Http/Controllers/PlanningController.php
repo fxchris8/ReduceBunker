@@ -939,7 +939,7 @@ class PlanningController extends Controller
 
         // True  -> Using Mock Data
         // False -> Using API
-        if (false) {
+        if (true) {
             $dvs_reports_raw = $this->getMockDvsReports();
         } else {
             try {
@@ -976,7 +976,7 @@ class PlanningController extends Controller
         
         // True  -> Using Mock Data
         // False -> Using API
-        if (false) {
+        if (true) {
             $noon_report_groupedByVessel = $this->getMockNoonReportMap();
         } else { 
             $reportIds = [14, 16];
@@ -1046,7 +1046,7 @@ class PlanningController extends Controller
 
         // True  -> Using Mock Data
         // False -> Using API
-        if (false) {
+        if (true) {
             $port_id_map = [
                 'BENGKULU'=>'IDBKS',  'JAKARTA'=>'IDJKT',   'BALIKPAPAN'=>'IDBPN',
                 'SAMARINDA'=>'IDSRI', 'SURABAYA'=>'IDSUB',  'SAMPIT'=>'IDSPT',
@@ -1200,5 +1200,66 @@ class PlanningController extends Controller
             Log::error('Failed to load fuel_baselines', ['message' => $e->getMessage()]);
             return [];
         }
+    }
+
+    private function getMockDvsReports(): array
+    {
+        return [
+            ['vesselid'=>'OPA','voyage'=>'11/2026','from_port'=>'IDBLW.IDJKT.IDMRK.IDBTM.IDMRK.IDJKT.IDPDG.IDBKS.IDJKT','sailing_route'=>'IDJKT-IDBDJ-IDJKT','eta'=>'15/06/2026 18:38','etb'=>'16/06/2026 03:47','etd'=>'17/06/2026 08:00'],
+            ['vesselid'=>'KLE','voyage'=>'019/2026','from_port'=>'IDJKT.IDBPN.IDJKT.IDBPN.IDJKT.IDBPN.IDJKT.IDBPN.IDJKT','sailing_route'=>'IDJKT-IDBPN-IDJKT','eta'=>'16/06/2026 02:45','etb'=>'16/06/2026 04:45','etd'=>'16/06/2026 23:00'],
+            ['vesselid'=>'RAH','voyage'=>'15/2026','from_port'=>'IDSRI.IDSUB','sailing_route'=>'IDSUB-IDSRI-IDSUB','eta'=>'16/06/2026 11:00','etb'=>'16/06/2026 19:30','etd'=>'17/06/2026 16:00'],
+            ['vesselid'=>'BSA','voyage'=>'13/2026','from_port'=>'IDSRI.IDSRG.IDJKT.IDKTG.IDPNK.IDJKT.IDJKT','sailing_route'=>'IDJKT-IDBDJ-IDJKT','eta'=>'14/06/2026 12:30','etb'=>'16/06/2026 20:30','etd'=>'17/06/2026 21:00'],
+            ['vesselid'=>'PSM','voyage'=>'15/2026','from_port'=>'IDSPT.IDSUB','sailing_route'=>'IDSUB-IDSPT-IDBTW-IDSUB','eta'=>'16/06/2026 08:00','etb'=>'17/06/2026 01:00','etd'=>'17/06/2026 11:00'],
+            ['vesselid'=>'OSI','voyage'=>'08/2026','from_port'=>'IDJKT.IDMAK.IDBIT.IDTTE.IDSUB','sailing_route'=>'IDSUB-IDJKT-IDMAK-IDBIT-IDTTE-IDSUB','eta'=>'17/06/2026 08:00','etb'=>'17/06/2026 14:00','etd'=>'20/06/2026 09:00'],
+            ['vesselid'=>'HAN','voyage'=>'06/2026','from_port'=>'IDMAK.IDBUW.IDTIM.IDSUB','sailing_route'=>'IDSUB-IDMAK-IDTIM-IDMKQ-IDSUB','eta'=>'16/06/2026 23:00','etb'=>'17/06/2026 17:00','etd'=>'19/06/2026 06:00'],
+            ['vesselid'=>'TFL','voyage'=>'13/2026','from_port'=>'IDMAK.IDBUW.IDKDI.IDSUB','sailing_route'=>'IDSUB-IDBLW-IDSUB','eta'=>'18/06/2026 01:00','etb'=>'18/06/2026 07:00','etd'=>'20/06/2026 06:00'],
+            ['vesselid'=>'VEI','voyage'=>'11/2026','from_port'=>'IDBPN.IDNNX.IDTRK.IDSUB','sailing_route'=>'IDSUB-IDTRK-IDNNX-IDSUB','eta'=>'18/06/2026 06:00','etb'=>'20/06/2026 16:00','etd'=>'22/06/2026 23:00'],
+            ['vesselid'=>'PHK','voyage'=>'11/2026','from_port'=>'IDSRI.IDSUB','sailing_route'=>'IDSUB-IDMAK-IDBUW-IDKDI-IDSUB','eta'=>'19/06/2026 20:00','etb'=>'19/06/2026 23:00','etd'=>'21/06/2026 06:00'],
+        ];
+    }
+
+    private function getMockNoonReportMap(): array
+    {
+        return [
+            'OPA'  => ['rob_hsd'=>26490,  'rob_mfo'=>25098,   'distance_to_go'=>65,    'departure'=>'BENGKULU',  'destination'=>'JAKARTA',   'pos'=>'KAPAL SANDAR BENGKULU'],
+            'KLE'  => ['rob_hsd'=>21477,  'rob_mfo'=>133602,  'distance_to_go'=>134,   'departure'=>'BALIKPAPAN','destination'=>'JAKARTA',   'pos'=>'KAPAL SANDAR BALIKPAPAN'],
+            'RAH'  => ['rob_hsd'=>25168,  'rob_mfo'=>37184,   'distance_to_go'=>250.9, 'departure'=>'SAMARINDA', 'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR SAMARINDA'],
+            'BSA'  => ['rob_hsd'=>20606,  'rob_mfo'=>30768,   'distance_to_go'=>null,  'departure'=>null,        'destination'=>null,        'pos'=>'BERLABUH OB-TABONEO'],
+            'PSM'  => ['rob_hsd'=>47791,  'rob_mfo'=>0,       'distance_to_go'=>116,   'departure'=>'SAMPIT',    'destination'=>'BATULICIN', 'pos'=>'KAPAL SANDAR SAMPIT'],
+            'OSI'  => ['rob_hsd'=>23319,  'rob_mfo'=>105227,  'distance_to_go'=>672.2, 'departure'=>'TERNATE',   'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR TERNATE'],
+            'HAN'  => ['rob_hsd'=>59947,  'rob_mfo'=>102657,  'distance_to_go'=>421.3, 'departure'=>'TIMIKA',    'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR TIMIKA'],
+            'TFL'  => ['rob_hsd'=>24488,  'rob_mfo'=>56970,   'distance_to_go'=>550.7, 'departure'=>'KENDARI',   'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR KENDARI'],
+            'VEI'  => ['rob_hsd'=>71702,  'rob_mfo'=>70750,   'distance_to_go'=>749,   'departure'=>'TARAKAN',   'destination'=>'SURABAYA',  'pos'=>'KAPAL SANDAR TARAKAN'],
+            'PHK'  => ['rob_hsd'=>29158,  'rob_mfo'=>52177,   'distance_to_go'=>null,  'departure'=>null,        'destination'=>null,        'pos'=>'REDE MUARA PEGAH SAMARINDA'],
+        ];
+    }
+
+    private function getMockJarakMap(): array
+    {
+        return [
+            'IDJKT' => ['IDBDJ'=>986,  'IDBPN'=>1563, 'IDPNK'=>820,  'IDBLW'=>1770, 'IDPDG'=>1147, 'IDBTM'=>1012, 'IDPER'=>279,  'IDKTG'=>700],
+            'IDBDJ' => ['IDJKT'=>986],
+            'IDBPN' => ['IDJKT'=>1563, 'IDSRI'=>537],
+            'IDSRI' => ['IDBPN'=>537,  'IDSUB'=>537,  'IDJKT'=>1734],
+            'IDSUB' => ['IDMAK'=>861,  'IDSRI'=>537,  'IDBDJ'=>488,  'IDBLW'=>1771, 'IDTRK'=>1809, 'IDSPT'=>522,  'IDBTW'=>333,  'IDTIM'=>1553,'IDMKQ'=>1620,'IDKDI'=>699, 'IDMKW'=>2408,'IDTTE'=>1520],
+            'IDMAK' => ['IDSUB'=>861,  'IDBIT'=>714,  'IDTTE'=>659,  'IDBUW'=>603,  'IDKDI'=>338,  'IDTGK'=>338,  'IDTIM'=>692,  'IDAMQ'=>764, 'IDMKW'=>1648,'IDJKT'=>1563],
+            'IDBIT' => ['IDMAK'=>714,  'IDTTE'=>200,  'IDSUB'=>714],
+            'IDTTE' => ['IDMAK'=>659,  'IDBIT'=>200,  'IDSUB'=>1520],
+            'IDBUW' => ['IDSUB'=>603,  'IDMAK'=>603,  'IDKDI'=>338],
+            'IDKDI' => ['IDSUB'=>699,  'IDBUW'=>338,  'IDMAK'=>338],
+            'IDTIM' => ['IDSUB'=>1553, 'IDMAK'=>692,  'IDMKQ'=>400],
+            'IDMKQ' => ['IDSUB'=>1620, 'IDTIM'=>400],
+            'IDTRK' => ['IDSUB'=>1809, 'IDNNX'=>357],
+            'IDNNX' => ['IDTRK'=>357,  'IDSUB'=>1500],
+            'IDSPT' => ['IDSUB'=>522,  'IDBTW'=>333],
+            'IDBTW' => ['IDSUB'=>333,  'IDSPT'=>333],
+            'IDBLW' => ['IDJKT'=>1770, 'IDKTJ'=>200,  'IDSUB'=>1771],
+            'IDKTJ' => ['IDBLW'=>200,  'IDJKT'=>1570],
+            'IDMKW' => ['IDMAK'=>1648, 'IDNBX'=>357,  'IDSUB'=>2408],
+            'IDNBX' => ['IDMKW'=>357,  'IDSUB'=>2000],
+            'IDAMQ' => ['IDMAK'=>764,  'IDSOQ'=>357],
+            'IDSOQ' => ['IDAMQ'=>357,  'IDDJJ'=>407],
+            'IDDJJ' => ['IDSOQ'=>407,  'IDMAK'=>764],
+        ];
     }
 }

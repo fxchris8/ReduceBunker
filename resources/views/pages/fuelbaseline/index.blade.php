@@ -145,8 +145,8 @@
                             <th colspan="1" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Dynamic Baseline</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Density</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Speed (Knot)</th>
-                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock ME</th>
-                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock AE</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock ME per Day</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock AE per Day</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Last Updated</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Actions</th>
                         </tr>
