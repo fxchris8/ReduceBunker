@@ -154,7 +154,7 @@
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">ME (L/Hours)</th>
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE (L/Hours)</th>
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE 1 Reefer</th>
-                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE Parallel 2</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE 2 Reefer (Parallel)</th>
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">ME (L/Hours)</th>
                         </tr>
                     </thead>

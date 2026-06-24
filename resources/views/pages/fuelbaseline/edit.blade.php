@@ -69,7 +69,7 @@
                             class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">AE Parallel 2</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">AE 2 Reefer (Parallel)</label>
                         <input type="number" step="1" name="ae_parallel_2"
                             value="{{ old('ae_parallel_2', $fuelBaselines->ae_parallel_2) }}"
                             class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
