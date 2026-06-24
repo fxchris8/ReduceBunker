@@ -76,21 +76,11 @@
                             ];
                         @endphp
 
-                        <div x-data="{ compact: true }">
+                        <div x-data="{ compact: false }">
                             <div class="mt-3 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
                                 <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
                                     At PORT
                                 </h2>
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-sm font-medium text-gray-700">Ringkas</span>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" x-model="compact" class="sr-only peer" checked>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
-                                                    peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                                                    after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
-                                                    peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                                    </label>
-                                </div>
                             </div>
 
                             <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
@@ -126,7 +116,12 @@
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
                                                             class="px-4 py-2 text-center border border-black {{ $rowClass ? '' : $cell['class'] }}">
-                                                            {{ is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value'] }}
+                                                            @php
+                                                                $val = $cell['value'];
+                                                                $isNum = is_numeric($val);
+                                                                $isInt = $isNum && floor($val) == $val;
+                                                            @endphp
+                                                            {{ $isNum ? number_format($val, $isInt ? 0 : 2, ',', '.') : $val }}
                                                         </td>
                                                     @endif
                                                 @endforeach
@@ -156,7 +151,8 @@
                                                                 {{ $row['LOAD A/E 3 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['LOAD A/E 4 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['AE PARAREL DURATION']['value'] ?? 0 }},
-                                                                "", "", ""
+                                                                "", "", "",
+                                                                {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }}
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -195,21 +191,11 @@
                             ];
                         @endphp
 
-                        <div x-data="{ compact: true }">
+                        <div x-data="{ compact: false }">
                         <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
                             <h2 class="text-xl font-semibold text-blue-700 bg-blue-100 inline-block px-2 rounded">
                                 At SEA
                             </h2>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-medium text-gray-700">Ringkas</span>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" x-model="compact" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
-                                                peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                                                after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
-                                                peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                                </label>
-                            </div>
                         </div>
 
                         <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
@@ -225,9 +211,8 @@
                                                     $dinamisCols = [
                                                         'Ideal Consumption Static (L/Day)',
                                                         'DAYA ME (KW)',
-                                                        'Ideal Consumption Dynamic (L/Day)',
+                                                        'Ideal Consumption Dynamic (L)',
                                                         'Konsumsi M/E MFO Aktual',
-                                                        'Konsumsi M/E MFO Perhitungan',
                                                         'Gap',
                                                         'Error',
                                                     ];
@@ -265,7 +250,12 @@
                                                         data-compact="{{ $dataCompact }}"
                                                         title="{{ $cell['message'] ?? '' }}"
                                                         class="px-4 py-2 text-center border border-black {{ $rowClass ? '' : ($cell['class'] ?? '') }}">
-                                                        {{ is_numeric($cell['value']) ? number_format($cell['value'], 2, '.', ',') : $cell['value'] }}
+                                                        @php
+                                                            $val = $cell['value'];
+                                                            $isNum = is_numeric($val);
+                                                            $isInt = $isNum && floor($val) == $val;
+                                                        @endphp
+                                                        {{ $isNum ? number_format($val, $isInt ? 0 : 2, ',', '.') : $val }}
                                                     </td>
                                                 @endif
                                             @endforeach
@@ -297,7 +287,8 @@
                                                         {{ $row['AE PARAREL DURATION']['value'] ?? 0 }},
                                                         "{{ $row['REMARKS']['value'] ?? '-' }}",
                                                         "{{ $row['DECK DAILY WORK']['value'] ?? '-' }}",
-                                                        "{{ $row['ENGINE DAILY WORK']['value'] ?? '-' }}"
+                                                        "{{ $row['ENGINE DAILY WORK']['value'] ?? '-' }}",
+                                                        {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }}
                                                     )'
                                                         class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                         title="Lihat Detail">
@@ -326,21 +317,11 @@
                             $compactHeaders_port_sea = array_values(array_unique(array_merge($compactHeaders_port, $compactHeaders_sea)));
                         @endphp
 
-                        <div x-data="{ compact: true }">
+                        <div x-data="{ compact: false }">
                             <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
                                 <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
                                     Port & Sea
                                 </h2>
-                                <div class="flex items-center space-x-2">
-                                    <span class="text-sm font-medium text-gray-700">Ringkas</span>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" x-model="compact" class="sr-only peer" checked>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
-                                                    peer-checked:bg-green-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                                                    after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all
-                                                    peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                                    </label>
-                                </div>
                             </div>
 
                             <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
@@ -376,7 +357,12 @@
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
                                                             class="px-4 py-2 text-center border border-black">
-                                                            {{ is_numeric($cell['port']) ? number_format($cell['port'], 2, '.', ',') : $cell['port'] }}
+                                                            @php
+                                                                $valPort = $cell['port'];
+                                                                $isNumPort = is_numeric($valPort);
+                                                                $isIntPort = $isNumPort && floor($valPort) == $valPort;
+                                                            @endphp
+                                                            {{ $isNumPort ? number_format($valPort, $isIntPort ? 0 : 2, ',', '.') : $valPort }}
                                                         </td>
                                                     @endif
                                                 @endforeach
@@ -553,15 +539,31 @@
                                 <span class="text-sm text-gray-500">HSD</span>
                                 <span id="me-hsd" class="text-sm font-semibold text-gray-800"></span>
                             </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
+                             <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" id="me-ideal-toggle" onclick="toggleIdealDetail()"
+                                        class="text-gray-500 hover:text-gray-700">
+                                        <svg id="me-ideal-arrow" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                    <span class="text-sm font-bold text-gray-700">Ideal Consumption</span>
+                                </div>
+                                <span id="me-ideal-cost" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div id="me-ideal-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
+                                <div class="text-xs text-gray-800 space-y-1">
+                                    <div class="text-gray-600 italic pb-1">
+                                        BL ME (L/Hour) x (Steam Time + Maneuvering Time)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
                                 <span class="text-sm font-bold text-gray-700">Total Consumption</span>
                                 <span id="me-total" class="text-sm font-bold text-gray-700"></span>
                             </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm font-bold text-gray-700">Ideal Consumption</span>
-                                <span id="me-ideal-cost" class="text-sm font-semibold text-gray-800"></span>
-                            </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
                                 <span class="text-sm font-bold text-gray-700">Excess</span>
                                 <span id="me-excess" class="text-sm font-semibold text-gray-800"></span>
                             </div>
@@ -585,8 +587,12 @@
                                 <span id="ae-bl-lday" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                             <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm text-gray-500">BL Reefer</span>
+                                <span class="text-sm text-gray-500">BL AE 1 REEFER</span>
                                 <span id="ae-bl-reffer" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL AE 2 REEFER (PARALLEL)</span>
+                                <span id="ae-bl-parallel2" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                         </div>
                     </div>
@@ -601,17 +607,31 @@
                                 <span class="text-sm text-gray-500">HSD</span>
                                 <span id="ae-hsd" class="text-sm font-semibold text-gray-800"></span>
                             </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
                                 <span class="text-sm font-bold text-gray-700">Total Consumption</span>
                                 <span id="ae-total" class="text-sm font-bold text-gray-700"></span>
                             </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
                                 <span class="text-sm font-bold text-gray-800">Excess</span>
                                 <span id="ae-excess" class="text-sm font-semibold text-gray-800"></span>
                             </div>
-                            <div class="flex justify-between items-center px-4 py-2.5">
-                                <span class="text-sm font-bold text-gray-800">Excess Tolerance</span>
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" id="ae-tolerance-toggle" onclick="toggleToleranceDetail()"
+                                        class="text-gray-500 hover:text-gray-700">
+                                        <svg id="ae-tolerance-arrow" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                    <span class="text-sm font-bold text-gray-800">Excess Tolerance</span>
+                                </div>
                                 <span id="ae-excess-tolerance" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div id="ae-tolerance-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
+                                <div class="text-xs text-gray-600 italic">
+                                    BL AE (L/Day) + (AE Pararel Duration x BL AE (L/Hour)) - Total Consumption
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -717,6 +737,20 @@
         document.getElementById('tab-' + tab).classList.remove('border-transparent','text-gray-500');
     }
 
+    function toggleIdealDetail() {
+        const detail = document.getElementById('me-ideal-detail');
+        const arrow  = document.getElementById('me-ideal-arrow');
+        detail.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-90');
+    }
+
+        function toggleToleranceDetail() {
+        const detail = document.getElementById('ae-tolerance-detail');
+        const arrow  = document.getElementById('ae-tolerance-arrow');
+        detail.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-90');
+    }
+
     function fmt(val) {
         const num = parseFloat(val) || 0;
         const isInt = Number.isInteger(num);
@@ -737,7 +771,8 @@
     function showDetailModal(
         vesselId, vesselType, meMfo, meHsd, aeMfo, aeHsd, gensetHsd, reefer20, reefer40,
         blMfo, blHsd, blReffer, maneuvTime, steamTime, propSlip, craneDur, craneQty,
-        loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork
+        loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork,
+        blAeParallel2
     ) {
         meMfo        = parseFloat(meMfo)        || 0;
         meHsd        = parseFloat(meHsd)        || 0;
@@ -777,32 +812,43 @@
         document.getElementById('me-bl-lday').textContent     = fmtNum(blMeLDay, 'L/Day');
         document.getElementById('me-steam-time').textContent  = fmtNum(steamTime, 'H');
         document.getElementById('me-manuev-time').textContent = fmtNum(maneuvTime, 'H');
-        document.getElementById('me-prop-slip').textContent   = fmtNum(propSlip, '%');
-        document.getElementById('me-mfo').textContent         = fmt(meMfo);
-        document.getElementById('me-hsd').textContent         = fmt(meHsd);
-        document.getElementById('me-total').textContent       = fmt(meTotal);
-        document.getElementById('me-ideal-cost').textContent  = fmt(idealCost);
+
+        const mePropSlipEl = document.getElementById('me-prop-slip');
+        mePropSlipEl.textContent = fmtNum(propSlip, '%');
+        mePropSlipEl.className = 'text-sm font-semibold ' + (Math.abs(propSlip) >= 15 ? 'text-red-600 font-bold' : 'text-gray-800');
+
+        document.getElementById('me-mfo').textContent                 = fmt(meMfo);
+        document.getElementById('me-hsd').textContent                 = fmt(meHsd);
+        document.getElementById('me-total').textContent               = fmt(meTotal);
+        document.getElementById('me-ideal-cost').textContent          = fmt(idealCost);
+
+        document.getElementById('me-ideal-detail').classList.add('hidden');
+        document.getElementById('me-ideal-arrow').classList.remove('rotate-90');
+
+        document.getElementById('ae-tolerance-detail').classList.add('hidden');
+        document.getElementById('ae-tolerance-arrow').classList.remove('rotate-90');
 
         const meExcessEl = document.getElementById('me-excess');
         meExcessEl.textContent = fmt(meExcess);
         meExcessEl.className = 'text-sm font-semibold ' + (meExcess < 0 ? 'text-red-600' : 'text-green-600');
 
-        document.getElementById('ae-bl-lhour').textContent    = fmtNum(blAeLHour, 'L/H');
-        document.getElementById('ae-bl-lday').textContent     = fmtNum(blAeLDay, 'L/Day');
-        document.getElementById('ae-bl-reffer').textContent   = Math.round(blReffer).toLocaleString('id-ID');
-        document.getElementById('ae-mfo').textContent         = fmt(aeMfo);
-        document.getElementById('ae-hsd').textContent         = fmt(aeHsd);
-        document.getElementById('ae-total').textContent       = fmt(aeTotal);
-        document.getElementById('ae-crane-dur').textContent   = fmtNum(craneDur, 'H');
-        document.getElementById('ae-crane-qty').textContent   = fmtNum(craneQty);
-        document.getElementById('ae-manuev-time').textContent = fmtNum(maneuvTime, 'H');
-        document.getElementById('ae-pararel-dur').textContent = fmtNum(aePararelDur, 'H');
-        document.getElementById('ae-load1').textContent       = fmtNum(loadAe1, 'KW');
-        document.getElementById('ae-load2').textContent       = fmtNum(loadAe2, 'KW');
-        document.getElementById('ae-load3').textContent       = fmtNum(loadAe3, 'KW');
-        document.getElementById('ae-load4').textContent       = fmtNum(loadAe4, 'KW');
-        document.getElementById('ae-reefer20').textContent    = Math.round(reefer20).toLocaleString('id-ID');
-        document.getElementById('ae-reefer40').textContent    = Math.round(reefer40).toLocaleString('id-ID');
+        document.getElementById('ae-bl-lhour').textContent     = fmtNum(blAeLHour, 'L/H');
+        document.getElementById('ae-bl-lday').textContent      = fmtNum(blAeLDay, 'L/Day');
+        document.getElementById('ae-bl-reffer').textContent    = Math.round(blReffer).toLocaleString('id-ID');
+        document.getElementById('ae-bl-parallel2').textContent = Math.round(parseFloat(blAeParallel2) || 0).toLocaleString('id-ID');
+        document.getElementById('ae-mfo').textContent          = fmt(aeMfo);
+        document.getElementById('ae-hsd').textContent          = fmt(aeHsd);
+        document.getElementById('ae-total').textContent        = fmt(aeTotal);
+        document.getElementById('ae-crane-dur').textContent    = fmtNum(craneDur, 'H');
+        document.getElementById('ae-crane-qty').textContent    = fmtNum(craneQty);
+        document.getElementById('ae-manuev-time').textContent  = fmtNum(maneuvTime, 'H');
+        document.getElementById('ae-pararel-dur').textContent  = fmtNum(aePararelDur, 'H');
+        document.getElementById('ae-load1').textContent        = fmtNum(loadAe1, 'KW');
+        document.getElementById('ae-load2').textContent        = fmtNum(loadAe2, 'KW');
+        document.getElementById('ae-load3').textContent        = fmtNum(loadAe3, 'KW');
+        document.getElementById('ae-load4').textContent        = fmtNum(loadAe4, 'KW');
+        document.getElementById('ae-reefer20').textContent     = Math.round(reefer20).toLocaleString('id-ID');
+        document.getElementById('ae-reefer40').textContent     = Math.round(reefer40).toLocaleString('id-ID');
         document.getElementById('ae-reefer-total').textContent = Math.round(reefer20 + reefer40).toLocaleString('id-ID');
 
         const aeExcessEl = document.getElementById('ae-excess');

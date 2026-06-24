@@ -38,6 +38,7 @@ class UploadController extends Controller
         $bl_me  = $vesselBaseline?->static_bl_me ?? 0;
         $bl_ae  = $vesselBaseline?->static_bl_ae ?? 0;
         $bl_ae_1_reffer = $vesselBaseline?->bl_ae_1_reffer ?? 0;
+        $ae_parallel_2  = $vesselBaseline?->ae_parallel_2 ?? 0;
 
         \Log::info(print_r($bl_l_nm_map, true) . PHP_EOL);
 
@@ -94,6 +95,7 @@ class UploadController extends Controller
             'BL MFO'  => $bl_me,
             'BL HSD'  => $bl_ae,
             'BL REFFER' => $bl_ae_1_reffer,
+            'BL AE PARALLEL 2' => $ae_parallel_2,
 
             'L/NM' => (
                 isset($grouped['steam_time']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
@@ -357,7 +359,7 @@ class UploadController extends Controller
 
         $density     = floatval($request->input('density', 950));
         if (false) {
-            $dinamisRaw = $this->getMockSeaData();
+            $dinamisRaw = (new UploadDinamisController())->getMockSeaData();
         } else {
             $dinamisPayload = [
                 "tanggal"   => $formattedDate,
@@ -403,14 +405,12 @@ class UploadController extends Controller
                 ? round($sfocKw * ($steamTime + $maneuvTime) * $dayaMeVal, 2)
                 : '';
                 
-            $row['Ideal Consumption Static (L/Day)']  = ['value' => $idealStatic, 'class' => ''];
-            $row['DAYA ME (KW)']                       = ['value' => $dinamis['DAYA ME (KW)'] ?? '',                'class' => ''];
-            $row['Ideal Consumption Dynamic (L/Day)']  = ['value' => $idealDynamic, 'class' => ''];
-            $row['BL M/E Dynamic (L/Day)']             = ['value' => $dinamis['BL M/E Dynamic (L/Day)'] ?? '', 'class' => ''];
-            $row['Konsumsi M/E MFO Aktual']            = ['value' => $dinamis['Konsumsi M/E MFO Aktual'] ?? '',     'class' => ''];
-            $row['Konsumsi M/E MFO Perhitungan']       = ['value' => $dinamis['Konsumsi M/E MFO Perhitungan'] ?? '','class' => ''];
-            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '',                          'class' => $dinamis['Gap'] === 'Tidak ada data kurva' ? 'bg-yellow-200 font-semibold' : ''];
-            $row['Error']                              = ['value' => $dinamis['Error'] ?? '',                        'class' => ''];
+            $row['Ideal Consumption Static (L/Day)']   = ['value' => $idealStatic, 'class' => ''];
+            $row['DAYA ME (KW)']                       = ['value' => $dinamis['DAYA ME (KW)'] ?? '', 'class' => ''];
+            $row['Ideal Consumption Dynamic (L)']      = ['value' => $idealDynamic, 'class' => ''];
+            $row['Konsumsi M/E MFO Aktual']            = ['value' => $dinamis['Konsumsi M/E MFO Aktual'] ?? '', 'class' => ''];
+            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '', 'class' => $dinamis['Gap'] === 'Tidak ada data kurva' ? 'bg-yellow-200 font-semibold' : ''];
+            $row['Error']                              = ['value' => $dinamis['Error'] ?? '', 'class' => ''];
         }
         unset($row);
 
