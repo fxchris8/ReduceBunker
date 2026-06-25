@@ -98,6 +98,11 @@ class PlanningController extends Controller
             return null;
         }
 
+        if (is_string($value)) {
+            $value = str_replace('.', '', $value);
+            $value = str_replace(',', '.', $value);
+        }
+
         return is_numeric($value) ? (float) $value : null;
     }
 
@@ -108,7 +113,7 @@ class PlanningController extends Controller
 
     private function formatFuelAmount(float $value): string
     {
-        return number_format($value, 2, '.', ',');
+        return number_format($value, 0, ',', '.');
     }
 
     private function applyTankerBalances(

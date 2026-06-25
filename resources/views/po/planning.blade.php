@@ -65,7 +65,6 @@
                             class="border border-gray-300 rounded-md px-4 py-2 w-48"
                             value="{{ request('harga_mfo') ? number_format((float)request('harga_mfo'), 0, ',', '.') : '' }}"
                             oninput="formatRibuan(this)" required placeholder="0">
-                        <input type="hidden" id="harga_mfo_raw" name="harga_mfo_raw">
                     </div>
                     <div>
                         <label for="harga_hsd" class="block text-sm font-medium text-gray-700 mb-1">
@@ -100,10 +99,14 @@
                     input.dataset.raw = raw;
                 }
 
+                function getRawDigits(el) {
+                    return el.value.replace(/[^0-9]/g, '');
+                }
+
                 function showPlanningLoading(form) {
                     ['harga_mfo', 'harga_hsd', 'input_saldo_rp', 'rob_tanker_mfo', 'rob_tanker_hsd'].forEach(function(name) {
                         const el = form.querySelector('[name="' + name + '"]');
-                        if (el) el.value = el.value.replace(/\./g, '');
+                        if (el) el.value = getRawDigits(el);
                     });
 
                     const button = form.querySelector('button[type="submit"]');
@@ -114,16 +117,6 @@
                 }
                 </script>
             </form>
-            <script>
-                function showPlanningLoading(form) {
-                    const button = form.querySelector('button[type="submit"]');
-                    if (!button) return;
-                    button.disabled = true;
-                    button.textContent = button.dataset.loadingText;
-                    button.classList.add('opacity-75', 'cursor-wait');
-                }
-            </script>
-
             @if(is_array($headerRows ?? null) && count($headerRows) > 0)
                 <div class="flex flex-wrap items-center gap-4 mb-3 py-2">
                     <span class="text-sm font-medium text-gray-500">Filter port:</span>
@@ -143,13 +136,22 @@
                 </div>
                 <div class="overflow-x-auto overflow-y-auto max-h-[450px] rounded-md shadow-sm w-full">
                     <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                        @php
+                            $excludeFromMain = [
+                                'BL ME Static', 'BL AE Static', 'BL ME Dynamic', 'BL AE Dynamic',
+                                'Kebutuhan MFO Static', 'Kebutuhan MFO Dynamic', 'Kebutuhan HSD Static',
+                                'Kebutuhan HSD Dynamic', 'Isi BBM MFO', 'Isi BBM HSD', 'Isi BBM MFO Static',
+                                'Isi BBM MFO Dynamic', 'Isi BBM HSD Static', 'Isi BBM HSD Dynamic', 'Keterangan',
+                                '_detail'
+                            ];
+                        @endphp
                         <thead class="bg-gray-300 sticky top-0 z-30">
                             <tr>
                                 <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
                                     Vessel ID
                                 </th>
                                 @foreach($headerRows as $header)
-                                    @if($header !== 'Vessel ID' && $header !== '_detail')
+                                    @if($header !== 'Vessel ID' && !in_array($header, $excludeFromMain))
                                         <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30
                                             {{ in_array($header, ['Pengisian HSD', 'Pengisian MFO']) ? 'bg-green-500 text-white' : '' }}">
                                             {{ ucfirst($header) }}
@@ -165,23 +167,16 @@
                                     $_robMfo   = $row['ROB MFO Arrival'] ?? $row['ROB MFO Sebelumnya'] ?? null;
                                     $_robHsd   = $row['ROB HSD Arrival'] ?? $row['ROB HSD Sebelumnya'] ?? null;
                                     $isNegativeRob = (is_numeric($_robMfo) && $_robMfo < 0) || (is_numeric($_robHsd) && $_robHsd < 0);
-                                    $excludeFromMain = [
-                                        'BL ME Static', 'BL AE Static', 'BL ME Dynamic', 'BL AE Dynamic',
-                                        'Kebutuhan MFO Static', 'Kebutuhan MFO Dynamic', 'Kebutuhan HSD Static', 
-                                        'Kebutuhan HSD Dynamic', 'Isi BBM MFO', 'Isi BBM HSD', 'Isi BBM MFO Static', 
-                                        'Isi BBM MFO Dynamic', 'Isi BBM HSD Static', 'Isi BBM HSD Dynamic', 'Keterangan', 
-                                        '_detail'
-                                    ];
                                 @endphp
                                 <tr class="text-center {{ $isNegativeRob ? 'bg-red-200' : '' }}"
-                                     data-port="{{ $portFrom }}">
+                                    data-port="{{ $portFrom }}">
                                     <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
                                         {{ $row['Vessel ID'] }}
                                     </td>
                                     @foreach($headerRows as $header)
-                                        @if($header !== 'Vessel ID' && $header !== '_detail')
+                                        @if($header !== 'Vessel ID' && !in_array($header, $excludeFromMain))
                                             <td class="px-4 py-2 text-center border border-black">
-                                                {{ in_array($header, $excludeFromMain) ? '' : (is_numeric($row[$header] ?? null) ? number_format($row[$header], 2, '.', ',') : ($row[$header] ?? '')) }}
+                                                {{ is_numeric($row[$header] ?? null) ? \App\Helpers\NumberFormatter::idFormat($row[$header]) : ($row[$header] ?? '') }}
                                             </td>
                                         @endif
                                     @endforeach
@@ -247,7 +242,7 @@
                                         <td class="px-4 py-2 text-center border border-black">{{ $row['Vessel ID'] ?? '' }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robMfo) ? number_format(floor($robMfo / 1000) * 1000, 0, ',', '.') : $robMfo }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robHsd) ? number_format(floor($robHsd / 1000) * 1000, 0, ',', '.') : $robHsd }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? number_format($distanceNextVoyage, 0, ',', '.') : $distanceNextVoyage }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? \App\Helpers\NumberFormatter::idFormat($distanceNextVoyage) : $distanceNextVoyage }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blMeStatic) ? number_format($blMeStatic, 0, ',', '.') : $blMeStatic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blAeStatic) ? number_format($blAeStatic, 0, ',', '.') : $blAeStatic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfoStatic)  ? number_format($kebutuhanMfoStatic,  0, ',', '.') : $kebutuhanMfoStatic }}</td>
@@ -362,9 +357,10 @@
                 </div>
 
                 <script>
+                    
                 function fmt(v) {
                     if (v === null || v === undefined) return '-';
-                    return Number(v).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    return Number(v).toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0});
                 }
 
                 function fmtRp(v) {
