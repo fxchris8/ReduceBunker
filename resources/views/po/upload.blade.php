@@ -121,7 +121,7 @@
                                                                 $isNum = is_numeric($val);
                                                                 $isInt = $isNum && floor($val) == $val;
                                                             @endphp
-                                                            {{ $isNum ? number_format($val, $isInt ? 0 : 2, ',', '.') : $val }}
+                                                            {{ is_numeric($cell['value']) ? \App\Helpers\NumberFormatter::idFormat($cell['value']) : $cell['value'] }}
                                                         </td>
                                                     @endif
                                                 @endforeach
@@ -255,7 +255,7 @@
                                                             $isNum = is_numeric($val);
                                                             $isInt = $isNum && floor($val) == $val;
                                                         @endphp
-                                                        {{ $isNum ? number_format($val, $isInt ? 0 : 2, ',', '.') : $val }}
+                                                        {{ is_numeric($cell['value']) ? \App\Helpers\NumberFormatter::idFormat($cell['value']) : $cell['value'] }}
                                                     </td>
                                                 @endif
                                             @endforeach
@@ -404,7 +404,12 @@
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
                                                             class="px-4 py-2 text-center border border-black">
-                                                            {{ is_numeric($cell['sea']) ? number_format($cell['sea'], 2, '.', ',') : $cell['sea'] }}
+                                                            @php
+                                                                $valSea = $cell['sea'];
+                                                                $isNumSea = is_numeric($valSea);
+                                                                $isIntSea = $isNumSea && floor($valSea) == $valSea;
+                                                            @endphp
+                                                            {{ $isNumSea ? number_format($valSea, $isIntSea ? 0 : 2, ',', '.') : $valSea }}
                                                         </td>
                                                     @endif
                                                 @endforeach
