@@ -152,7 +152,9 @@
                                                                 {{ $row['LOAD A/E 4 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['AE PARAREL DURATION']['value'] ?? 0 }},
                                                                 "", "", "",
-                                                                {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }}
+                                                                {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }},
+                                                                "{{ $row['tanggal']['value'] ?? '' }}",
+                                                                "{{ $row['POSITION']['value'] ?? '' }}"
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -288,7 +290,11 @@
                                                         "{{ $row['REMARKS']['value'] ?? '-' }}",
                                                         "{{ $row['DECK DAILY WORK']['value'] ?? '-' }}",
                                                         "{{ $row['ENGINE DAILY WORK']['value'] ?? '-' }}",
-                                                        {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }}
+                                                        {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }},
+                                                        "{{ $row['tanggal']['value'] ?? '' }}",
+                                                        "",
+                                                        "{{ $row['DEPARTURE PORT']['value'] ?? '' }}",
+                                                        "{{ $row['DESTINATION']['value'] ?? '' }}"
                                                     )'
                                                         class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                         title="Lihat Detail">
@@ -472,6 +478,7 @@
                 <p class="text-xs text-gray-400 uppercase tracking-widest mb-0.5">Fuel Consumption Detail</p>
                 <h3 id="modal-vessel-id" class="text-white font-bold text-lg leading-tight"></h3>
                 <span id="modal-vessel-type" class="text-xs text-gray-300"></span>
+                <div id="modal-extra-info" class="text-xs text-gray-400 mt-0.5"></div>
             </div>
             <button onclick="closeDetailModal()" class="text-gray-400 hover:text-white transition-colors ml-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -773,11 +780,17 @@
         }) + (suffix ? ' ' + suffix : '');
     }
 
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
     function showDetailModal(
         vesselId, vesselType, meMfo, meHsd, aeMfo, aeHsd, gensetHsd, reefer20, reefer40,
         blMfo, blHsd, blReffer, maneuvTime, steamTime, propSlip, craneDur, craneQty,
         loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork,
-        blAeParallel2
+        blAeParallel2, tanggal = '', position = '', departurePort = '', destination = ''
     ) {
         meMfo        = parseFloat(meMfo)        || 0;
         meHsd        = parseFloat(meHsd)        || 0;
@@ -813,6 +826,18 @@
 
         document.getElementById('modal-vessel-id').textContent   = vesselId;
         document.getElementById('modal-vessel-type').textContent = vesselType;
+
+        let extraLine2 = '';
+        if (vesselType === 'At Port' && position) {
+            extraLine2 = position;
+        } else if (vesselType === 'At Sea' && (departurePort || destination)) {
+            extraLine2 = (departurePort || '-') + ' to ' + (destination || '-');
+        }
+        document.getElementById('modal-extra-info').innerHTML =
+            (tanggal ? escapeHtml(tanggal) : '') +
+            (tanggal && extraLine2 ? '<br>' : '') +
+            (extraLine2 ? escapeHtml(extraLine2) : '');
+
         document.getElementById('me-bl-lhour').textContent    = fmtNum(blMeLHour, 'L/H');
         document.getElementById('me-bl-lday').textContent     = fmtNum(blMeLDay, 'L/Day');
         document.getElementById('me-steam-time').textContent  = fmtNum(steamTime, 'H');
