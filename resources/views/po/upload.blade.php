@@ -154,7 +154,9 @@
                                                                 "", "", "",
                                                                 {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }},
                                                                 "{{ $row['tanggal']['value'] ?? '' }}",
-                                                                "{{ $row['POSITION']['value'] ?? '' }}"
+                                                                "{{ $row['POSITION']['value'] ?? '' }}",
+                                                                "", "",
+                                                                {{ $row['BL L/NM']['value'] ?? 0 }}
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -294,7 +296,8 @@
                                                         "{{ $row['tanggal']['value'] ?? '' }}",
                                                         "",
                                                         "{{ $row['DEPARTURE PORT']['value'] ?? '' }}",
-                                                        "{{ $row['DESTINATION']['value'] ?? '' }}"
+                                                        "{{ $row['DESTINATION']['value'] ?? '' }}",
+                                                        {{ $row['BL L/NM']['value'] ?? 0 }}
                                                     )'
                                                         class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                         title="Lihat Detail">
@@ -521,6 +524,10 @@
                                 <span class="text-sm text-gray-500">BL ME (L/Day)</span>
                                 <span id="me-bl-lday" class="text-sm font-semibold text-gray-800"></span>
                             </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL L/Nm</span>
+                                <span id="me-bl-lnm" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
                         </div>
                     </div>
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
@@ -597,6 +604,10 @@
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">BL AE (L/Day)</span>
                                 <span id="ae-bl-lday" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL L/Nm</span>
+                                <span id="ae-bl-lnm" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">BL AE 1 REEFER</span>
@@ -790,7 +801,8 @@
         vesselId, vesselType, meMfo, meHsd, aeMfo, aeHsd, gensetHsd, reefer20, reefer40,
         blMfo, blHsd, blReffer, maneuvTime, steamTime, propSlip, craneDur, craneQty,
         loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork,
-        blAeParallel2, tanggal = '', position = '', departurePort = '', destination = ''
+        blAeParallel2, tanggal = '', position = '', departurePort = '', destination = '',
+        blLNm = 0
     ) {
         meMfo        = parseFloat(meMfo)        || 0;
         meHsd        = parseFloat(meHsd)        || 0;
@@ -812,6 +824,7 @@
         loadAe3      = parseFloat(loadAe3)      || 0;
         loadAe4      = parseFloat(loadAe4)      || 0;
         aePararelDur = parseFloat(aePararelDur) || 0;
+        blLNm        = parseFloat(blLNm)        || 0;
 
         const meTotal   = meMfo + meHsd;
         const blMeLHour = blMfo;
@@ -840,6 +853,8 @@
 
         document.getElementById('me-bl-lhour').textContent    = fmtNum(blMeLHour, 'L/H');
         document.getElementById('me-bl-lday').textContent     = fmtNum(blMeLDay, 'L/Day');
+        document.getElementById('me-bl-lnm').textContent = fmtNum(blLNm, 'L/Nm');
+        document.getElementById('ae-bl-lnm').textContent = fmtNum(blLNm, 'L/Nm');
         document.getElementById('me-steam-time').textContent  = fmtNum(steamTime, 'H');
         document.getElementById('me-manuev-time').textContent = fmtNum(maneuvTime, 'H');
 
