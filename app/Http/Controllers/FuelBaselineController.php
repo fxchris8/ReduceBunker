@@ -64,18 +64,20 @@ class FuelBaselineController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'new_vessel_id'     => 'nullable|string|size:3|uppercase|unique:vessels,vessel_id',
-            'new_vessel_name'   => 'nullable|string|max:255|required_with:new_vessel_id',
-            'vessel_id'         => 'nullable|exists:vessels,vessel_id',
-            'static_bl_me'      => 'required|integer|min:0',
-            'static_bl_ae'      => 'required|integer|min:0',
-            'dynamic_bl_me'     => 'required|integer|min:0',
-            'ae_parallel_2'     => 'nullable|integer|min:0',
-            'density'           => 'required|integer|min:0',
-            'bl_ae_1_reffer'    => 'nullable|integer|min:0',
-            'speed'             => 'required|integer|min:0',
-            'ss_multiplier_me'  => 'required|in:2,3',
-            'ss_multiplier_ae'  => 'required|in:2,3',
+            'new_vessel_id'            => 'nullable|string|size:3|uppercase|unique:vessels,vessel_id',
+            'new_vessel_name'          => 'nullable|string|max:255|required_with:new_vessel_id',
+            'vessel_id'                => 'nullable|exists:vessels,vessel_id',
+            'static_bl_me'             => 'required|integer|min:0',
+            'static_bl_ae'             => 'required|integer|min:0',
+            'bl_l_nm'                  => 'nullable|integer|min:0',
+            'dynamic_bl_me'            => 'required|integer|min:0',
+            'ae_parallel_2'            => 'nullable|integer|min:0',
+            'density'                  => 'required|integer|min:0',
+            'bl_ae_1_reffer'           => 'nullable|integer|min:0',
+            'speed'                    => 'required|integer|min:0',
+            'ss_multiplier_me'         => 'required|in:2,3',
+            'ss_multiplier_ae'         => 'required|in:2,3',
+            'ss_multiplier_me_dynamic' => 'nullable|in:2,3',
         ]);
 
         if (!empty($validated['new_vessel_id'])) {
@@ -94,16 +96,18 @@ class FuelBaselineController extends Controller
         }
 
         FuelBaseline::create([
-            'vessel_id'         => $vessel_id,
-            'static_bl_me'      => $validated['static_bl_me'],
-            'static_bl_ae'      => $validated['static_bl_ae'],
-            'dynamic_bl_me'     => $validated['dynamic_bl_me'],
-            'ae_parallel_2'     => $validated['ae_parallel_2'] ?? null,
-            'density'           => $validated['density'],
-            'bl_ae_1_reffer'    => $validated['bl_ae_1_reffer'] ?? null,
-            'speed'             => $validated['speed'],
-            'ss_multiplier_me'  => $validated['ss_multiplier_me'],
-            'ss_multiplier_ae'  => $validated['ss_multiplier_ae'],
+            'vessel_id'                => $vessel_id,
+            'static_bl_me'             => $validated['static_bl_me'],
+            'static_bl_ae'             => $validated['static_bl_ae'],
+            'bl_l_nm'                  => $validated['bl_l_nm'] ?? null,
+            'dynamic_bl_me'            => $validated['dynamic_bl_me'],
+            'ae_parallel_2'            => $validated['ae_parallel_2'] ?? null,
+            'density'                  => $validated['density'],
+            'bl_ae_1_reffer'           => $validated['bl_ae_1_reffer'] ?? null,
+            'speed'                    => $validated['speed'],
+            'ss_multiplier_me'         => $validated['ss_multiplier_me'],
+            'ss_multiplier_ae'         => $validated['ss_multiplier_ae'],
+            'ss_multiplier_me_dynamic' => $validated['ss_multiplier_me_dynamic'] ?? null,
         ]);
 
         return redirect()->route('fuel-baseline.index')->with('success', 'Data baseline berhasil ditambahkan.');
@@ -119,15 +123,17 @@ class FuelBaselineController extends Controller
     public function update(Request $request, FuelBaseline $fuel_baseline)
     {
         $validated = $request->validate([
-            'static_bl_me'      => 'required|integer|min:0',
-            'static_bl_ae'      => 'required|integer|min:0',
-            'dynamic_bl_me'     => 'required|integer|min:0',
-            'ae_parallel_2'     => 'nullable|integer|min:0',
-            'density'           => 'required|integer|min:0',
-            'bl_ae_1_reffer'    => 'nullable|integer|min:0',
-            'speed'             => 'required|integer|min:0',
-            'ss_multiplier_me'  => 'required|in:2,3',
-            'ss_multiplier_ae'  => 'required|in:2,3',
+            'static_bl_me'             => 'required|integer|min:0',
+            'static_bl_ae'             => 'required|integer|min:0',
+            'bl_l_nm'                  => 'nullable|integer|min:0',
+            'dynamic_bl_me'            => 'required|integer|min:0',
+            'ae_parallel_2'            => 'nullable|integer|min:0',
+            'density'                  => 'required|integer|min:0',
+            'bl_ae_1_reffer'           => 'nullable|integer|min:0',
+            'speed'                    => 'required|integer|min:0',
+            'ss_multiplier_me'         => 'required|in:2,3',
+            'ss_multiplier_ae'         => 'required|in:2,3',
+            'ss_multiplier_me_dynamic' => 'required|in:2,3',
         ]);
 
         $fuel_baseline->update($validated);

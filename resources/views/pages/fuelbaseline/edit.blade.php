@@ -74,32 +74,10 @@
                             value="{{ old('ae_parallel_2', $fuelBaselines->ae_parallel_2) }}"
                             class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
-                </div>
-
-                {{-- Dynamic Baseline --}}
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Dynamic Baseline</p>
-                <div class="grid grid-cols-4 gap-4 mb-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">ME (L/Hours)</label>
-                        <input type="number" step="1" name="dynamic_bl_me"
-                            value="{{ old('dynamic_bl_me', $fuelBaselines->dynamic_bl_me) }}"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
-                    </div>
-                </div>
-
-                {{-- Other --}}
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Other</p>
-                <div class="grid grid-cols-4 gap-4 mb-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Density</label>
-                        <input type="number" step="1" name="density"
-                            value="{{ old('density', $fuelBaselines->density) }}"
-                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Speed (Knot)</label>
-                        <input type="number" step="1" name="speed"
-                            value="{{ old('speed', $fuelBaselines->speed) }}"
+                        <label class="block text-sm font-medium text-gray-700 mb-1">BL L/Nm</label>
+                        <input type="number" step="1" name="bl_l_nm"
+                            value="{{ old('bl_l_nm', $fuelBaselines->bl_l_nm ?? '') }}"
                             class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                     <div>
@@ -117,6 +95,42 @@
                             <option value="2" {{ old('ss_multiplier_ae', $fuelBaselines->ss_multiplier_ae) == 2 ? 'selected' : '' }}>2x</option>
                             <option value="3" {{ old('ss_multiplier_ae', $fuelBaselines->ss_multiplier_ae) == 3 ? 'selected' : '' }}>3x</option>
                         </select>
+                    </div>
+                </div>
+
+                {{-- Dynamic Baseline --}}
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Dynamic Baseline</p>
+                <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ME (L/Hours)</label>
+                        <input type="number" step="1" name="dynamic_bl_me"
+                            value="{{ old('dynamic_bl_me', $fuelBaselines->dynamic_bl_me) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">SS Multiplier ME</label>
+                        <select name="ss_multiplier_me_dynamic"
+                                class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="2" {{ old('ss_multiplier_me_dynamic', $fuelBaselines->ss_multiplier_me_dynamic) == 2 ? 'selected' : '' }}>2x</option>
+                            <option value="3" {{ old('ss_multiplier_me_dynamic', $fuelBaselines->ss_multiplier_me_dynamic) == 3 ? 'selected' : '' }}>3x</option>
+                        </select>
+                    </div>
+                </div>
+
+                {{-- Other --}}
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Other</p>
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Density</label>
+                        <input type="number" step="1" name="density"
+                            value="{{ old('density', $fuelBaselines->density) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Speed (Knot)</label>
+                        <input type="number" step="1" name="speed"
+                            value="{{ old('speed', $fuelBaselines->speed) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                 </div>
 

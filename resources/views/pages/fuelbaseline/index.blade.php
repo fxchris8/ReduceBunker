@@ -141,12 +141,10 @@
                         <tr>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Vessel Code</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Vessel Name</th>
-                            <th colspan="4" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Static Baseline</th>
-                            <th colspan="1" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Dynamic Baseline</th>
+                            <th colspan="7" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Static Baseline</th>
+                            <th colspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Dynamic Baseline</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Density</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Speed (Knot)</th>
-                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock ME per Day</th>
-                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Safety Stock AE per Day</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Last Updated</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Actions</th>
                         </tr>
@@ -155,7 +153,11 @@
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE (L/Hours)</th>
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE 1 Reefer</th>
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">AE 2 Reefer (Parallel)</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">BL L/Nm</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Safety Stock ME/Day</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Safety Stock AE/Day</th>
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">ME (L/Hours)</th>
+                            <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">Safety Stock ME/Day</th>
                         </tr>
                     </thead>
 
@@ -168,6 +170,7 @@
                                 <td class="px-4 py-3 border border-gray-200 text-left">
                                     {{ $baseline->vessel->vessel_name }}
                                 </td>
+
                                 {{-- Static Baseline --}}
                                 <td class="px-4 py-3 border border-gray-200">
                                     {{ $baseline->static_bl_me }}
@@ -181,18 +184,10 @@
                                 <td class="px-4 py-3 border border-gray-200">
                                     {{ $baseline->ae_parallel_2 ?? '-' }}
                                 </td>
-                                {{-- Dynamic Baseline --}}
                                 <td class="px-4 py-3 border border-gray-200">
-                                    {{ $baseline->dynamic_bl_me }}
+                                    {{ $baseline->bl_l_nm ?? '-' }}
                                 </td>
-                               
-                                <td class="px-4 py-3 border border-gray-200">
-                                    {{ $baseline->density }}
-                                </td>
-                                <td class="px-4 py-3 border border-gray-200">
-                                    {{ $baseline->speed }}
-                                </td>
-                                <td class="px-4 py-3 border border-gray-200 font-semibold">
+                                 <td class="px-4 py-3 border border-gray-200 font-semibold">
                                     {{ $baseline->ss_me }}
                                     <span class="text-xs text-gray-400 font-normal">
                                         ({{ $baseline->ss_multiplier_me }}x)
@@ -203,6 +198,25 @@
                                     <span class="text-xs text-gray-400 font-normal">
                                         ({{ $baseline->ss_multiplier_ae }}x)
                                     </span>
+                                </td>
+
+                                {{-- Dynamic Baseline --}}
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->dynamic_bl_me }}
+                                </td>
+                                <td class="px-4 py-3 border border-gray-200 font-semibold">
+                                    {{ $baseline->ss_bl_me_dynamic }}
+                                    <span class="text-xs text-gray-400 font-normal">
+                                        ({{ $baseline->ss_multiplier_me_dynamic }}x)
+                                    </span>
+                                </td>
+                               
+                                {{-- Other --}}
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->density }}
+                                </td>
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->speed }}
                                 </td>
                                 <td class="px-4 py-3 border border-gray-200 text-gray-500 text-xs">
                                     {{ ($baseline->updated_at ?? $baseline->created_at)?->format('d M Y H:i') ?? '-' }}

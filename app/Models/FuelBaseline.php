@@ -15,23 +15,27 @@ class FuelBaseline extends Model
         'vessel_id',
         'static_bl_me',
         'static_bl_ae',
+        'bl_l_nm',
         'dynamic_bl_me',
         'ae_parallel_2',
         'density',
         'speed',
         'ss_multiplier_me',
         'ss_multiplier_ae',
+        'ss_multiplier_me_dynamic',
         'bl_ae_1_reffer',
     ];
 
     protected $casts = [
-        'static_bl_me'      => 'integer',
-        'static_bl_ae'      => 'integer',
-        'dynamic_bl_me'     => 'integer',
-        'density'           => 'integer',
-        'speed'             => 'integer',
-        'ss_multiplier_me'  => 'integer',
-        'ss_multiplier_ae'  => 'integer',
+        'static_bl_me'             => 'integer',
+        'static_bl_ae'             => 'integer',
+        'bl_l_nm'                  => 'integer',
+        'dynamic_bl_me'            => 'integer',
+        'density'                  => 'integer',
+        'speed'                    => 'integer',
+        'ss_multiplier_me'         => 'integer',
+        'ss_multiplier_ae'         => 'integer',
+        'ss_multiplier_me_dynamic' => 'integer',
     ];
 
     public function vessel(): BelongsTo
@@ -47,5 +51,10 @@ class FuelBaseline extends Model
     public function getSsAeAttribute(): float
     {
         return $this->static_bl_ae * $this->ss_multiplier_ae * 24;
+    }
+
+    public function getSsBlMeDynamicAttribute(): float
+    {
+        return $this->dynamic_bl_me * $this->ss_multiplier_me_dynamic * 24;
     }
 }
