@@ -14,33 +14,16 @@ use DateTime;
 class UploadController extends Controller
 {   
     function reorderReport($grouped, $baselines, int $reportId = 16) {
-        $bl_l_nm_FilePath = storage_path('app/BL for Analysis.xlsx');
-        $spreadsheet_bl_l_nm = IOFactory::load($bl_l_nm_FilePath);
-        $sheet_bl_l_nm = $spreadsheet_bl_l_nm->getActiveSheet();
-        $bl_l_nm_Data = $sheet_bl_l_nm->toArray(null, true, true, true);
-
-        $bl_l_nm_map = [];
-
-        foreach (array_slice($bl_l_nm_Data, 1) as $row) {
-            $vessel = trim($row['A']); 
-            $bl_l_nm   = trim($row['F']);
-            if ($vessel && $bl_l_nm) {
-                $bl_l_nm_map[$vessel] = ['bl_l_nm' => $bl_l_nm];
-            }
-        }
-
         $vesselRaw = $grouped['vesselid'] ?? '';
         $vesselKey = strtoupper(trim($vesselRaw));
         $vesselBaseline = $baselines->get($vesselKey);
 
-        $bl_l_nm = $bl_l_nm_map[$vesselKey]['bl_l_nm'] ?? 10;
+        $bl_l_nm = $vesselBaseline?->bl_l_nm ?? 10;
 
         $bl_me  = $vesselBaseline?->static_bl_me ?? 0;
         $bl_ae  = $vesselBaseline?->static_bl_ae ?? 0;
         $bl_ae_1_reffer = $vesselBaseline?->bl_ae_1_reffer ?? 0;
         $ae_parallel_2  = $vesselBaseline?->ae_parallel_2 ?? 0;
-
-        \Log::info(print_r($bl_l_nm_map, true) . PHP_EOL);
 
         $ordered = [
             'Vessel ID' => $grouped['vesselid'] ?? null,
