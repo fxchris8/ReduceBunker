@@ -178,7 +178,7 @@
                     
                     @if(!empty($report16 ?? null))
                         @php
-                            $excludedHeaders_sea = ['POSITION', 'SELISIH ME Maneuvering', 'BL MFO', 'BL HSD', 'BL REFFER', 'REMARKS', 'DECK DAILY WORK', 'ENGINE DAILY WORK'];
+                            $excludedHeaders_sea = ['POSITION', 'SELISIH ME Maneuvering', 'BL MFO', 'BL HSD', 'BL REFFER'];
 
                             $seaRows    = $report16 ?? [];
                             $seaHeaders = array_filter(array_keys($seaRows[0] ?? []), fn($k) => $k !== '_row_class');
@@ -192,6 +192,7 @@
                                 'ME Maneuvering Cons. (L/H)', 'BL M/E Static (L/Day)', 'BL A/E (L/Day)',
                                 'BL L/NM','L/NM','EXCESS ME MFO L/NM (%)',
                                 'AE Consumption','EXCESS AE',
+                                'REMARKS', 'DECK DAILY WORK', 'ENGINE DAILY WORK',
                             ];
                         @endphp
 

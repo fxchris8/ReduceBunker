@@ -13,7 +13,7 @@ use DateTime;
 
 class UploadController extends Controller
 {   
-    function reorderReport($grouped, $baselines) {
+    function reorderReport($grouped, $baselines, int $reportId = 16) {
         $bl_l_nm_FilePath = storage_path('app/BL for Analysis.xlsx');
         $spreadsheet_bl_l_nm = IOFactory::load($bl_l_nm_FilePath);
         $sheet_bl_l_nm = $spreadsheet_bl_l_nm->getActiveSheet();
@@ -116,10 +116,13 @@ class UploadController extends Controller
             'BL A/E (L/Day)'    => $bl_ae * 24,
             'AE Consumption'    => ($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0),
             'EXCESS AE'         => ($bl_ae * 24) - (($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0)),
-            'REMARKS'           => $grouped['remarks'] ?? '-',
-            'DECK DAILY WORK'   => $grouped['deck_daily_work'] ?? '-',
-            'ENGINE DAILY WORK' => $grouped['engine_daily_work'] ?? '-',
             ];
+
+        if ($reportId === 16) {
+            $ordered['REMARKS']           = $grouped['remarks'] ?? '-';
+            $ordered['DECK DAILY WORK']   = $grouped['deck_daily_work'] ?? '-';
+            $ordered['ENGINE DAILY WORK'] = $grouped['engine_daily_work'] ?? '-';
+        }
 
         return $ordered;
     }
@@ -179,7 +182,7 @@ class UploadController extends Controller
 
             $reports = $data['data'] ?? [];
 
-            $normalized = array_map(fn($r) => $this->reorderReport($r, $baselines), $reports);
+            $normalized = array_map(fn($r) => $this->reorderReport($r, $baselines, $reportId), $reports);
 
             $allReports[$reportId] = $normalized;
         }
