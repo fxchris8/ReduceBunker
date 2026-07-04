@@ -509,7 +509,7 @@
             </button>
         </div>
 
-        <div class="px-5 py-4 max-h-[60vh] overflow-y-auto">
+        <div class="px-5 py-4 max-h-[56vh] overflow-y-auto">
 
             {{-- ME TAB --}}
             <div id="tab-content-me">
@@ -720,19 +720,19 @@
                 </div>
             </div>
         </div>
-        <div class="border-t border-gray-200 px-5 py-3 bg-gray-50">
+        <div class="border-t border-gray-200 px-5 py-3 bg-gray-50 max-h-28 overflow-y-auto">
             <div class="grid grid-cols-3 gap-4 text-sm">
                 <div>
                     <span class="text-gray-700 uppercase tracking-wider text-xs font-bold">Remarks</span>
-                    <p id="modal-remarks" class="text-gray-700 mt-1"></p>
+                    <p id="modal-remarks" class="text-gray-700 mt-1 whitespace-pre-line text-xs"></p>
                 </div>
                 <div>
                     <span class="text-gray-700 uppercase tracking-wider text-xs font-bold">Deck Daily Work</span>
-                    <p id="modal-deck-work" class="text-gray-700 mt-1"></p>
+                    <p id="modal-deck-work" class="text-gray-700 mt-1 whitespace-pre-line text-xs"></p>
                 </div>
                 <div>
                     <span class="text-gray-700 uppercase tracking-wider text-xs font-bold">Engine Daily Work</span>
-                    <p id="modal-engine-work" class="text-gray-700 mt-1"></p>
+                    <p id="modal-engine-work" class="text-gray-700 mt-1 whitespace-pre-line text-xs"></p>
                 </div>
             </div>
         </div>
