@@ -83,16 +83,16 @@ class UploadController extends Controller
             'L/NM' => (
                 isset($grouped['steam_time']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
             ) ? (
-                ($grouped['me_mfo'] ?? 0) / $grouped['steam_dist']
+                (($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)) / $grouped['steam_dist']
             ) : 0,
             
-            'EXCESS ME MFO L/NM (%)' => (
+            'EXCESS ME L/NM (%)' => (
                 isset(
                 $bl_l_nm, 
                 $grouped['steam_time'], $grouped['steam_dist']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
             ) ? (
-                ((($grouped['me_mfo'] ?? 0) / $grouped['steam_dist']) > 0)
-                    ? (($bl_l_nm - (($grouped['me_mfo'] ?? 0) / $grouped['steam_dist'])) / $bl_l_nm) * 100
+                (((($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)) / $grouped['steam_dist']) > 0)
+                    ? (($bl_l_nm - ((($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)) / $grouped['steam_dist'])) / $bl_l_nm) * 100
                     : 0
             ) : 0,
 
@@ -142,7 +142,7 @@ class UploadController extends Controller
 
             // True  -> Using Mock Data
             // False -> Using API
-            if (false) {
+            if (False) {
                 $data = ($reportId == 14) ? $this->getMockPortData() : $this->getMockSeaData();
             } else {
                 $response = Http::timeout(120)
@@ -344,7 +344,7 @@ class UploadController extends Controller
         }, $sea_data);
 
         $density     = floatval($request->input('density', 950));
-        if (false) {
+        if (False) {
             $dinamisRaw = (new UploadDinamisController())->getMockSeaData();
         } else {
             $dinamisPayload = [
@@ -395,7 +395,7 @@ class UploadController extends Controller
             $row['DAYA ME (KW)']                       = ['value' => $dinamis['DAYA ME (KW)'] ?? '', 'class' => ''];
             $row['Ideal Consumption Dynamic (L)']      = ['value' => $idealDynamic, 'class' => ''];
             $row['Konsumsi M/E MFO Aktual']            = ['value' => $dinamis['Konsumsi M/E MFO Aktual'] ?? '', 'class' => ''];
-            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '', 'class' => $dinamis['Gap'] === 'Tidak ada data kurva' ? 'bg-yellow-200 font-semibold' : ''];
+            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '', 'class' => (($dinamis['Gap'] ?? '') === 'Tidak ada data kurva') ? 'bg-yellow-200 font-semibold' : ''];
             $row['Error']                              = ['value' => $dinamis['Error'] ?? '', 'class' => ''];
         }
         unset($row);

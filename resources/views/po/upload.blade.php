@@ -65,7 +65,7 @@
                         @php
                             $excludedHeaders_port = [
                                 'DEPARTURE PORT','DESTINATION','STEAM. DIST.','STEAM TIME (HOUR : MINUTE)',
-                                'SHIP SPEED','PROPELLER SLIP','ME RPM','BL L/NM','L/NM','EXCESS ME MFO L/NM (%)',
+                                'SHIP SPEED','PROPELLER SLIP','ME RPM','BL L/NM','L/NM','EXCESS ME L/NM (%)',
                                 'BL MFO','BL HSD','BL REFFER', 'SELISIH ME Maneuvering',
                             ];
                             $compactHeaders_port = [
@@ -190,7 +190,7 @@
                                 'LOAD A/E 1 (KW)','LOAD A/E 2 (KW)','LOAD A/E 3 (KW)','LOAD A/E 4 (KW)',
                                 'AE PARAREL DURATION','REEFER 20"','REEFER 40"',
                                 'ME Maneuvering Cons. (L/H)', 'BL M/E Static (L/Day)', 'BL A/E (L/Day)',
-                                'BL L/NM','L/NM','EXCESS ME MFO L/NM (%)',
+                                'BL L/NM','L/NM','EXCESS ME L/NM (%)',
                                 'AE Consumption','EXCESS AE',
                                 'REMARKS', 'DECK DAILY WORK', 'ENGINE DAILY WORK',
                             ];
@@ -298,7 +298,9 @@
                                                         "",
                                                         "{{ $row['DEPARTURE PORT']['value'] ?? '' }}",
                                                         "{{ $row['DESTINATION']['value'] ?? '' }}",
-                                                        {{ $row['BL L/NM']['value'] ?? 0 }}
+                                                        {{ $row['BL L/NM']['value'] ?? 0 }},
+                                                        {{ $row['L/NM']['value'] ?? 0 }},
+                                                        {{ $row['EXCESS ME L/NM (%)']['value'] ?? 0 }}
                                                     )'
                                                         class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                         title="Lihat Detail">
@@ -589,6 +591,37 @@
                             </div>
                         </div>
                     </div>
+                    <div id="me-lnm-card" class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2"><span class="text-xs font-bold text-gray-200 uppercase tracking-wider">L/Nm</span></div>
+                        <div class="divide-y divide-gray-100">
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">BL L/Nm</span>
+                                <span id="me-lnm-bl" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" id="me-lnm-toggle" onclick="toggleLnmDetail()"
+                                        class="text-gray-500 hover:text-gray-700">
+                                        <svg id="me-lnm-arrow" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                    <span class="text-sm font-bold text-gray-700">Aktual L/Nm</span>
+                                </div>
+                                <span id="me-lnm-aktual" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div id="me-lnm-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
+                                <div class="text-xs text-gray-600 italic">
+                                    (ME MFO + ME HSD) / Steam Distance
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
+                                <span class="text-sm font-bold text-gray-700">Excess L/Nm</span>
+                                <span id="me-lnm-exceed" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -768,9 +801,16 @@
         arrow.classList.toggle('rotate-90');
     }
 
-        function toggleToleranceDetail() {
+    function toggleToleranceDetail() {
         const detail = document.getElementById('ae-tolerance-detail');
         const arrow  = document.getElementById('ae-tolerance-arrow');
+        detail.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-90');
+    }
+
+    function toggleLnmDetail() {
+        const detail = document.getElementById('me-lnm-detail');
+        const arrow  = document.getElementById('me-lnm-arrow');
         detail.classList.toggle('hidden');
         arrow.classList.toggle('rotate-90');
     }
@@ -803,7 +843,7 @@
         blMfo, blHsd, blReffer, maneuvTime, steamTime, propSlip, craneDur, craneQty,
         loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork,
         blAeParallel2, tanggal = '', position = '', departurePort = '', destination = '',
-        blLNm = 0
+        blLNm = 0, lnmAktual = 0, lnmExceed = 0
     ) {
         meMfo        = parseFloat(meMfo)        || 0;
         meHsd        = parseFloat(meHsd)        || 0;
@@ -858,6 +898,21 @@
         document.getElementById('ae-bl-lnm').textContent = fmtNum(blLNm, 'L/Nm');
         document.getElementById('me-steam-time').textContent  = fmtNum(steamTime, 'H');
         document.getElementById('me-manuev-time').textContent = fmtNum(maneuvTime, 'H');
+
+        lnmAktual = parseFloat(lnmAktual) || 0;
+        lnmExceed = parseFloat(lnmExceed) || 0;
+
+        document.getElementById('me-lnm-bl').textContent     = fmtNum(blLNm, 'L/Nm');
+        document.getElementById('me-lnm-aktual').textContent = fmtNum(lnmAktual, 'L/Nm');
+
+        document.getElementById('me-lnm-detail').classList.add('hidden');
+        document.getElementById('me-lnm-arrow').classList.remove('rotate-90');
+
+        document.getElementById('me-lnm-card').classList.toggle('hidden', vesselType !== 'At Sea');
+
+        const lnmExceedEl = document.getElementById('me-lnm-exceed');
+        lnmExceedEl.textContent = fmtNum(lnmExceed, '%');
+        lnmExceedEl.className = 'text-sm font-semibold ' + (lnmExceed < 0 ? 'text-red-600 font-bold' : 'text-green-600');
 
         const mePropSlipEl = document.getElementById('me-prop-slip');
         mePropSlipEl.textContent = fmtNum(propSlip, '%');
