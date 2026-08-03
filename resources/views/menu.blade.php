@@ -23,7 +23,7 @@
             </a>
 
             <!-- Consumption Analysis -->
-            <a href="{{ route('po.upload') }}" 
+            <a href="{{ route('pages.consumption') }}" 
                class="flex items-center justify-center gap-3 py-6 px-6 text-lg bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-semibold rounded-lg shadow-md transform hover:scale-105 transition duration-300">
                 <i class="fas fa-chart-line text-2xl"></i>
                 Consumption Analysis

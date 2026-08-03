@@ -3,13 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SsoController;
 use App\Http\Controllers\BunkerController;
-use App\Http\Controllers\UploadController;
+use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\SummaryController;
 use App\Http\Controllers\DetailController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\POController;
 use App\Http\Controllers\BaselineController;
-use App\Http\Controllers\UploadDinamisController;
 use App\Http\Controllers\FuelBaselineController;
 use App\Http\Middleware\EnsureSsoSessionIsFresh;
 
@@ -25,13 +24,8 @@ Route::post('/logout', [SsoController::class, 'logout'])->middleware('auth')->na
 Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
     Route::get('/menu', [BunkerController::class, 'index'])->name('menu');
 
-    Route::any('/consumption-analysis/statis', [UploadController::class, 'show'])->name('po.upload');
-    Route::any('/consumption-analysis/dinamis', function () {
-        return redirect()->route('po.upload');
-    })->name('po.upload_dinamis');
-
-    // Route::post('/send-email/upload', [UploadController::class, 'upload'])->name('upload.file');
-    Route::post('/send-email/send', [UploadController::class, 'sendEmail'])->name('send.email');
+    Route::any('/consumption-analysis', [ConsumptionController::class, 'show'])->name('pages.consumption');
+    Route::post('/send-email/send', [ConsumptionController::class, 'sendEmail'])->name('send.email');
 
     Route::any('/', [SummaryController::class, 'show'])->name('dashboard');
     // Route::post('/summary-analysis', [SummaryController::class, 'upload'])->name('file.dashboard');

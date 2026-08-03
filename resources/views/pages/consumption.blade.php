@@ -27,7 +27,7 @@
                 </div>
             @endif
 
-            <form method="GET" action="{{ route('po.upload') }}" class="px-4 py-2 rounded-md text-lg">
+            <form method="GET" action="{{ route('pages.consumption') }}" class="px-4 py-2 rounded-md text-lg">
                 <div class="mb-4">
                     <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
                         Tanggal Laporan
@@ -67,6 +67,7 @@
                                 'DEPARTURE PORT','DESTINATION','STEAM. DIST.','STEAM TIME (HOUR : MINUTE)',
                                 'SHIP SPEED','PROPELLER SLIP','ME RPM','BL L/NM','L/NM','EXCESS ME L/NM (%)',
                                 'BL MFO','BL HSD','BL REFFER', 'SELISIH ME Maneuvering',
+                                'EXCESS ME', 'EXCESS AE Tolerance',
                             ];
                             $compactHeaders_port = [
                                 'tanggal','POSITION','M/E HSD', 'GENSET CONSUMPTION - HSD', 'M/E MFO', 'A/E MFO','A/E HSD',
@@ -152,11 +153,14 @@
                                                                 {{ $row['LOAD A/E 4 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['AE PARAREL DURATION']['value'] ?? 0 }},
                                                                 "", "", "",
-                                                                {{ $row['BL AE PARALLEL 2']['value'] ?? 0 }},
                                                                 "{{ $row['tanggal']['value'] ?? '' }}",
                                                                 "{{ $row['POSITION']['value'] ?? '' }}",
                                                                 "", "",
-                                                                {{ $row['BL L/NM']['value'] ?? 0 }}
+                                                                {{ $row['BL L/NM']['value'] ?? 0 }},
+                                                                0, 0,
+                                                                {{ $row['EXCESS AE']['value'] ?? 0 }},
+                                                                {{ $row['EXCESS AE Tolerance']['value'] ?? 0 }},
+                                                                {{ $row['EXCESS ME']['value'] ?? 0 }}
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -178,8 +182,9 @@
                     
                     @if(!empty($report16 ?? null))
                         @php
-                            $excludedHeaders_sea = ['POSITION', 'SELISIH ME Maneuvering', 'BL MFO', 'BL HSD', 'BL REFFER'];
-
+                            $excludedHeaders_sea = ['POSITION', 'SELISIH ME Maneuvering', 'BL MFO', 'BL HSD', 
+                                'BL REFFER', 'EXCESS ME', 'EXCESS AE Tolerance'
+                            ];
                             $seaRows    = $report16 ?? [];
                             $seaHeaders = array_filter(array_keys($seaRows[0] ?? []), fn($k) => $k !== '_row_class');
 
@@ -300,7 +305,10 @@
                                                         "{{ $row['DESTINATION']['value'] ?? '' }}",
                                                         {{ $row['BL L/NM']['value'] ?? 0 }},
                                                         {{ $row['L/NM']['value'] ?? 0 }},
-                                                        {{ $row['EXCESS ME L/NM (%)']['value'] ?? 0 }}
+                                                        {{ $row['EXCESS ME L/NM (%)']['value'] ?? 0 }},
+                                                        {{ $row['EXCESS AE']['value'] ?? 0 }},
+                                                        {{ $row['EXCESS AE Tolerance']['value'] ?? 0 }},
+                                                        {{ $row['EXCESS ME']['value'] ?? 0 }}
                                                     )'
                                                         class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                         title="Lihat Detail">
@@ -843,7 +851,8 @@
         blMfo, blHsd, blReffer, maneuvTime, steamTime, propSlip, craneDur, craneQty,
         loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork,
         blAeParallel2, tanggal = '', position = '', departurePort = '', destination = '',
-        blLNm = 0, lnmAktual = 0, lnmExceed = 0
+        blLNm = 0, lnmAktual = 0, lnmExceed = 0,
+        excessAe = 0, excessAeTolerance = 0, excessMe = 0
     ) {
         meMfo        = parseFloat(meMfo)        || 0;
         meHsd        = parseFloat(meHsd)        || 0;
@@ -870,13 +879,14 @@
         const meTotal   = meMfo + meHsd;
         const blMeLHour = blMfo;
         const blMeLDay  = blMfo * 24;
-        const idealCost = blMeLHour * (steamTime + maneuvTime);
-        const meExcess  = idealCost - meTotal;
+        const meExcess  = parseFloat(excessMe) || 0;
+        const idealCost = meExcess + meTotal;
 
         const aeTotal   = aeMfo + aeHsd + gensetHsd;
         const blAeLHour = blHsd;
         const blAeLDay  = blHsd * 24;
-        const aeExcess  = blAeLDay - aeTotal;
+        const aeExcess  = parseFloat(excessAe) || 0;
+        const aeExcessTolerance = parseFloat(excessAeTolerance) || 0;
 
         document.getElementById('modal-vessel-id').textContent   = vesselId;
         document.getElementById('modal-vessel-type').textContent = vesselType;
@@ -956,7 +966,6 @@
         aeExcessEl.textContent = fmt(aeExcess);
         aeExcessEl.className = 'text-sm font-semibold ' + (aeExcess < 0 ? 'text-red-600' : 'text-green-600');
 
-        const aeExcessTolerance = blAeLDay + (aePararelDur * blAeLHour) - aeTotal;
         const aeExcessToleranceEl = document.getElementById('ae-excess-tolerance');
         aeExcessToleranceEl.textContent = fmt(aeExcessTolerance);
         aeExcessToleranceEl.className = 'text-sm font-semibold ' + (aeExcessTolerance < 0 ? 'text-red-600' : 'text-green-600');
