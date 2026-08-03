@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
 use DateTime;
 
@@ -269,25 +267,20 @@ class ConsumptionController extends Controller
     {
         $ordered = [
             'Vessel ID' => $grouped['vesselid'] ?? null,
-            'tanggal' => isset($grouped['tanggal'])
+            'tanggal'   => isset($grouped['tanggal'])
                 ? (new DateTime($grouped['tanggal']))->format('d F Y H:i')
                 : null,
-
-            'POSITION' => $grouped['pos'] ?? null,
-
-            'DEPARTURE PORT' => $grouped['departure'] ?? null,
-            'DESTINATION' => $grouped['destination'] ?? null,
-
-            'STEAM. DIST.' => $grouped['steam_dist'] ?? null,
-            'SHIP SPEED' => $grouped['ship_speed'] ?? null,
-
-            'STEAM TIME (HOUR : MINUTE)' => $grouped['steam_time'] ?? null,
-            'DAYA ME (KW)' => $grouped['daya_me_kw'] ?? null,
-            'Konsumsi M/E MFO Aktual' => $grouped['me_mfo'] ?? null,
-
+            'POSITION'                     => $grouped['pos'] ?? null,
+            'DEPARTURE PORT'               => $grouped['departure'] ?? null,
+            'DESTINATION'                  => $grouped['destination'] ?? null,
+            'STEAM. DIST.'                 => $grouped['steam_dist'] ?? null,
+            'SHIP SPEED'                   => $grouped['ship_speed'] ?? null,
+            'STEAM TIME (HOUR : MINUTE)'   => $grouped['steam_time'] ?? null,
+            'DAYA ME (KW)'                 => $grouped['daya_me_kw'] ?? null,
+            'Konsumsi M/E MFO Aktual'      => $grouped['me_mfo'] ?? null,
             'Konsumsi M/E MFO Perhitungan' => '',
-            'Gap' => '',
-            'Error' => '',
+            'Gap'                          => '',
+            'Error'                        => '',
             ];
 
         return $ordered;
@@ -314,17 +307,16 @@ class ConsumptionController extends Controller
             "tanggal" => $formattedDate,
         ];
 
-        $reportIds = [14, 16];
-        $allReports = [];
+        $reportIds     = [14, 16];
+        $allReports    = [];
         $rawSeaReports = [];
-
-        $baselines = \App\Models\FuelBaseline::all()->keyBy('vessel_id');
+        $baselines     = \App\Models\FuelBaseline::all()->keyBy('vessel_id');
 
         foreach ($reportIds as $reportId) {
             $payload = $basePayload;
             $payload['report_id'] = (string)$reportId;
 
-            if (False) {
+            if (True) {
                 $data = ($reportId == 14) ? $this->getMockPortData() : $this->getMockSeaData();
             } else {
                 $response = Http::timeout(120)
@@ -357,7 +349,7 @@ class ConsumptionController extends Controller
         }
 
         $port_data = $allReports[14] ?? [];
-        $sea_data = $allReports[16] ?? [];
+        $sea_data  = $allReports[16] ?? [];
 
         function deduplicateByVesselId(array $reports): array {
             $seen = [];
@@ -406,10 +398,10 @@ class ConsumptionController extends Controller
         $analysisColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME L/NM (%)'];
 
         $colored_port = array_map(function ($row) use ($greenColumns, $analysisColumns, $baselines) {
-            $meHsd      = $row['M/E HSD'] ?? null;
+            $meHsd       = $row['M/E HSD'] ?? null;
             $maneuvering = $row['MANEUVERING TIME (HOURS)'] ?? null;
-            $crane_dur  = $row['CRANE DURATION'] ?? null;
-            $ae_par_dur = $row['AE PARAREL DURATION'] ?? null;
+            $crane_dur   = $row['CRANE DURATION'] ?? null;
+            $ae_par_dur  = $row['AE PARAREL DURATION'] ?? null;
 
             $load_1 = $row['LOAD A/E 1 (KW)'] ?? null;
             $load_2 = $row['LOAD A/E 2 (KW)'] ?? null;
@@ -435,7 +427,7 @@ class ConsumptionController extends Controller
             $isSingleLoadCondition          = count($activeLoads) === 1 && is_numeric($ae_par_dur) && $ae_par_dur != 0;
             $is24HoursAePararelCondition    = is_numeric($ae_par_dur) && $ae_par_dur == 24;
 
-            $aeLoadCols = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
+            $aeLoadCols      = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
             $highlightAeLoad = $isLoadCondition || $isLoadDifferentCondition || $isSingleLoadCondition || $is24HoursAePararelCondition;
 
             $newRow = [];
@@ -445,7 +437,7 @@ class ConsumptionController extends Controller
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
                 }
-                if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
+                if (in_array($key, $analysisColumns) && is_numeric($value) && $value > 0) {
                     $class .= ' bg-red-200 font-semibold';
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
@@ -506,7 +498,7 @@ class ConsumptionController extends Controller
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
                 }
-                if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
+                if (in_array($key, $analysisColumns) && is_numeric($value) && $value > 0) {
                     $class .= ' bg-red-200 font-semibold';
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
@@ -529,7 +521,7 @@ class ConsumptionController extends Controller
 
         $density = floatval($request->input('density', 950));
 
-        if (False) {
+        if (True) {
             $dinamisRaw  = $this->getMockDinamisSeaData();
             $dinamisNorm = array_map(fn($r) => $this->reorderDinamisReport($r), $dinamisRaw['data'] ?? []);
         } else {
@@ -583,349 +575,6 @@ class ConsumptionController extends Controller
             'density' => $density,
             'isDinamis' => false,
         ]);
-    }
-
-    private function loadVesselEmails()
-    {
-        $emailFilePath = storage_path('app/email.xlsx');
-        $spreadsheetEmail = IOFactory::load($emailFilePath);
-        $sheetEmail = $spreadsheetEmail->getActiveSheet();
-        $emailData = $sheetEmail->toArray(null, true, true, true);
-
-        $vesselEmails = [];
-        foreach (array_slice($emailData, 1) as $row) {
-            $vessel = strtoupper(trim($row['A']));
-            if ($vessel) {
-                $vesselEmails[$vessel] = [
-                    'Email Kapal' => trim($row['B'] ?? ''),
-                    'Email SS/SI' => trim($row['C'] ?? ''),
-                    'Email MT'    => trim($row['D'] ?? ''),
-                    'Email MN'    => trim($row['E'] ?? ''),
-                    'Email DGM'   => trim($row['F'] ?? ''),
-                    'Email GM'    => trim($row['G'] ?? ''),
-                    'Email DPA'   => trim($row['H'] ?? ''),
-                    'Email SSB01' => trim($row['I'] ?? ''),
-                    'OIL MGT'     => trim($row['J'] ?? '')
-                ];
-            }
-        }
-
-        return $vesselEmails;
-    }
-
-    private function processEmailRow($row, $sheetName, $vesselEmails)
-    {
-        $primaryRole = 'Email Kapal';
-        $ccRoles = ['Email SS/SI', 'Email MT', 'Email MN', 'Email DGM', 'Email GM', 'Email DPA', 'Email SSB01', 'OIL MGT'];
-
-        $vesselName = strtoupper($row['Vessel ID']['value'] ?? 'UNKNOWN');
-        $date_val = $row['tanggal']['value'] ?? '';
-        $pos_val = $row['POSITION']['value'] ?? '';
-        $dep_val = $row['DEPARTURE PORT']['value'] ?? '';
-        $des_val = $row['DESTINATION']['value'] ?? '';
-
-        $me_hsd_val = floatval($row['M/E HSD']['value'] ?? 0);
-        $manuvering_time_val = floatval($row['MANEUVERING TIME (HOURS)']['value'] ?? 0);
-        $ae_pararel_val = floatval($row['AE PARAREL DURATION']['value'] ?? 0);
-        $crane_duration_val = floatval($row['CRANE DURATION']['value'] ?? 0);
-
-        $loads = [
-            'LOAD A/E 1 (KW)' => floatval($row['LOAD A/E 1 (KW)']['value'] ?? 0),
-            'LOAD A/E 2 (KW)' => floatval($row['LOAD A/E 2 (KW)']['value'] ?? 0),
-            'LOAD A/E 3 (KW)' => floatval($row['LOAD A/E 3 (KW)']['value'] ?? 0),
-            'LOAD A/E 4 (KW)' => floatval($row['LOAD A/E 4 (KW)']['value'] ?? 0),
-        ];
-
-        $refer20 = floatval($row['REEFER 20"']['value'] ?? 0);
-        $refer40 = floatval($row['REEFER 40"']['value'] ?? 0);
-
-        $activeLoads = array_filter($loads, fn($v) => $v > 0);
-
-        $isMultipleLoadNoPararel = count($activeLoads) > 1 && $ae_pararel_val == 0;
-        $isLoadDifferent         = count(array_unique($activeLoads)) > 1 && count($activeLoads) > 1;
-        $isSingleLoadWithPararel = count($activeLoads) === 1 && $ae_pararel_val != 0;
-        $is24HoursPararel        = $ae_pararel_val == 24;
-
-        $htmlBody = "Dear Capt/KKM <br><br>";
-        $htmlBody .= "Terlampir di noon report<br>";
-        $htmlBody .= "<b>{$date_val} {$sheetName}:</b><br>";
-
-        if ($sheetName === 'At PORT') {
-            $htmlBody .= "<br>Posisi: {$pos_val}<br>";
-        }
-
-        if ($sheetName === 'At SEA') {
-            $htmlBody .= "<br>Posisi perjalanan dari {$dep_val} ke {$des_val}<br>";
-        }
-
-        if ($me_hsd_val != 0 && $manuvering_time_val == 0) {
-            $htmlBody .= "<br>Terdapat pemakaian <b>ME HSD sebanyak {$me_hsd_val} liter tanpa adanya manuvering</b><br>";
-        }
-
-        if (($ae_pararel_val - $crane_duration_val - $manuvering_time_val) > 3) {
-            $htmlBody .= "<br>Terdapat durasi pemakaian <b>AE Pararel berlebih selama {$ae_pararel_val} jam</b> yang disertai <b>pemakaian Crane selama {$crane_duration_val} jam</b> dan <b>durasi manuvering selama {$manuvering_time_val} jam</b>.<br>";
-        }
-
-        if ($isMultipleLoadNoPararel || $isLoadDifferent || $isSingleLoadWithPararel || $is24HoursPararel) {
-            if ($isMultipleLoadNoPararel) {
-                $htmlBody .= "<br>Terdapat lebih dari 1 LOAD A/E aktif tetapi <b>tidak ada durasi A/E Pararel</b>.<br>";
-                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
-                $htmlBody .= '<thead><tr>
-                    <th>LOAD A/E 1 (KW)</th>
-                    <th>LOAD A/E 2 (KW)</th>
-                    <th>LOAD A/E 3 (KW)</th>
-                    <th>LOAD A/E 4 (KW)</th>
-                    <th>AE PARAREL DURATION</th>
-                    <th>REEFER 20"</th>
-                    <th>REEFER 40"</th>
-                </tr></thead><tbody>';
-
-                $htmlBody .= "<tr>
-                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
-                    <td>" . number_format($ae_pararel_val, 2) . "</td>
-                    <td>" . number_format($refer20, 2) . "</td>
-                    <td>" . number_format($refer40, 2) . "</td>
-                </tr>";
-
-                $htmlBody .= '</tbody></table>';
-            }
-
-            if ($isLoadDifferent) {
-                $htmlBody .= "<br>Terdapat lebih dari 1 LOAD A/E aktif dengan <b>nilai berbeda</b>.<br>";
-                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
-                $htmlBody .= '<thead><tr>
-                    <th>LOAD A/E 1 (KW)</th>
-                    <th>LOAD A/E 2 (KW)</th>
-                    <th>LOAD A/E 3 (KW)</th>
-                    <th>LOAD A/E 4 (KW)</th>
-                    <th>AE PARAREL DURATION</th>
-                    <th>REEFER 20"</th>
-                    <th>REEFER 40"</th>
-                </tr></thead><tbody>';
-
-                $htmlBody .= "<tr>
-                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
-                    <td>" . number_format($ae_pararel_val, 2) . "</td>
-                    <td>" . number_format($refer20, 2) . "</td>
-                    <td>" . number_format($refer40, 2) . "</td>
-                </tr>";
-
-                $htmlBody .= '</tbody></table>';
-            }
-
-            if ($isSingleLoadWithPararel) {
-                $htmlBody .= "<br>Terdapat hanya 1 LOAD A/E aktif tetapi <b>Durasi AE PARAREL ≠ 0</b>.<br>";
-                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
-                $htmlBody .= '<thead><tr>
-                    <th>LOAD A/E 1 (KW)</th>
-                    <th>LOAD A/E 2 (KW)</th>
-                    <th>LOAD A/E 3 (KW)</th>
-                    <th>LOAD A/E 4 (KW)</th>
-                    <th>AE PARAREL DURATION</th>
-                    <th>REEFER 20"</th>
-                    <th>REEFER 40"</th>
-                </tr></thead><tbody>';
-
-                $htmlBody .= "<tr>
-                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
-                    <td>" . number_format($ae_pararel_val, 2) . "</td>
-                    <td>" . number_format($refer20, 2) . "</td>
-                    <td>" . number_format($refer40, 2) . "</td>
-                </tr>";
-
-                $htmlBody .= '</tbody></table>';
-            }
-
-            if ($is24HoursPararel) {
-                $htmlBody .= "<br>Terdapat <b>Durasi AE PARAREL selama 24 jam</b>.<br>";
-                $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
-                $htmlBody .= '<thead><tr>
-                    <th>LOAD A/E 1 (KW)</th>
-                    <th>LOAD A/E 2 (KW)</th>
-                    <th>LOAD A/E 3 (KW)</th>
-                    <th>LOAD A/E 4 (KW)</th>
-                    <th>AE PARAREL DURATION</th>
-                    <th>REEFER 20"</th>
-                    <th>REEFER 40"</th>
-                </tr></thead><tbody>';
-
-                $htmlBody .= "<tr>
-                    <td>" . number_format($loads['LOAD A/E 1 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 2 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 3 (KW)'], 2) . "</td>
-                    <td>" . number_format($loads['LOAD A/E 4 (KW)'], 2) . "</td>
-                    <td>" . number_format($ae_pararel_val, 2) . "</td>
-                    <td>" . number_format($refer20, 2) . "</td>
-                    <td>" . number_format($refer40, 2) . "</td>
-                </tr>";
-
-                $htmlBody .= '</tbody></table>';
-            }
-        }
-
-        // Cek nilai negatif
-        $negativeEntries = [];
-        foreach ($row as $key => $cell) {
-            if (is_array($cell) && isset($cell['value']) && floatval($cell['value']) < 0) {
-                $negativeEntries[] = "{$key}: {$cell['value']}";
-            }
-        }
-
-        foreach ($negativeEntries as $entry) {
-            [$columnName, $value] = explode(': ', $entry);
-            switch (trim($columnName)) {
-                case 'SELISIH ME Maneuvering':
-                    $htmlBody .= "<br>Terdapat <b>pemakaian ME berlebih untuk manuevering</b>.<br><br>";
-                    $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center;">';
-                    $htmlBody .= '<thead><tr>
-                        <th>ME HSD</th>
-                        <th>Manuevering Time (Hours)</th>
-                        <th>BL ME</th>
-                        <th>ME Maneuvering Consumption (L/H)</th>
-                        <th>Selisih ME Maneuvering</th>
-                    </tr></thead><tbody>';
-
-                    $me_hsd_val = $row['M/E HSD']['value'] ?? 0;
-                    $manuvering_time_val = $row['MANEUVERING TIME (HOURS)']['value'] ?? 0;
-                    $bl_me_val = $row['BL M/E Static (L/Day)']['value'] ?? 0;
-                    $me_maneuv_val = $row['ME Maneuvering Cons. (L/H)']['value'] ?? 0;
-                    $selisih_me_maneuv_val = $row['SELISIH ME Maneuvering']['value'] ?? 0;
-
-                    $htmlBody .= "<tr>
-                        <td>" . number_format($me_hsd_val, 2) . "</td>
-                        <td>" . number_format($manuvering_time_val, 2) . "</td>
-                        <td>" . number_format($bl_me_val, 2) . "</td>
-                        <td>" . number_format($me_maneuv_val, 2) . "</td>
-                        <td>" . "<b>" . number_format($selisih_me_maneuv_val, 2) . "</b>" . "</td>
-                    </tr>";
-
-                    $htmlBody .= '</tbody></table>';
-                    break;
-
-                case 'EXCESS AE':
-                    $htmlBody .= "<br>Terdapat <b>pemakaian AE berlebih</b>.<br>";
-                    $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
-                    $htmlBody .= '<thead><tr>
-                        <th>A/E MFO</th>
-                        <th>A/E HSD</th>
-                        <th>GENSET CONSUMPTION - HSD</th>
-                        <th>BL AE (L/DAY)</th>
-                        <th>AE (L/DAY)</th>
-                        <th>Excess AE</th>
-                    </tr></thead><tbody>';
-
-                    $ae_mfo_val = $row['A/E MFO']['value'] ?? 0;
-                    $ae_hsd_val = $row['A/E HSD']['value'] ?? 0;
-                    $genset_hsd_val = $row['GENSET CONSUMPTION - HSD']['value'] ?? 0;
-                    $bl_ae_val = $row['BL A/E (L/Day)']['value'] ?? 0;
-                    $total_ae = $row['AE Consumption']['value'] ?? 0;
-                    $excess_ae_val = $row['EXCESS AE']['value'] ?? 0;
-
-                    $htmlBody .= "<tr>
-                        <td>" . number_format($ae_mfo_val, 2) . "</td>
-                        <td>" . number_format($ae_hsd_val, 2) . "</td>
-                        <td>" . number_format($genset_hsd_val, 2) . "</td>
-                        <td>" . number_format($bl_ae_val, 2) . "</td>
-                        <td>" . number_format($total_ae, 2) . "</td>
-                        <td>" . "<b>" . number_format($excess_ae_val, 2) . "</b>" . "</td>
-                    </tr>";
-
-                    $htmlBody .= '</tbody></table>';
-                    break;
-
-                case 'EXCESS ME L/NM (%)':
-                    $htmlBody .= "<br>Terdapat <b>pemakaian ME MFO berlebih</b>.<br>";
-                    $htmlBody .= '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; text-align: center; margin-top: 20px;">';
-                    $htmlBody .= '<thead><tr>
-                        <th>Steam Distance (Miles)</th>
-                        <th>Steam Time (Hour)</th>
-                        <th>M/E MFO</th>
-                        <th>BL L/NM</th>
-                        <th>L/NM</th>
-                        <th>Excess ME L/NM (%)</th>
-                    </tr></thead><tbody>';
-
-                    $steam_distance_val = $row['STEAM. DIST.']['value'] ?? 0;
-                    $steam_time_val = $row['STEAM TIME (HOUR : MINUTE)']['value'] ?? 0;
-                    $me_mfo_val = $row['M/E MFO']['value'] ?? 0;
-                    $bl_ln_val = $row['BL L/NM']['value'] ?? 0;
-                    $lnm_val = $row['L/NM']['value'] ?? 0;
-                    $excess_me_mfo_lnm_val = $row['EXCESS ME L/NM (%)']['value'] ?? 0;
-
-                    $htmlBody .= "<tr>
-                        <td>" . number_format($steam_distance_val, 2) . "</td>
-                        <td>" . number_format($steam_time_val, 2) . "</td>
-                        <td>" . number_format($me_mfo_val, 2) . "</td>
-                        <td>" . number_format($bl_ln_val, 2) . "</td>
-                        <td>" . number_format($lnm_val, 2) . "</td>
-                        <td>" . "<b>" . number_format($excess_me_mfo_lnm_val, 2) . "</b>" . "</td>
-                    </tr>";
-
-                    $htmlBody .= '</tbody></table>';
-                    break;
-            }
-        }
-
-        $htmlBody .= "<br>Mohon dijelaskan terkait detail laporan diatas.<br><br>";
-        $htmlBody .= "Atas perhatian dan kerjasama Saudara, saya mengucapkan terima kasih.<br><br>";
-        $htmlBody .= "Rgrds<br>";
-        $htmlBody .= "Tim Bunker<br>";
-
-        $toEmail = $vesselEmails[$vesselName][$primaryRole] ?? 'marulihtgl12@gmail.com';
-        $ccEmails = [];
-
-        foreach ($ccRoles as $role) {
-            $email = $vesselEmails[$vesselName][$role] ?? null;
-            if ($email) {
-                $ccEmails[] = $email;
-            }
-        }
-
-        Mail::html($htmlBody, function ($message) use ($sheetName, $vesselName, $toEmail, $ccEmails) {
-            $message->to($toEmail)
-                    ->cc($ccEmails)
-                    ->subject("Permohonan penjelasan laporan {$vesselName} {$sheetName}");
-        });
-    }
-
-    public function sendEmail(Request $request)
-    {
-        $selectedPort = $request->input('selected_rows_port', []);
-        $selectedSea = $request->input('selected_rows_sea', []);
-
-        $reportPort = session('port_anomaly', []);
-        $reportSea = session('sea_anomaly', []);
-        $headersPort = session('headers_port', []);
-        $headersSea = session('headers_sea', []);
-
-        $selectedDataPort = collect($reportPort)->only($selectedPort)->values()->all();
-        $selectedDataSea = collect($reportSea)->only($selectedSea)->values()->all();
-
-        Log::info('selectedDataSea', [
-            $selectedDataSea
-        ]);
-
-        $vesselEmails = $this->loadVesselEmails();
-
-        foreach ($selectedDataPort as $row) {
-            $this->processEmailRow($row, 'At PORT', $vesselEmails);
-        }
-
-        foreach ($selectedDataSea as $row) {
-            $this->processEmailRow($row, 'At SEA', $vesselEmails);
-        }
-
-        return redirect('pages.consumption')
-            ->with('success_email', 'All e-mails sent successfully.');
     }
 
     private function getDinamisSeaData(array $sea_data, float $density): array

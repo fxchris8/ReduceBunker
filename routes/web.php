@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SsoController;
 use App\Http\Controllers\BunkerController;
 use App\Http\Controllers\ConsumptionController;
+use App\Http\Controllers\ConsumptionEmailController;
 use App\Http\Controllers\SummaryController;
 use App\Http\Controllers\DetailController;
 use App\Http\Controllers\PlanningController;
@@ -25,7 +26,7 @@ Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
     Route::get('/menu', [BunkerController::class, 'index'])->name('menu');
 
     Route::any('/consumption-analysis', [ConsumptionController::class, 'show'])->name('pages.consumption');
-    Route::post('/send-email/send', [ConsumptionController::class, 'sendEmail'])->name('send.email');
+    Route::post('/send-email/send', [ConsumptionEmailController::class, 'sendEmail'])->name('send.email');
 
     Route::any('/', [SummaryController::class, 'show'])->name('dashboard');
     // Route::post('/summary-analysis', [SummaryController::class, 'upload'])->name('file.dashboard');
