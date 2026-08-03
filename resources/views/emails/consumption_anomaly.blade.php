@@ -77,7 +77,7 @@
         $analysisColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME L/NM (%)'];
         $negativeEntries = [];
         foreach ($mailData['row'] as $key => $cell) {
-            if (in_array($key, $analysisColumns) && is_array($cell) && isset($cell['value']) && floatval($cell['value']) > 0) {
+            if (in_array($key, $analysisColumns) && is_array($cell) && isset($cell['value']) && floatval($cell['value']) < 0) {
                 $negativeEntries[] = "{$key}: {$cell['value']}";
             }
         }

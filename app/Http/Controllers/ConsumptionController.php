@@ -437,7 +437,7 @@ class ConsumptionController extends Controller
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
                 }
-                if (in_array($key, $analysisColumns) && is_numeric($value) && $value > 0) {
+                if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
@@ -498,7 +498,7 @@ class ConsumptionController extends Controller
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
                 }
-                if (in_array($key, $analysisColumns) && is_numeric($value) && $value > 0) {
+                if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
