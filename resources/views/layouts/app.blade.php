@@ -39,8 +39,8 @@
                class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('dashboard') ? 'font-bold underline' : '' }}">
                <i class="fas fa-tachometer-alt"></i> Home / Dashboard
             </a>
-            <a href="{{ route('po.upload') }}"
-               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('po.upload') || request()->routeIs('po.upload_dinamis') ? 'font-bold underline' : '' }}">
+            <a href="{{ route('pages.consumption') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('pages.consumption') ? 'font-bold underline' : '' }}">
                <i class="fas fa-chart-line"></i> Consumption Analysis
             </a>
             <a href="{{ route('po.planning') }}"
