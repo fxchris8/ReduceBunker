@@ -291,6 +291,19 @@ class ConsumptionController extends Controller
         set_time_limit(1200);
 
         if (!$request->filled('report_date')) {
+            if (session()->has('consumption_report_date')) {
+                return view('pages.consumption', [
+                    'headers_port' => session('consumption_headers_port'),
+                    'report14' => session('consumption_report14'),
+                    'headers_sea' => session('consumption_headers_sea'),
+                    'report16' => session('consumption_report16'),
+                    'port_sea_header' => session('consumption_port_sea_header'),
+                    'port_sea_data' => session('consumption_port_sea_data'),
+                    'density' => session('consumption_density', 950),
+                    'isDinamis' => false,
+                ]);
+            }
+
             return view('pages.consumption', [
                 'report14'      => null,
                 'report16'      => null,
@@ -430,15 +443,34 @@ class ConsumptionController extends Controller
             $aeLoadCols      = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
             $highlightAeLoad = $isLoadCondition || $isLoadDifferentCondition || $isSingleLoadCondition || $is24HoursAePararelCondition;
 
+            $anomalies = [
+                'green' => [],
+                'red' => [],
+                'yellow' => [],
+                'blue' => []
+            ];
+            
+            if ($rowAnomalous) {
+                if ($allAeZero && $totalReefer > 0) $anomalies['red'][] = "Semua beban A/E 0 tetapi terdapat Reefer aktif.";
+                if ($reeferExceeds) $anomalies['red'][] = "Pararel Genset terdeteksi, tetapi jumlah Reefer kurang dari batas acuan.";
+            }
+            if ($me_without_manuev_Condition) $anomalies['yellow'][] = "Konsumsi M/E HSD ada tetapi Maneuvering Time 0.";
+            if ($excess_ae_par_dur_Condition) $anomalies['blue'][] = "Terdapat sisa durasi pararel A/E > 3 jam yang tidak wajar.";
+            if ($highlightAeLoad) $anomalies['yellow'][] = "Anomali beban A/E terdeteksi (pararel tanpa durasi, beban berbeda, single dengan durasi pararel, atau pararel 24 jam).";
+
             $newRow = [];
             foreach ($row as $key => $value) {
                 $class = '';
 
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
+                    if (!in_array("Nilai referensi (baseline) standar kapal.", $anomalies['green'])) {
+                        $anomalies['green'][] = "Nilai referensi (baseline) standar kapal.";
+                    }
                 }
                 if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
+                    $anomalies['red'][] = "Terdapat nilai defisit/negatif pada kolom $key.";
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
@@ -452,8 +484,11 @@ class ConsumptionController extends Controller
 
                 $newRow[$key] = ['value' => $value, 'class' => $class];
             }
-
+            
             $newRow['_row_class'] = ['value' => $rowAnomalous ? 'bg-red-200' : '', 'class' => ''];
+            
+            $anomaliesFiltered = array_filter($anomalies, fn($arr) => count($arr) > 0);
+            $newRow['_anomalies'] = ['value' => $anomaliesFiltered, 'class' => ''];
 
             return $newRow;
         }, $port_data);
@@ -491,15 +526,34 @@ class ConsumptionController extends Controller
             $aeLoadCols      = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
             $highlightAeLoad = $isLoadCondition || $isLoadDifferentCondition || $isSingleLoadCondition || $is24HoursAePararelCondition;
 
+            $anomalies = [
+                'green' => [],
+                'red' => [],
+                'yellow' => [],
+                'blue' => []
+            ];
+            
+            if ($rowAnomalous) {
+                if ($allAeZero && $totalReefer > 0) $anomalies['red'][] = "Semua beban A/E 0 tetapi terdapat Reefer aktif.";
+                if ($reeferExceeds) $anomalies['red'][] = "Pararel Genset terdeteksi, tetapi jumlah Reefer kurang dari batas acuan.";
+            }
+            if ($me_without_manuev_Condition) $anomalies['yellow'][] = "Konsumsi M/E HSD ada tetapi Maneuvering Time 0.";
+            if ($excess_ae_par_dur_Condition) $anomalies['blue'][] = "Terdapat sisa durasi pararel A/E > 3 jam yang tidak wajar.";
+            if ($highlightAeLoad) $anomalies['yellow'][] = "Anomali beban A/E terdeteksi (pararel tanpa durasi, beban berbeda, single dengan durasi pararel, atau pararel 24 jam).";
+
             $newRow = [];
             foreach ($row as $key => $value) {
                 $class = '';
 
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
+                    if (!in_array("Nilai referensi (baseline) standar kapal.", $anomalies['green'])) {
+                        $anomalies['green'][] = "Nilai referensi (baseline) standar kapal.";
+                    }
                 }
                 if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
+                    $anomalies['red'][] = "Terdapat nilai defisit/negatif pada kolom $key.";
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
@@ -515,6 +569,9 @@ class ConsumptionController extends Controller
             }
 
             $newRow['_row_class'] = ['value' => $rowAnomalous ? 'bg-red-200' : '', 'class' => ''];
+            
+            $anomaliesFiltered = array_filter($anomalies, fn($arr) => count($arr) > 0);
+            $newRow['_anomalies'] = ['value' => $anomaliesFiltered, 'class' => ''];
 
             return $newRow;
         }, $sea_data);
@@ -555,7 +612,20 @@ class ConsumptionController extends Controller
             $row['DAYA ME (KW)']                       = ['value' => $dinamis['DAYA ME (KW)'] ?? '', 'class' => ''];
             $row['Ideal Consumption Dynamic (L)']      = ['value' => $idealDynamic, 'class' => ''];
             $row['Konsumsi M/E MFO Aktual']            = ['value' => $dinamis['Konsumsi M/E MFO Aktual'] ?? '', 'class' => ''];
-            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '', 'class' => (($dinamis['Gap'] ?? '') === 'Tidak ada data kurva') ? 'bg-yellow-200 font-semibold' : ''];
+            
+            $gapClass = '';
+            if (($dinamis['Gap'] ?? '') === 'Tidak ada data kurva') {
+                $gapClass = 'bg-yellow-200 font-semibold';
+                if (!isset($row['_anomalies'])) {
+                    $row['_anomalies'] = ['value' => [], 'class' => ''];
+                }
+                if (!isset($row['_anomalies']['value']['yellow'])) {
+                    $row['_anomalies']['value']['yellow'] = [];
+                }
+                $row['_anomalies']['value']['yellow'][] = "Tidak ada data kurva untuk perhitungan dinamis.";
+            }
+            
+            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '', 'class' => $gapClass];
             $row['Error']                              = ['value' => $dinamis['Error'] ?? '', 'class' => ''];
         }
         unset($row);
@@ -564,6 +634,17 @@ class ConsumptionController extends Controller
         $headers_sea  = array_filter(array_keys($colored_sea[0] ?? []), fn($k) => $k !== '_row_class');
 
         session(['port_anomaly' => $colored_port, 'sea_anomaly' => $colored_sea, 'port_sea_data' => $port_sea_data]);
+
+        session([
+            'consumption_report_date' => $reportDate,
+            'consumption_density' => $density,
+            'consumption_headers_port' => $headers_port,
+            'consumption_report14' => $colored_port,
+            'consumption_headers_sea' => $headers_sea,
+            'consumption_report16' => $colored_sea,
+            'consumption_port_sea_header' => array_keys($port_sea_data[0] ?? []),
+            'consumption_port_sea_data' => $port_sea_data,
+        ]);
 
         return view('pages.consumption', [
             'headers_port' => $headers_port,
@@ -684,7 +765,7 @@ class ConsumptionController extends Controller
                 ['vesselid'=>'ANO','tanggal'=>'2026-06-13 11:00:00','pos'=>'AT SEA SURABAYA - MAKASSAR','departure'=>'IDSUB','destination'=>'IDMAK','steam_dist'=>423,'steam_time'=>26,'ship_speed'=>16.3,'prop_slip'=>3.2,'me_rpm'=>118,'me_mfo'=>4200,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>980,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>210,'load_ae_2'=>210,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>5,'reefer40'=>2,'me_manuev_consum'=>0],
                 ['vesselid'=>'BIM','tanggal'=>'2026-06-13 11:30:00','pos'=>'AT SEA MAKASSAR - BITUNG','departure'=>'IDMAK','destination'=>'IDBTG','steam_dist'=>380,'steam_time'=>25,'ship_speed'=>15.2,'prop_slip'=>4.1,'me_rpm'=>115,'me_mfo'=>3850,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>870,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>185,'load_ae_2'=>185,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>3,'reefer40'=>1,'me_manuev_consum'=>0],
                 ['vesselid'=>'CEN','tanggal'=>'2026-06-13 10:45:00','pos'=>'AT SEA JAKARTA - SURABAYA','departure'=>'IDJKT','destination'=>'IDSUB','steam_dist'=>290,'steam_time'=>24,'ship_speed'=>12.1,'prop_slip'=>5.5,'me_rpm'=>108,'me_mfo'=>5100,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1100,'duration_manuev'=>1.5,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>230,'load_ae_2'=>0,'load_ae_3'=>230,'load_ae_4'=>0,'ae_pararel_duration'=>1.5,'reefer20'=>8,'reefer40'=>3,'me_manuev_consum'=>420],
-                ['vesselid'=>'TFL','tanggal'=>'2026-06-13 12:00:00','pos'=>'AT SEA KENDARI - MAKASSAR','departure'=>'IDKDI','destination'=>'IDMAK','steam_dist'=>310,'steam_time'=>25,'ship_speed'=>12.4,'prop_slip'=>3.8,'me_rpm'=>112,'me_mfo'=>3200,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>750,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>160,'load_ae_2'=>160,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
+                ['vesselid'=>'TFL','tanggal'=>'2026-06-13 12:00:00','pos'=>'AT SEA KENDARI - MAKASSAR','departure'=>'IDKDI','destination'=>'IDMAK','steam_dist'=>310,'steam_time'=>25,'ship_speed'=>12.4,'prop_slip'=>3.8,'me_rpm'=>112,'me_mfo'=>3200,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>750,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>160,'load_ae_2'=>160,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0, 'deck_daily_work'=>'Brushing and Primer Paint Astern FloorRepaint White Colour Poop Deck Wall AroundFinishing Coat Red Colour Stantchion Bay 17-25 Starboard SideFinishing Coat Green Colourn Astern FloorRepaint Black Colour Bulwark and Side Hull AsternCleaning Inner and Outer AcomodationCleaning Bridge Wing AroundCheck Bilges Cargo Hold No.1 and 2 P/SCheck Lashing and Securing Stowage Around'],
                 ['vesselid'=>'OSI','tanggal'=>'2026-06-13 09:30:00','pos'=>'AT SEA TERNATE - BITUNG','departure'=>'IDTTE','destination'=>'IDBTG','steam_dist'=>195,'steam_time'=>24,'ship_speed'=>8.1,'prop_slip'=>6.2,'me_rpm'=>102,'me_mfo'=>6800,'me_hsd'=>0,'ae_mfo'=>1200,'ae_hsd'=>300,'duration_manuev'=>2,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>1300,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>200,'load_ae_2'=>200,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>2,'reefer20'=>10,'reefer40'=>4,'me_manuev_consum'=>380],
                 ['vesselid'=>'PWE','tanggal'=>'2026-06-13 11:15:00','pos'=>'AT SEA JAKARTA - PONTIANAK','departure'=>'IDJKT','destination'=>'IDPNK','steam_dist'=>520,'steam_time'=>36,'ship_speed'=>14.4,'prop_slip'=>2.9,'me_rpm'=>116,'me_mfo'=>4500,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1200,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>190,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>4,'reefer40'=>2,'me_manuev_consum'=>0],
                 ['vesselid'=>'HSG','tanggal'=>'2026-06-13 08:00:00','pos'=>'AT SEA SURABAYA - BANJARMASIN','departure'=>'IDSUB','destination'=>'IDBPN','steam_dist'=>350,'steam_time'=>27,'ship_speed'=>13.0,'prop_slip'=>4.5,'me_rpm'=>110,'me_mfo'=>4900,'me_hsd'=>350,'ae_mfo'=>0,'ae_hsd'=>600,'duration_manuev'=>3,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>3,'reefer20'=>0,'reefer40'=>1,'me_manuev_consum'=>510],
