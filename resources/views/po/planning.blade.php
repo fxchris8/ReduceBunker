@@ -26,7 +26,7 @@
                         </label>
                         <input type="date" id="report_date" name="report_date"
                             class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                            value="{{ request('report_date', date('Y-m-d')) }}">
+                            value="{{ request('report_date', session('planning_report_date_input', date('Y-m-d'))) }}">
                     </div>
                     <div class="px-4 py-2 rounded-md text-lg">
                         <label for="next_week_date" class="block text-sm font-medium text-gray-700 mb-1">
@@ -34,7 +34,7 @@
                         </label>
                         <input type="date" id="next_week_date" name="next_week_date"
                             class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                            value="{{ request('next_week_date', date('Y-m-d', strtotime('+7 days'))) }}">
+                            value="{{ request('next_week_date', session('planning_next_week_date_input', date('Y-m-d', strtotime('+7 days')))) }}">
                     </div>
                 </div>
                 <div class="flex flex-wrap items-end gap-4 mb-4">
@@ -45,7 +45,7 @@
                         </label>
                         <input type="text" id="rob_tanker_mfo" name="rob_tanker_mfo"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48"
-                            value="{{ request('rob_tanker_mfo') ? number_format((float)request('rob_tanker_mfo'), 0, ',', '.') : '' }}"
+                            value="{{ request('rob_tanker_mfo', session('planning_robTankerMfo')) ? number_format((float)request('rob_tanker_mfo', session('planning_robTankerMfo')), 0, ',', '.') : '' }}"
                             oninput="formatRibuan(this)" required placeholder="0">
                     </div>
                     <div>
@@ -54,7 +54,7 @@
                         </label>
                         <input type="text" id="rob_tanker_hsd" name="rob_tanker_hsd"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48"
-                            value="{{ request('rob_tanker_hsd') ? number_format((float)request('rob_tanker_hsd'), 0, ',', '.') : '' }}"
+                            value="{{ request('rob_tanker_hsd', session('planning_robTankerHsd')) ? number_format((float)request('rob_tanker_hsd', session('planning_robTankerHsd')), 0, ',', '.') : '' }}"
                             oninput="formatRibuan(this)" required placeholder="0">
                     </div>
                     <div>
@@ -63,7 +63,7 @@
                         </label>
                         <input type="text" id="harga_mfo" name="harga_mfo"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48"
-                            value="{{ request('harga_mfo') ? number_format((float)request('harga_mfo'), 0, ',', '.') : '' }}"
+                            value="{{ request('harga_mfo', session('planning_hargaMfo')) ? number_format((float)request('harga_mfo', session('planning_hargaMfo')), 0, ',', '.') : '' }}"
                             oninput="formatRibuan(this)" required placeholder="0">
                     </div>
                     <div>
@@ -72,7 +72,7 @@
                         </label>
                         <input type="text" id="harga_hsd" name="harga_hsd"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48"
-                            value="{{ request('harga_hsd') ? number_format((float)request('harga_hsd'), 0, ',', '.') : '' }}"
+                            value="{{ request('harga_hsd', session('planning_hargaHsd')) ? number_format((float)request('harga_hsd', session('planning_hargaHsd')), 0, ',', '.') : '' }}"
                             oninput="formatRibuan(this)" required placeholder="0">
                         <input type="hidden" id="harga_hsd_raw" name="harga_hsd_raw">
                     </div>
@@ -84,7 +84,7 @@
                         </label>
                         <input type="text" id="input_saldo_rp" name="input_saldo_rp"
                             class="border border-gray-300 rounded-md px-4 py-2 w-48"
-                            value="{{ request('input_saldo_rp') ? number_format((float)request('input_saldo_rp'), 0, ',', '.') : '' }}"
+                            value="{{ request('input_saldo_rp', session('planning_input_saldo_rp')) ? number_format((float)request('input_saldo_rp', session('planning_input_saldo_rp')), 0, ',', '.') : '' }}"
                             oninput="formatRibuan(this)" required placeholder="0">
                     </div>
                     <button type="submit" data-loading-text="Loading..."

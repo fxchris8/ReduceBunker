@@ -69,7 +69,7 @@ class PlanningController extends Controller
     {
         $filePath = storage_path('app/L_NM.xlsx');
         if (!file_exists($filePath)) {
-            \Log::error("File L_NM.xlsx tidak ditemukan di $filePath");
+            Log::error("File L_NM.xlsx tidak ditemukan di $filePath");
             return [];
         }
 
@@ -399,7 +399,7 @@ class PlanningController extends Controller
         $noon = \Carbon\Carbon::createFromFormat('d/m/Y', $noonReportDate);
         $dayDiff = $etb ? $noon->diffInDays($etb, false) : null;
 
-        \Log::info('splitRouteByPosition called', [
+        Log::info('splitRouteByPosition called', [
             'currentRouteWithNext' => $currentRouteWithNext,
             'position'             => $position,
             'etbDate'              => $etbDate,
@@ -418,10 +418,10 @@ class PlanningController extends Controller
             }
         }
 
-        \Log::info('Match indexes found', ['matchIndexes' => $matchIndexes]);
+        Log::info('Match indexes found', ['matchIndexes' => $matchIndexes]);
 
         if (empty($matchIndexes)) {
-            \Log::info('No match found, returning original route');
+            Log::info('No match found, returning original route');
             return [$currentRouteWithNext, ''];
         }
 
@@ -441,7 +441,7 @@ class PlanningController extends Controller
             $matchIndex = $matchIndexes[0];
         }
 
-        \Log::info('Match decision', [
+        Log::info('Match decision', [
             'chosenIndex'  => $matchIndex,
         ]);
 
@@ -450,7 +450,7 @@ class PlanningController extends Controller
 
         $result = [implode('.', $firstPart), implode('.', $secondPart)];
 
-        \Log::info('Final split result', ['result' => $result]);
+        Log::info('Final split result', ['result' => $result]);
 
         return $result;
     }
@@ -480,8 +480,8 @@ class PlanningController extends Controller
             if ($route === '') return null;
             if (isset($cache[$route])) return $cache[$route];
 
-            \Log::info("\n");
-            \Log::info("Route : $route");
+            Log::info("\n");
+            Log::info("Route : $route");
 
             $parts = preg_split('/\s*-\s*|,|_|\s+|\./', $route);
             $parts = array_values(array_filter(array_map('trim', $parts), fn($v) => $v !== ''));
@@ -507,7 +507,7 @@ class PlanningController extends Controller
 
             if (!empty($missing)) {
                 foreach ($missing as $miss) {
-                    \Log::info("- $miss");
+                    Log::info("- $miss");
                 }
                 return null;
             }
@@ -587,7 +587,7 @@ class PlanningController extends Controller
                 $last_pos_id = $port_id_map[$last_pos] ?? null;
             }
 
-            \Log::info("Vessel: $vesselKey, Pos: $pos_port, Last Pos: $last_pos");
+            Log::info("Vessel: $vesselKey, Pos: $pos_port, Last Pos: $last_pos");
 
             if ($departurePort || $destinationPort) {
                 $position = $departurePort . '.' . $destinationPort;
@@ -677,7 +677,7 @@ class PlanningController extends Controller
         }
 
         if ($vesselKey === 'BSA') {
-            \Log::info('BSA debug reorderReport', [
+            Log::info('BSA debug reorderReport', [
                 'rob_mfo_sebelumnya' => $rob_mfo_sebelumnya,
                 'rob_hsd_sebelumnya' => $rob_hsd_sebelumnya,
                 'distanceCurrent'    => $distanceCurrent,
@@ -908,6 +908,19 @@ class PlanningController extends Controller
         ];
 
         if (!$hasFetchedPlanning) {
+            if (session()->has('planning_reports')) {
+                return view('po.planning', [
+                    'reportDate'   => session('planning_date'),
+                    'nextWeekDate' => session('planning_next_week_date'),
+                    'headerRows' => session('planning_headerRows'),
+                    'report' => session('planning_reports'),
+                    'noon_report_formattedDate' => session('noon_report_formattedDate'),
+                    'hasFetchedPlanning' => true,
+                    'hargaMfo' => session('planning_hargaMfo'),
+                    'hargaHsd' => session('planning_hargaHsd'),
+                    'saldo' => session('planning_saldo'),
+                ]);
+            }
             return view('po.planning', $planningViewData);
         }
 
@@ -968,9 +981,9 @@ class PlanningController extends Controller
             return $etbA->lt($etbB) ? -1 : 1;
         });
 
-        \Log::info("\n");
-        \Log::info(str_repeat('-', 50) . PHP_EOL);
-        \Log::info("\n");
+        Log::info("\n");
+        Log::info(str_repeat('-', 50) . PHP_EOL);
+        Log::info("\n");
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -1147,6 +1160,16 @@ class PlanningController extends Controller
             'planning_date' => $dvs_formattedDate,
             'planning_next_week_date' => $dvs_formattedNextWeekDate,
             'noon_report_formattedDate' => $noon_report_formattedDate,
+            'planning_headerRows' => $headerRows,
+            'planning_hasFetchedPlanning' => $hasFetchedPlanning,
+            'planning_hargaMfo' => $hargaMfo,
+            'planning_hargaHsd' => $hargaHsd,
+            'planning_saldo' => $saldo,
+            'planning_robTankerMfo' => $request->input('rob_tanker_mfo'),
+            'planning_robTankerHsd' => $request->input('rob_tanker_hsd'),
+            'planning_input_saldo_rp' => $request->input('input_saldo_rp'),
+            'planning_report_date_input' => $reportDate,
+            'planning_next_week_date_input' => $next_week_date,
         ]);
 
         Log::info('Refueling planning rendered', [
