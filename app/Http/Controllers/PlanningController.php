@@ -188,7 +188,10 @@ class PlanningController extends Controller
                 $isiBbmMfoStatic  = $robNewMe >= $ss_me ? 0 : ceil(($ss_me - $robNewMe) / 1000) * 1000;
                 $isiBbmMfoDynamic = $robNewMeDynamic >= $ss_me ? 0 : ceil(($ss_me - $robNewMeDynamic) / 1000) * 1000;
 
-                $isiBbmMfo = $isiBbmMfoStatic + $isiBbmMfoDynamic;
+                $strategy = request('strategies.'.$vesselKey, 'static');
+                $report['Strategi'] = $strategy;
+
+                $isiBbmMfo = $strategy === 'dynamic' ? $isiBbmMfoDynamic : $isiBbmMfoStatic;
                 if ($mfoBalance < $isiBbmMfo) {
                     $beliMfo  = $isiBbmMfo - $mfoBalance;
                     $biayaMfo = $beliMfo * $hargaMfo;
@@ -201,7 +204,7 @@ class PlanningController extends Controller
                 }
                 $isiBbmHsdDynamic = 0;
 
-                $isiBbmHsd = $isiBbmHsdStatic + $isiBbmHsdDynamic;
+                $isiBbmHsd = $strategy === 'dynamic' ? $isiBbmHsdDynamic : $isiBbmHsdStatic;
                 if ($isiBbmHsd > 0 && $hsdBalance < $isiBbmHsd) {
                     $beliHsd  = $isiBbmHsd - $hsdBalance;
                     $biayaHsd = $beliHsd * $hargaHsd;
@@ -522,6 +525,29 @@ class PlanningController extends Controller
         // $distanceCurrent = $calculateDistance($currentRouteWithNext);
         $distanceNext = $calculateDistance($nextRoute);
 
+        $getDistanceDetail = function (?string $route) use ($jarak_map) {
+            $route = strtoupper(trim($route ?? ''));
+            if ($route === '') return [];
+            
+            $parts = preg_split('/\s*-\s*|,|_|\s+|\./', $route);
+            $parts = array_values(array_filter(array_map('trim', $parts), fn($v) => $v !== ''));
+            
+            $detail = [];
+            for ($i = 0; $i < count($parts) - 1; $i++) {
+                $origin = $parts[$i];
+                $destination = $parts[$i + 1];
+                if ($origin == $destination) continue;
+                
+                if (isset($jarak_map[$origin][$destination])) {
+                    $detail[] = ['from' => $origin, 'to' => $destination, 'distance' => (float) $jarak_map[$origin][$destination]];
+                } else {
+                    $detail[] = ['from' => $origin, 'to' => $destination, 'distance' => null];
+                }
+            }
+            return $detail;
+        };
+        $distanceNextDetail = $getDistanceDetail($nextRoute);
+
         $refuelingPlan = $refueling_plan_map[$vesselKey] ?? [];
         $mfoDayAtSea = $refuelingPlan['mfo_day_at_sea'] ?? null;
         $aeDayAtSea = $refuelingPlan['ae_day_at_sea'] ?? null;
@@ -747,6 +773,7 @@ class PlanningController extends Controller
             // 'Total jarak voyage' => $calculateDistance($currentRouteWithNext),
 
             'Jarak Next Voyage' => $distanceNext,
+            '_distance_next_detail' => $distanceNextDetail,
 
             'ROB HSD Sebelumnya' => $rob_hsd_sebelumnya,
             'ROB MFO Sebelumnya' => $rob_mfo_sebelumnya,

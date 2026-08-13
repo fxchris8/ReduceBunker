@@ -17,7 +17,7 @@
                 </div>
             @endif
 
-            <form method="GET" action="{{ route('po.planning') }}" class="mb-4" onsubmit="showPlanningLoading(this)">
+            <form id="planning-form" method="GET" action="{{ route('po.planning') }}" class="mb-4" onsubmit="showPlanningLoading(this)">
                 <input type="hidden" name="hit_api" value="1">
                 <div class="flex flex-wrap items-end gap-4 mb-4">
                     <div class="px-4 py-2 rounded-md text-lg">
@@ -142,7 +142,7 @@
                                 'Kebutuhan MFO Static', 'Kebutuhan MFO Dynamic', 'Kebutuhan HSD Static',
                                 'Kebutuhan HSD Dynamic', 'Isi BBM MFO', 'Isi BBM HSD', 'Isi BBM MFO Static',
                                 'Isi BBM MFO Dynamic', 'Isi BBM HSD Static', 'Isi BBM HSD Dynamic', 'Keterangan',
-                                '_detail'
+                                '_detail', '_distance_next_detail'
                             ];
                         @endphp
                         <thead class="bg-gray-300 sticky top-0 z-30">
@@ -197,6 +197,7 @@
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Distance Next Voyage</th>
                                     <th colspan="6" class="px-4 py-2 text-center border border-black">Static Baseline</th>
                                     <th colspan="6" class="px-4 py-2 text-center border border-black">Dynamic Baseline</th>
+                                    <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Pilih Strategi</th>
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Keterangan</th>
                                     <th rowspan="2" class="px-4 py-2 text-center border border-black align-middle">Aksi</th>
                                 </tr>
@@ -242,19 +243,33 @@
                                         <td class="px-4 py-2 text-center border border-black">{{ $row['Vessel ID'] ?? '' }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robMfo) ? number_format(floor($robMfo / 1000) * 1000, 0, ',', '.') : $robMfo }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($robHsd) ? number_format(floor($robHsd / 1000) * 1000, 0, ',', '.') : $robHsd }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($distanceNextVoyage) ? \App\Helpers\NumberFormatter::idFormat($distanceNextVoyage) : $distanceNextVoyage }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">
+                                            @if(!empty($row['_distance_next_detail']) && is_numeric($distanceNextVoyage))
+                                                <button onclick="showDistanceDetail({{ json_encode($row['_distance_next_detail']) }}, '{{ $row['Vessel ID'] ?? '' }}', '{{ $row['Next Voyage (Sailing Route)'] ?? '' }}')" class="text-blue-600 hover:text-blue-800 font-semibold underline decoration-dotted">
+                                                    {{ \App\Helpers\NumberFormatter::idFormat($distanceNextVoyage) }}
+                                                </button>
+                                            @else
+                                                {{ is_numeric($distanceNextVoyage) ? \App\Helpers\NumberFormatter::idFormat($distanceNextVoyage) : $distanceNextVoyage }}
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blMeStatic) ? number_format($blMeStatic, 0, ',', '.') : $blMeStatic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blAeStatic) ? number_format($blAeStatic, 0, ',', '.') : $blAeStatic }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfoStatic)  ? number_format($kebutuhanMfoStatic,  0, ',', '.') : $kebutuhanMfoStatic }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanHsdStatic)  ? number_format($kebutuhanHsdStatic,  0, ',', '.') : $kebutuhanHsdStatic }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfoStatic)  ? number_format($isiBbmMfoStatic,  0, ',', '.') : $isiBbmMfoStatic }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsdStatic)  ? number_format($isiBbmHsdStatic,  0, ',', '.') : $isiBbmHsdStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($kebutuhanMfoStatic) && $kebutuhanMfoStatic != 0 ? 'font-bold bg-yellow-100' : '' }}">{{ is_numeric($kebutuhanMfoStatic)  ? number_format($kebutuhanMfoStatic,  0, ',', '.') : $kebutuhanMfoStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($kebutuhanHsdStatic) && $kebutuhanHsdStatic != 0 ? 'font-bold bg-yellow-100' : '' }}">{{ is_numeric($kebutuhanHsdStatic)  ? number_format($kebutuhanHsdStatic,  0, ',', '.') : $kebutuhanHsdStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($isiBbmMfoStatic) && $isiBbmMfoStatic != 0 ? 'font-bold bg-yellow-100' : '' }}">{{ is_numeric($isiBbmMfoStatic)  ? number_format($isiBbmMfoStatic,  0, ',', '.') : $isiBbmMfoStatic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($isiBbmHsdStatic) && $isiBbmHsdStatic != 0 ? 'font-bold bg-yellow-100' : '' }}">{{ is_numeric($isiBbmHsdStatic)  ? number_format($isiBbmHsdStatic,  0, ',', '.') : $isiBbmHsdStatic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blMeDynamic) ? number_format($blMeDynamic, 0, ',', '.') : $blMeDynamic }}</td>
                                         <td class="px-4 py-2 text-center border border-black">{{ is_numeric($blAeDynamic) ? number_format($blAeDynamic, 0, ',', '.') : $blAeDynamic }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($kebutuhanMfoDynamic) ? number_format($kebutuhanMfoDynamic, 0, ',', '.') : $kebutuhanMfoDynamic }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">0</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmMfoDynamic) ? number_format($isiBbmMfoDynamic, 0, ',', '.') : $isiBbmMfoDynamic }}</td>
-                                        <td class="px-4 py-2 text-center border border-black">{{ is_numeric($isiBbmHsdDynamic) ? number_format($isiBbmHsdDynamic, 0, ',', '.') : $isiBbmHsdDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($kebutuhanMfoDynamic) && $kebutuhanMfoDynamic != 0 ? 'font-bold bg-yellow-100' : '' }}">{{ is_numeric($kebutuhanMfoDynamic) ? number_format($kebutuhanMfoDynamic, 0, ',', '.') : $kebutuhanMfoDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($kebutuhanHsdDynamic) && $kebutuhanHsdDynamic != 0 ? 'font-bold bg-yellow-100' : '' }}">{{ is_numeric($kebutuhanHsdDynamic) ? number_format($kebutuhanHsdDynamic, 0, ',', '.') : $kebutuhanHsdDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($isiBbmMfoDynamic) && $isiBbmMfoDynamic != 0 ? 'font-bold bg-yellow-100' : '' }}">{{ is_numeric($isiBbmMfoDynamic) ? number_format($isiBbmMfoDynamic, 0, ',', '.') : $isiBbmMfoDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black {{ !empty($isiBbmHsdDynamic) && $isiBbmHsdDynamic != 0 ? 'font-bold bg-purple-100' : '' }}">{{ is_numeric($isiBbmHsdDynamic) ? number_format($isiBbmHsdDynamic, 0, ',', '.') : $isiBbmHsdDynamic }}</td>
+                                        <td class="px-4 py-2 text-center border border-black">
+                                            <select name="strategies[{{ $row['Vessel ID'] ?? '' }}]" form="planning-form" onchange="showPlanningLoading(document.getElementById('planning-form')); document.getElementById('planning-form').submit();" class="border border-gray-300 rounded px-2 py-1 text-sm bg-gray-50 focus:ring-blue-500 focus:border-blue-500 font-medium">
+                                                <option value="static" {{ ($row['Strategi'] ?? 'static') == 'static' ? 'selected' : '' }}>Static</option>
+                                                <option value="dynamic" {{ ($row['Strategi'] ?? 'static') == 'dynamic' ? 'selected' : '' }}>Dynamic</option>
+                                            </select>
+                                        </td>
                                         <td class="px-4 py-2 text-center border border-black">{{ $keterangan }}</td>
                                         <td class="px-4 py-2 text-center border border-black">
                                             @if(isset($row['_detail']))
@@ -458,6 +473,37 @@
 
                 function closeDetail() {
                     document.getElementById('detail-modal').classList.add('hidden');
+                }
+
+                function showDistanceDetail(detail, vessel, route) {
+                    document.getElementById('detail-title').textContent = 'Detail Jarak Next Voyage - ' + vessel;
+                    
+                    let html = '<div class="mb-4 bg-gray-50 p-3 rounded border border-gray-200 text-sm text-gray-700"><strong>Route:</strong> ' + route + '</div>';
+                    
+                    html += '<div class="overflow-hidden border rounded-lg shadow-sm">';
+                    html += '<table class="w-full text-sm text-left border-collapse">';
+                    html += '<thead class="bg-gray-800 text-white"><tr><th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider">Dari</th><th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider">Ke</th><th class="px-4 py-3 font-semibold text-xs uppercase tracking-wider text-right">Jarak (NM)</th></tr></thead>';
+                    html += '<tbody class="divide-y divide-gray-200">';
+                    
+                    let total = 0;
+                    detail.forEach(function(item) {
+                        let dist = item.distance !== null ? fmt(item.distance) : '<span class="text-red-500 font-semibold">Missing</span>';
+                        if (item.distance !== null) total += item.distance;
+                        html += '<tr class="bg-white hover:bg-gray-50">';
+                        html += '<td class="px-4 py-2 text-gray-800">' + item.from + '</td>';
+                        html += '<td class="px-4 py-2 text-gray-800">' + item.to + '</td>';
+                        html += '<td class="px-4 py-2 text-right text-gray-600 font-medium">' + dist + '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '<tr class="bg-gray-100">';
+                    html += '<td colspan="2" class="px-4 py-3 text-right font-bold text-gray-800 uppercase tracking-wider text-xs">Total Jarak</td>';
+                    html += '<td class="px-4 py-3 text-right font-bold text-blue-700 text-base">' + fmt(total) + ' NM</td>';
+                    html += '</tr>';
+                    html += '</tbody></table></div>';
+                    
+                    document.getElementById('detail-body').innerHTML = html;
+                    document.getElementById('detail-modal').classList.remove('hidden');
                 }
                 </script>
 
