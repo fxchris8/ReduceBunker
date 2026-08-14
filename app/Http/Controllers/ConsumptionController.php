@@ -291,6 +291,19 @@ class ConsumptionController extends Controller
         set_time_limit(1200);
 
         if (!$request->filled('report_date')) {
+            if (session()->has('consumption_report_date')) {
+                return view('pages.consumption', [
+                    'headers_port' => session('consumption_headers_port'),
+                    'report14' => session('consumption_report14'),
+                    'headers_sea' => session('consumption_headers_sea'),
+                    'report16' => session('consumption_report16'),
+                    'port_sea_header' => session('consumption_port_sea_header'),
+                    'port_sea_data' => session('consumption_port_sea_data'),
+                    'density' => session('consumption_density', 950),
+                    'isDinamis' => false,
+                ]);
+            }
+
             return view('pages.consumption', [
                 'report14'      => null,
                 'report16'      => null,
@@ -316,7 +329,7 @@ class ConsumptionController extends Controller
             $payload = $basePayload;
             $payload['report_id'] = (string)$reportId;
 
-            if (True) {
+            if (false) {
                 $data = ($reportId == 14) ? $this->getMockPortData() : $this->getMockSeaData();
             } else {
                 $response = Http::timeout(120)
@@ -430,15 +443,34 @@ class ConsumptionController extends Controller
             $aeLoadCols      = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
             $highlightAeLoad = $isLoadCondition || $isLoadDifferentCondition || $isSingleLoadCondition || $is24HoursAePararelCondition;
 
+            $anomalies = [
+                'green' => [],
+                'red' => [],
+                'yellow' => [],
+                'blue' => []
+            ];
+            
+            if ($rowAnomalous) {
+                if ($allAeZero && $totalReefer > 0) $anomalies['red'][] = "Semua beban A/E 0 tetapi terdapat Reefer aktif.";
+                if ($reeferExceeds) $anomalies['red'][] = "Pararel Genset terdeteksi, tetapi jumlah Reefer kurang dari batas acuan.";
+            }
+            if ($me_without_manuev_Condition) $anomalies['yellow'][] = "Konsumsi M/E HSD ada tetapi Maneuvering Time 0.";
+            if ($excess_ae_par_dur_Condition) $anomalies['blue'][] = "Terdapat sisa durasi pararel A/E > 3 jam yang tidak wajar.";
+            if ($highlightAeLoad) $anomalies['yellow'][] = "Anomali beban A/E terdeteksi (pararel tanpa durasi, beban berbeda, single dengan durasi pararel, atau pararel 24 jam).";
+
             $newRow = [];
             foreach ($row as $key => $value) {
                 $class = '';
 
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
+                    if (!in_array("Nilai referensi (baseline) standar kapal.", $anomalies['green'])) {
+                        $anomalies['green'][] = "Nilai referensi (baseline) standar kapal.";
+                    }
                 }
                 if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
+                    $anomalies['red'][] = "Terdapat nilai defisit/negatif pada kolom $key.";
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
@@ -452,8 +484,11 @@ class ConsumptionController extends Controller
 
                 $newRow[$key] = ['value' => $value, 'class' => $class];
             }
-
+            
             $newRow['_row_class'] = ['value' => $rowAnomalous ? 'bg-red-200' : '', 'class' => ''];
+            
+            $anomaliesFiltered = array_filter($anomalies, fn($arr) => count($arr) > 0);
+            $newRow['_anomalies'] = ['value' => $anomaliesFiltered, 'class' => ''];
 
             return $newRow;
         }, $port_data);
@@ -491,15 +526,34 @@ class ConsumptionController extends Controller
             $aeLoadCols      = ['LOAD A/E 1 (KW)', 'LOAD A/E 2 (KW)', 'LOAD A/E 3 (KW)', 'LOAD A/E 4 (KW)', 'AE PARAREL DURATION', 'REEFER 20"', 'REEFER 40"'];
             $highlightAeLoad = $isLoadCondition || $isLoadDifferentCondition || $isSingleLoadCondition || $is24HoursAePararelCondition;
 
+            $anomalies = [
+                'green' => [],
+                'red' => [],
+                'yellow' => [],
+                'blue' => []
+            ];
+            
+            if ($rowAnomalous) {
+                if ($allAeZero && $totalReefer > 0) $anomalies['red'][] = "Semua beban A/E 0 tetapi terdapat Reefer aktif.";
+                if ($reeferExceeds) $anomalies['red'][] = "Pararel Genset terdeteksi, tetapi jumlah Reefer kurang dari batas acuan.";
+            }
+            if ($me_without_manuev_Condition) $anomalies['yellow'][] = "Konsumsi M/E HSD ada tetapi Maneuvering Time 0.";
+            if ($excess_ae_par_dur_Condition) $anomalies['blue'][] = "Terdapat sisa durasi pararel A/E > 3 jam yang tidak wajar.";
+            if ($highlightAeLoad) $anomalies['yellow'][] = "Anomali beban A/E terdeteksi (pararel tanpa durasi, beban berbeda, single dengan durasi pararel, atau pararel 24 jam).";
+
             $newRow = [];
             foreach ($row as $key => $value) {
                 $class = '';
 
                 if (in_array($key, $greenColumns)) {
                     $class .= ' bg-green-200 font-semibold';
+                    if (!in_array("Nilai referensi (baseline) standar kapal.", $anomalies['green'])) {
+                        $anomalies['green'][] = "Nilai referensi (baseline) standar kapal.";
+                    }
                 }
                 if (in_array($key, $analysisColumns) && is_numeric($value) && $value < 0) {
                     $class .= ' bg-red-200 font-semibold';
+                    $anomalies['red'][] = "Terdapat nilai defisit/negatif pada kolom $key.";
                 }
                 if ($me_without_manuev_Condition && in_array($key, ['M/E HSD', 'MANEUVERING TIME (HOURS)'])) {
                     $class .= ' bg-yellow-200 font-semibold';
@@ -515,13 +569,16 @@ class ConsumptionController extends Controller
             }
 
             $newRow['_row_class'] = ['value' => $rowAnomalous ? 'bg-red-200' : '', 'class' => ''];
+            
+            $anomaliesFiltered = array_filter($anomalies, fn($arr) => count($arr) > 0);
+            $newRow['_anomalies'] = ['value' => $anomaliesFiltered, 'class' => ''];
 
             return $newRow;
         }, $sea_data);
 
         $density = floatval($request->input('density', 950));
 
-        if (True) {
+        if (false) {
             $dinamisRaw  = $this->getMockDinamisSeaData();
             $dinamisNorm = array_map(fn($r) => $this->reorderDinamisReport($r), $dinamisRaw['data'] ?? []);
         } else {
@@ -555,7 +612,20 @@ class ConsumptionController extends Controller
             $row['DAYA ME (KW)']                       = ['value' => $dinamis['DAYA ME (KW)'] ?? '', 'class' => ''];
             $row['Ideal Consumption Dynamic (L)']      = ['value' => $idealDynamic, 'class' => ''];
             $row['Konsumsi M/E MFO Aktual']            = ['value' => $dinamis['Konsumsi M/E MFO Aktual'] ?? '', 'class' => ''];
-            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '', 'class' => (($dinamis['Gap'] ?? '') === 'Tidak ada data kurva') ? 'bg-yellow-200 font-semibold' : ''];
+            
+            $gapClass = '';
+            if (($dinamis['Gap'] ?? '') === 'Tidak ada data kurva') {
+                $gapClass = 'bg-yellow-200 font-semibold';
+                if (!isset($row['_anomalies'])) {
+                    $row['_anomalies'] = ['value' => [], 'class' => ''];
+                }
+                if (!isset($row['_anomalies']['value']['yellow'])) {
+                    $row['_anomalies']['value']['yellow'] = [];
+                }
+                $row['_anomalies']['value']['yellow'][] = "Tidak ada data kurva untuk perhitungan dinamis.";
+            }
+            
+            $row['Gap']                                = ['value' => $dinamis['Gap'] ?? '', 'class' => $gapClass];
             $row['Error']                              = ['value' => $dinamis['Error'] ?? '', 'class' => ''];
         }
         unset($row);
@@ -564,6 +634,17 @@ class ConsumptionController extends Controller
         $headers_sea  = array_filter(array_keys($colored_sea[0] ?? []), fn($k) => $k !== '_row_class');
 
         session(['port_anomaly' => $colored_port, 'sea_anomaly' => $colored_sea, 'port_sea_data' => $port_sea_data]);
+
+        session([
+            'consumption_report_date' => $reportDate,
+            'consumption_density' => $density,
+            'consumption_headers_port' => $headers_port,
+            'consumption_report14' => $colored_port,
+            'consumption_headers_sea' => $headers_sea,
+            'consumption_report16' => $colored_sea,
+            'consumption_port_sea_header' => array_keys($port_sea_data[0] ?? []),
+            'consumption_port_sea_data' => $port_sea_data,
+        ]);
 
         return view('pages.consumption', [
             'headers_port' => $headers_port,
@@ -657,59 +738,5 @@ class ConsumptionController extends Controller
         }
 
         return $result;
-    }
-
-    private function getMockPortData(): array
-    {
-        return [
-            'data' => [
-                ['vesselid'=>'AKA','tanggal'=>'2026-06-13 11:44:00','pos'=>'KAPAL SANDAR DI DERMAGA PANTOLOAN-PALU','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>53,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>35,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'ASR','tanggal'=>'2026-06-13 12:08:00','pos'=>'BERLALU MUARA JAWA','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>2420,'ae_mfo'=>0,'ae_hsd'=>1303,'duration_manuev'=>7.1,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>140,'load_ae_3'=>140,'load_ae_4'=>0,'ae_pararel_duration'=>8,'reefer20'=>1,'reefer40'=>0,'me_manuev_consum'=>340.85],
-                ['vesselid'=>'HAP','tanggal'=>'2026-06-13 10:53:00','pos'=>'sandar dermaga timika','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1870,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>133,'load_ae_2'=>133,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>24,'reefer20'=>17,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'MHI','tanggal'=>'2026-06-13 12:17:00','pos'=>'2 NM TENGGARA OB MOROSI','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>4493,'ae_hsd'=>0,'duration_manuev'=>1.1,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>2,'crane_duration'=>24,'load_ae_1'=>135,'load_ae_2'=>0,'load_ae_3'=>135,'load_ae_4'=>0,'ae_pararel_duration'=>24,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'PSM','tanggal'=>'2026-06-13 13:16:00','pos'=>'SANDAR SAMPIT','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>1848,'ae_mfo'=>0,'ae_hsd'=>310,'duration_manuev'=>8.5,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>340,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>30,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>217.41],
-                ['vesselid'=>'OJA','tanggal'=>'2026-06-13 12:07:00','pos'=>'Dermaga Berlian Timur Surabaya','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1560,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>1,'crane_duration'=>2,'load_ae_1'=>185,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>2,'reefer20'=>2,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'VEI','tanggal'=>'2026-06-13 12:29:00','pos'=>'BERLABUHJANGKAR REDE TARAKAN','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>165,'duration_manuev'=>0,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>180,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>1,'reefer20'=>10,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'MAN','tanggal'=>'2026-06-13 13:24:00','pos'=>'SANDAR DERMAGA MAKASSAR','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>3105,'ae_mfo'=>0,'ae_hsd'=>512,'duration_manuev'=>5.2,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>980,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>5.8,'reefer20'=>0,'reefer40'=>1,'me_manuev_consum'=>574.20],
-                ['vesselid'=>'BSA','tanggal'=>'2026-06-13 11:14:00','pos'=>'SANDAR DERMAGA BANJARMASIN','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>0,'ae_mfo'=>3120,'ae_hsd'=>175,'duration_manuev'=>3.6,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>1080,'emg'=>null,'total_crane'=>2,'crane_duration'=>14.5,'load_ae_1'=>190,'load_ae_2'=>190,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>18,'reefer20'=>15,'reefer40'=>3,'me_manuev_consum'=>0],
-                ['vesselid'=>'PAH','tanggal'=>'2026-06-13 11:48:00','pos'=>'SANDAR DERMAGA MERAK','departure'=>null,'destination'=>null,'steam_dist'=>null,'steam_time'=>null,'ship_speed'=>null,'prop_slip'=>null,'me_rpm'=>null,'me_mfo'=>0,'me_hsd'=>640,'ae_mfo'=>0,'ae_hsd'=>715,'duration_manuev'=>2.8,'boiler_hsd'=>null,'boiler_mfo'=>null,'genset_consum_hsd'=>0,'emg'=>null,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>50,'load_ae_2'=>50,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>3.5,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>201.10],
-            ]
-        ];
-    }
-
-    private function getMockSeaData(): array
-    {
-        return [
-            'data' => [
-                ['vesselid'=>'ANO','tanggal'=>'2026-06-13 11:00:00','pos'=>'AT SEA SURABAYA - MAKASSAR','departure'=>'IDSUB','destination'=>'IDMAK','steam_dist'=>423,'steam_time'=>26,'ship_speed'=>16.3,'prop_slip'=>3.2,'me_rpm'=>118,'me_mfo'=>4200,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>980,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>210,'load_ae_2'=>210,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>5,'reefer40'=>2,'me_manuev_consum'=>0],
-                ['vesselid'=>'BIM','tanggal'=>'2026-06-13 11:30:00','pos'=>'AT SEA MAKASSAR - BITUNG','departure'=>'IDMAK','destination'=>'IDBTG','steam_dist'=>380,'steam_time'=>25,'ship_speed'=>15.2,'prop_slip'=>4.1,'me_rpm'=>115,'me_mfo'=>3850,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>870,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>185,'load_ae_2'=>185,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>3,'reefer40'=>1,'me_manuev_consum'=>0],
-                ['vesselid'=>'CEN','tanggal'=>'2026-06-13 10:45:00','pos'=>'AT SEA JAKARTA - SURABAYA','departure'=>'IDJKT','destination'=>'IDSUB','steam_dist'=>290,'steam_time'=>24,'ship_speed'=>12.1,'prop_slip'=>5.5,'me_rpm'=>108,'me_mfo'=>5100,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1100,'duration_manuev'=>1.5,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>230,'load_ae_2'=>0,'load_ae_3'=>230,'load_ae_4'=>0,'ae_pararel_duration'=>1.5,'reefer20'=>8,'reefer40'=>3,'me_manuev_consum'=>420],
-                ['vesselid'=>'TFL','tanggal'=>'2026-06-13 12:00:00','pos'=>'AT SEA KENDARI - MAKASSAR','departure'=>'IDKDI','destination'=>'IDMAK','steam_dist'=>310,'steam_time'=>25,'ship_speed'=>12.4,'prop_slip'=>3.8,'me_rpm'=>112,'me_mfo'=>3200,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>750,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>160,'load_ae_2'=>160,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'OSI','tanggal'=>'2026-06-13 09:30:00','pos'=>'AT SEA TERNATE - BITUNG','departure'=>'IDTTE','destination'=>'IDBTG','steam_dist'=>195,'steam_time'=>24,'ship_speed'=>8.1,'prop_slip'=>6.2,'me_rpm'=>102,'me_mfo'=>6800,'me_hsd'=>0,'ae_mfo'=>1200,'ae_hsd'=>300,'duration_manuev'=>2,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>1300,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>200,'load_ae_2'=>200,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>2,'reefer20'=>10,'reefer40'=>4,'me_manuev_consum'=>380],
-                ['vesselid'=>'PWE','tanggal'=>'2026-06-13 11:15:00','pos'=>'AT SEA JAKARTA - PONTIANAK','departure'=>'IDJKT','destination'=>'IDPNK','steam_dist'=>520,'steam_time'=>36,'ship_speed'=>14.4,'prop_slip'=>2.9,'me_rpm'=>116,'me_mfo'=>4500,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1200,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>190,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>4,'reefer40'=>2,'me_manuev_consum'=>0],
-                ['vesselid'=>'HSG','tanggal'=>'2026-06-13 08:00:00','pos'=>'AT SEA SURABAYA - BANJARMASIN','departure'=>'IDSUB','destination'=>'IDBPN','steam_dist'=>350,'steam_time'=>27,'ship_speed'=>13.0,'prop_slip'=>4.5,'me_rpm'=>110,'me_mfo'=>4900,'me_hsd'=>350,'ae_mfo'=>0,'ae_hsd'=>600,'duration_manuev'=>3,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>3,'reefer20'=>0,'reefer40'=>1,'me_manuev_consum'=>510],
-                ['vesselid'=>'LUZ','tanggal'=>'2026-06-13 10:00:00','pos'=>'AT SEA MAKASSAR - SURABAYA','departure'=>'IDMAK','destination'=>'IDSUB','steam_dist'=>410,'steam_time'=>28,'ship_speed'=>14.6,'prop_slip'=>3.3,'me_rpm'=>114,'me_mfo'=>3600,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>950,'duration_manuev'=>1,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>200,'load_ae_2'=>0,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>1,'reefer20'=>12,'reefer40'=>0,'me_manuev_consum'=>650],
-                ['vesselid'=>'BKU','tanggal'=>'2026-06-13 09:00:00','pos'=>'AT SEA BANJARMASIN - SURABAYA','departure'=>'IDBPN','destination'=>'IDSUB','steam_dist'=>330,'steam_time'=>25,'ship_speed'=>13.2,'prop_slip'=>3.0,'me_rpm'=>111,'me_mfo'=>2900,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>680,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>155,'load_ae_2'=>155,'load_ae_3'=>0,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-                ['vesselid'=>'ASG','tanggal'=>'2026-06-13 07:30:00','pos'=>'AT SEA SURABAYA - MAKASSAR','departure'=>'IDSUB','destination'=>'IDMAK','steam_dist'=>440,'steam_time'=>30,'ship_speed'=>14.7,'prop_slip'=>2.7,'me_rpm'=>117,'me_mfo'=>5300,'me_hsd'=>0,'ae_mfo'=>0,'ae_hsd'=>1050,'duration_manuev'=>0,'boiler_hsd'=>0,'boiler_mfo'=>0,'genset_consum_hsd'=>0,'emg'=>0,'total_crane'=>0,'crane_duration'=>0,'load_ae_1'=>0,'load_ae_2'=>0,'load_ae_3'=>220,'load_ae_4'=>0,'ae_pararel_duration'=>0,'reefer20'=>0,'reefer40'=>0,'me_manuev_consum'=>0],
-            ]
-        ];
-    }
-
-    private function getMockDinamisSeaData(): array
-    {
-        return [
-            'data' => [
-                ['vesselid'=>'ANO','tanggal'=>'2026-06-13 11:00:00','pos'=>null,'departure'=>'IDSUB','destination'=>'IDMAK','steam_dist'=>423,'ship_speed'=>16.3,'steam_time'=>26,'daya_me_kw'=>770,'me_mfo'=>4200],
-                ['vesselid'=>'BIM','tanggal'=>'2026-06-13 11:30:00','pos'=>null,'departure'=>'IDMAK','destination'=>'IDBTG','steam_dist'=>380,'ship_speed'=>15.2,'steam_time'=>25,'daya_me_kw'=>735,'me_mfo'=>3850],
-                ['vesselid'=>'CEN','tanggal'=>'2026-06-13 10:45:00','pos'=>null,'departure'=>'IDJKT','destination'=>'IDSUB','steam_dist'=>290,'ship_speed'=>12.1,'steam_time'=>24,'daya_me_kw'=>1010,'me_mfo'=>5100],
-                ['vesselid'=>'TFL','tanggal'=>'2026-06-13 12:00:00','pos'=>null,'departure'=>'IDKDI','destination'=>'IDMAK','steam_dist'=>310,'ship_speed'=>12.4,'steam_time'=>25,'daya_me_kw'=>610,'me_mfo'=>3200],
-                ['vesselid'=>'OSI','tanggal'=>'2026-06-13 09:30:00','pos'=>null,'departure'=>'IDTTE','destination'=>'IDBTG','steam_dist'=>195,'ship_speed'=>8.1,'steam_time'=>24,'daya_me_kw'=>1350,'me_mfo'=>6800],
-                ['vesselid'=>'PWE','tanggal'=>'2026-06-13 11:15:00','pos'=>null,'departure'=>'IDJKT','destination'=>'IDPNK','steam_dist'=>520,'ship_speed'=>14.4,'steam_time'=>36,'daya_me_kw'=>595,'me_mfo'=>4500],
-                ['vesselid'=>'HSG','tanggal'=>'2026-06-13 08:00:00','pos'=>null,'departure'=>'IDSUB','destination'=>'IDBPN','steam_dist'=>350,'ship_speed'=>13.0,'steam_time'=>27,'daya_me_kw'=>865,'me_mfo'=>4900],
-                ['vesselid'=>'LUZ','tanggal'=>'2026-06-13 10:00:00','pos'=>null,'departure'=>'IDMAK','destination'=>'IDSUB','steam_dist'=>410,'ship_speed'=>14.6,'steam_time'=>28,'daya_me_kw'=>612,'me_mfo'=>3600],
-                ['vesselid'=>'BKU','tanggal'=>'2026-06-13 09:00:00','pos'=>null,'departure'=>'IDBPN','destination'=>'IDSUB','steam_dist'=>330,'ship_speed'=>13.2,'steam_time'=>25,'daya_me_kw'=>552,'me_mfo'=>2900],
-                ['vesselid'=>'ASG','tanggal'=>'2026-06-13 07:30:00','pos'=>null,'departure'=>'IDSUB','destination'=>'IDMAK','steam_dist'=>440,'ship_speed'=>14.7,'steam_time'=>30,'daya_me_kw'=>840,'me_mfo'=>5300],
-            ]
-        ];
     }
 }

@@ -34,7 +34,7 @@
                     </label>
                     <input type="date" id="report_date" name="report_date"
                         class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                        value="{{ request('report_date') }}">
+                        value="{{ request('report_date', session('consumption_report_date')) }}">
                 </div>
 
                 <div class="mb-4">
@@ -42,7 +42,7 @@
                         Masukkan Density (g/L):
                     </label>
                     <input type="number" step="any" name="density" id="density"
-                        value="{{ request('density', 950) }}"
+                        value="{{ request('density', session('consumption_density', 950)) }}"
                         class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700
                             focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-gray-600 transition duration-150 ease-in-out">
                 </div>
@@ -67,7 +67,7 @@
                                 'DEPARTURE PORT','DESTINATION','STEAM. DIST.','STEAM TIME (HOUR : MINUTE)',
                                 'SHIP SPEED','PROPELLER SLIP','ME RPM','BL L/NM','L/NM','EXCESS ME L/NM (%)',
                                 'BL MFO','BL HSD','BL REFFER', 'SELISIH ME Maneuvering',
-                                'EXCESS ME', 'EXCESS AE Tolerance',
+                                'EXCESS ME', 'EXCESS AE Tolerance', '_anomalies'
                             ];
                             $compactHeaders_port = [
                                 'tanggal','POSITION','M/E HSD', 'GENSET CONSUMPTION - HSD', 'M/E MFO', 'A/E MFO','A/E HSD',
@@ -127,6 +127,11 @@
                                                     @endif
                                                 @endforeach
                                                 <td class="px-4 py-2 text-center border border-black">
+                                                    @php
+                                                        $anomalies = $row['_anomalies']['value'] ?? [];
+                                                        $hasAnomalies = count($anomalies) > 0;
+                                                        $anomaliesJson = htmlspecialchars(json_encode($anomalies), ENT_QUOTES, 'UTF-8');
+                                                    @endphp
                                                     <div class="flex items-center justify-center gap-2">
                                                         <button type="button"
                                                             onclick='showDetailModal(
@@ -152,7 +157,7 @@
                                                                 {{ $row['LOAD A/E 3 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['LOAD A/E 4 (KW)']['value'] ?? 0 }},
                                                                 {{ $row['AE PARAREL DURATION']['value'] ?? 0 }},
-                                                                "", "", "",
+                                                                "", "", "", 0,
                                                                 "{{ $row['tanggal']['value'] ?? '' }}",
                                                                 "{{ $row['POSITION']['value'] ?? '' }}",
                                                                 "", "",
@@ -160,7 +165,10 @@
                                                                 0, 0,
                                                                 {{ $row['EXCESS AE']['value'] ?? 0 }},
                                                                 {{ $row['EXCESS AE Tolerance']['value'] ?? 0 }},
-                                                                {{ $row['EXCESS ME']['value'] ?? 0 }}
+                                                                {{ $row['EXCESS ME']['value'] ?? 0 }},
+                                                                0,
+                                                                0,
+                                                                {!! $anomaliesJson !!}
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -169,6 +177,16 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                             </svg>
                                                         </button>
+                                                        @if($hasAnomalies)
+                                                        <button type="button"
+                                                            onclick="showInfoModal('{{ $row['Vessel ID']['value'] }}', {!! $anomaliesJson !!})"
+                                                            class="text-blue-500 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition"
+                                                            title="Info Blok Warna">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </button>
+                                                        @endif
                                                         <input type="checkbox" name="selected_rows_port[]" value="{{ $index }}" class="form-checkbox">
                                                     </div>
                                                 </td>
@@ -179,11 +197,12 @@
                             </div>
                         </div>
                     @endif
-                    
+
                     @if(!empty($report16 ?? null))
                         @php
-                            $excludedHeaders_sea = ['POSITION', 'SELISIH ME Maneuvering', 'BL MFO', 'BL HSD', 
-                                'BL REFFER', 'EXCESS ME', 'EXCESS AE Tolerance'
+                            $excludedHeaders_sea = ['POSITION', 'SELISIH ME Maneuvering', 'BL MFO', 'BL HSD',
+                                'BL REFFER', 'EXCESS ME', 'EXCESS AE Tolerance', '_anomalies',
+                                'REMARKS', 'DECK DAILY WORK', 'ENGINE DAILY WORK'
                             ];
                             $seaRows    = $report16 ?? [];
                             $seaHeaders = array_filter(array_keys($seaRows[0] ?? []), fn($k) => $k !== '_row_class');
@@ -197,7 +216,6 @@
                                 'ME Maneuvering Cons. (L/H)', 'BL M/E Static (L/Day)', 'BL A/E (L/Day)',
                                 'BL L/NM','L/NM','EXCESS ME L/NM (%)',
                                 'AE Consumption','EXCESS AE',
-                                'REMARKS', 'DECK DAILY WORK', 'ENGINE DAILY WORK',
                             ];
                         @endphp
 
@@ -270,6 +288,11 @@
                                                 @endif
                                             @endforeach
                                             <td class="px-4 py-2 text-center border border-black">
+                                                @php
+                                                    $anomalies = $row['_anomalies']['value'] ?? [];
+                                                    $hasAnomalies = count($anomalies) > 0;
+                                                    $anomaliesJson = htmlspecialchars(json_encode($anomalies), ENT_QUOTES, 'UTF-8');
+                                                @endphp
                                                 <div class="flex items-center justify-center gap-2">
                                                     <button type="button"
                                                         onclick='showDetailModal(
@@ -308,7 +331,10 @@
                                                         {{ $row['EXCESS ME L/NM (%)']['value'] ?? 0 }},
                                                         {{ $row['EXCESS AE']['value'] ?? 0 }},
                                                         {{ $row['EXCESS AE Tolerance']['value'] ?? 0 }},
-                                                        {{ $row['EXCESS ME']['value'] ?? 0 }}
+                                                        {{ $row['EXCESS ME']['value'] ?? 0 }},
+                                                        {{ $row['SHIP SPEED']['value'] ?? 0 }},
+                                                        {{ $row['Ideal Consumption Dynamic (L)']['value'] === '' ? 0 : ($row['Ideal Consumption Dynamic (L)']['value'] ?? 0) }},
+                                                        {!! $anomaliesJson !!}
                                                     )'
                                                         class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                         title="Lihat Detail">
@@ -317,6 +343,16 @@
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                         </svg>
                                                     </button>
+                                                    @if($hasAnomalies)
+                                                    <button type="button"
+                                                        onclick="showInfoModal('{{ $row['Vessel ID']['value'] }}', {!! $anomaliesJson !!})"
+                                                        class="text-blue-500 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition"
+                                                        title="Info Blok Warna">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    </button>
+                                                    @endif
                                                     <input type="checkbox" name="selected_rows_sea[]" value="{{ $index }}" class="form-checkbox">
                                                 </div>
                                             </td>
@@ -387,6 +423,11 @@
                                                     @endif
                                                 @endforeach
                                                 <td class="px-4 py-2 text-center border border-black">
+                                                    @php
+                                                        $anomaliesPort = $row['_anomalies']['port']['value'] ?? [];
+                                                        $hasAnomaliesPort = count($anomaliesPort) > 0;
+                                                        $anomaliesJsonPort = htmlspecialchars(json_encode($anomaliesPort), ENT_QUOTES, 'UTF-8');
+                                                    @endphp
                                                     <div class="flex items-center justify-center gap-2">
                                                         <button type="button"
                                                             onclick='showDetailModal(
@@ -401,7 +442,13 @@
                                                                 {{ $row['REEFER 40"']['port'] ?? 0 }},
                                                                 {{ $row['BL MFO']['port'] ?? 0 }},
                                                                 {{ $row['BL HSD']['port'] ?? 0 }},
-                                                                {{ $row['BL REFFER']['port'] ?? 0 }}
+                                                                {{ $row['BL REFFER']['port'] ?? 0 }},
+                                                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                "", "", "", 0,
+                                                                "", "", "", "",
+                                                                0, 0, 0, 0, 0, 0, 0,
+                                                                0,
+                                                                {!! $anomaliesJsonPort !!}
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -410,6 +457,16 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                             </svg>
                                                         </button>
+                                                        @if($hasAnomaliesPort)
+                                                        <button type="button"
+                                                            onclick="showInfoModal('{{ ($row['Vessel ID']['port'] ?? '') }} (Port)', {!! $anomaliesJsonPort !!})"
+                                                            class="text-blue-500 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition"
+                                                            title="Info Blok Warna">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </button>
+                                                        @endif
                                                         <input type="checkbox" name="selected_rows_port_sea_port[]" value="{{ $index }}" class="form-checkbox">
                                                     </div>
                                                 </td>
@@ -434,6 +491,11 @@
                                                     @endif
                                                 @endforeach
                                                 <td class="px-4 py-2 text-center border border-black">
+                                                    @php
+                                                        $anomaliesSea = $row['_anomalies']['sea']['value'] ?? [];
+                                                        $hasAnomaliesSea = count($anomaliesSea) > 0;
+                                                        $anomaliesJsonSea = htmlspecialchars(json_encode($anomaliesSea), ENT_QUOTES, 'UTF-8');
+                                                    @endphp
                                                     <div class="flex items-center justify-center gap-2">
                                                         <button type="button"
                                                             onclick='showDetailModal(
@@ -448,7 +510,12 @@
                                                                 {{ $row['REEFER 40"']['sea'] ?? 0 }},
                                                                 {{ $row['BL MFO']['sea'] ?? 0 }},
                                                                 {{ $row['BL HSD']['sea'] ?? 0 }},
-                                                                {{ $row['BL REFFER']['sea'] ?? 0 }}
+                                                                {{ $row['BL REFFER']['sea'] ?? 0 }},
+                                                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                                "", "", "", 0,
+                                                                "", "", "", "",
+                                                                0, 0, 0, 0, 0, 0, 0,
+                                                                {!! $anomaliesJsonSea !!}
                                                             )'
                                                             class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                             title="Lihat Detail">
@@ -457,6 +524,16 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                             </svg>
                                                         </button>
+                                                        @if($hasAnomaliesSea)
+                                                        <button type="button"
+                                                            onclick="showInfoModal('{{ ($row['Vessel ID']['sea'] ?? '') }} (Sea)', {!! $anomaliesJsonSea !!})"
+                                                            class="text-blue-500 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition"
+                                                            title="Info Blok Warna">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </button>
+                                                        @endif
                                                         <input type="checkbox" name="selected_rows_port_sea_sea[]" value="{{ $index }}" class="form-checkbox">
                                                     </div>
                                                 </td>
@@ -486,7 +563,7 @@
 <div id="detailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
     <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeDetailModal()"></div>
 
-    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
+    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden max-h-[90vh] flex flex-col">
         <div class="bg-gray-800 px-5 py-4 flex items-center justify-between">
             <div>
                 <p class="text-xs text-gray-400 uppercase tracking-widest mb-0.5">Fuel Consumption Detail</p>
@@ -499,6 +576,18 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
+        </div>
+        
+        <div class="hidden bg-white border-b border-gray-200 px-5 py-3" id="anomalies-section-wrapper">
+            <button onclick="toggleDetailAnomalies()" class="flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 focus:outline-none transition-colors">
+                <span>Informasi Blok Warna</span>
+                <svg id="anomalies-toggle-icon" class="w-4 h-4 ml-1 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
+            <div id="anomalies-content" class="hidden mt-2 p-3 bg-gray-900 rounded-md border-gray-700 shadow-inner max-h-48 overflow-y-auto">
+                <!--Generate JS-->
+            </div>
         </div>
 
         <div class="flex border-b border-gray-200">
@@ -519,7 +608,7 @@
             </button>
         </div>
 
-        <div class="px-5 py-4 max-h-[56vh] overflow-y-auto">
+        <div class="px-5 py-4 flex-1 overflow-y-auto">
 
             {{-- ME TAB --}}
             <div id="tab-content-me">
@@ -556,6 +645,10 @@
                                 <span class="text-sm text-gray-500">Propeller Slip (%)</span>
                                 <span id="me-prop-slip" class="text-sm font-semibold text-gray-800"></span>
                             </div>
+                            <div id="me-ship-speed-row" class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">Ship Speed</span>
+                                <span id="me-ship-speed" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
                         </div>
                     </div>
                     <div class="rounded-lg border border-gray-200 overflow-hidden">
@@ -578,7 +671,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                                         </svg>
                                     </button>
-                                    <span class="text-sm font-bold text-gray-700">Ideal Consumption</span>
+                                    <span class="text-sm font-bold text-gray-700">Ideal Consumption (Static)</span>
                                 </div>
                                 <span id="me-ideal-cost" class="text-sm font-semibold text-gray-800"></span>
                             </div>
@@ -586,6 +679,26 @@
                                 <div class="text-xs text-gray-800 space-y-1">
                                     <div class="text-gray-600 italic pb-1">
                                         BL ME (L/Hour) x (Steam Time + Maneuvering Time)
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="me-ideal-dynamic-row" class="flex justify-between items-center px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" id="me-ideal-dynamic-toggle" onclick="toggleIdealDynamicDetail()"
+                                        class="text-gray-500 hover:text-gray-700">
+                                        <svg id="me-ideal-dynamic-arrow" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                    <span class="text-sm font-bold text-gray-700">Ideal Consumption (Dynamic)</span>
+                                </div>
+                                <span id="me-ideal-dynamic" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div id="me-ideal-dynamic-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
+                                <div class="text-xs text-gray-800 space-y-1">
+                                    <div class="text-gray-600 italic pb-1">
+                                        BL ME Dynamic (L/Hour) x (Steam Time + Maneuvering Time)
                                     </div>
                                 </div>
                             </div>
@@ -808,6 +921,13 @@
         detail.classList.toggle('hidden');
         arrow.classList.toggle('rotate-90');
     }
+    
+    function toggleIdealDynamicDetail() {
+        const detail = document.getElementById('me-ideal-dynamic-detail');
+        const arrow  = document.getElementById('me-ideal-dynamic-arrow');
+        detail.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-90');
+    }
 
     function toggleToleranceDetail() {
         const detail = document.getElementById('ae-tolerance-detail');
@@ -852,7 +972,8 @@
         loadAe1, loadAe2, loadAe3, loadAe4, aePararelDur, remarks, deckWork, engineWork,
         blAeParallel2, tanggal = '', position = '', departurePort = '', destination = '',
         blLNm = 0, lnmAktual = 0, lnmExceed = 0,
-        excessAe = 0, excessAeTolerance = 0, excessMe = 0
+        excessAe = 0, excessAeTolerance = 0, excessMe = 0, shipSpeed = 0,
+        idealDynamic = 0, anomalies = null
     ) {
         meMfo        = parseFloat(meMfo)        || 0;
         meHsd        = parseFloat(meHsd)        || 0;
@@ -875,6 +996,7 @@
         loadAe4      = parseFloat(loadAe4)      || 0;
         aePararelDur = parseFloat(aePararelDur) || 0;
         blLNm        = parseFloat(blLNm)        || 0;
+        shipSpeed    = parseFloat(shipSpeed)    || 0;
 
         const meTotal   = meMfo + meHsd;
         const blMeLHour = blMfo;
@@ -908,6 +1030,24 @@
         document.getElementById('ae-bl-lnm').textContent = fmtNum(blLNm, 'L/Nm');
         document.getElementById('me-steam-time').textContent  = fmtNum(steamTime, 'H');
         document.getElementById('me-manuev-time').textContent = fmtNum(maneuvTime, 'H');
+        if (document.getElementById('me-ship-speed-row')) {
+            if (vesselType === 'At Port') {
+                document.getElementById('me-ship-speed-row').classList.add('hidden');
+                document.getElementById('me-ship-speed-row').classList.remove('flex');
+                if (document.getElementById('me-ideal-dynamic-row')) {
+                    document.getElementById('me-ideal-dynamic-row').classList.add('hidden');
+                    document.getElementById('me-ideal-dynamic-row').classList.remove('flex');
+                }
+            } else {
+                document.getElementById('me-ship-speed-row').classList.remove('hidden');
+                document.getElementById('me-ship-speed-row').classList.add('flex');
+                if (document.getElementById('me-ideal-dynamic-row')) {
+                    document.getElementById('me-ideal-dynamic-row').classList.remove('hidden');
+                    document.getElementById('me-ideal-dynamic-row').classList.add('flex');
+                }
+            }
+            document.getElementById('me-ship-speed').textContent = fmtNum(shipSpeed, 'Knot');
+        }
 
         lnmAktual = parseFloat(lnmAktual) || 0;
         lnmExceed = parseFloat(lnmExceed) || 0;
@@ -932,9 +1072,13 @@
         document.getElementById('me-hsd').textContent                 = fmt(meHsd);
         document.getElementById('me-total').textContent               = fmt(meTotal);
         document.getElementById('me-ideal-cost').textContent          = fmt(idealCost);
+        document.getElementById('me-ideal-dynamic').textContent       = fmt(idealDynamic);
 
         document.getElementById('me-ideal-detail').classList.add('hidden');
         document.getElementById('me-ideal-arrow').classList.remove('rotate-90');
+        
+        document.getElementById('me-ideal-dynamic-detail').classList.add('hidden');
+        document.getElementById('me-ideal-dynamic-arrow').classList.remove('rotate-90');
 
         document.getElementById('ae-tolerance-detail').classList.add('hidden');
         document.getElementById('ae-tolerance-arrow').classList.remove('rotate-90');
@@ -976,6 +1120,65 @@
         document.getElementById('modal-deck-work').textContent   = deckWork || '-';
         document.getElementById('modal-engine-work').textContent = engineWork || '-';
 
+        const anomaliesWrapper = document.getElementById('anomalies-section-wrapper');
+        const anomaliesContent = document.getElementById('anomalies-content');
+        const anomaliesIcon = document.getElementById('anomalies-toggle-icon');
+
+        anomaliesContent.classList.add('hidden');
+        anomaliesIcon.classList.remove('rotate-180');
+        anomaliesContent.innerHTML = '';
+
+        let hasItems = false;
+        
+        const colorNames = {
+            'green': 'Blok Hijau (Baseline)',
+            'red': 'Blok Merah (Kritis/Defisit)',
+            'yellow': 'Blok Kuning (Peringatan)',
+            'blue': 'Blok Biru (Info Pararel)'
+        };
+        
+        const colorStyles = {
+            'green': 'text-green-700 bg-green-100',
+            'red': 'text-red-700 bg-red-100',
+            'yellow': 'text-yellow-700 bg-yellow-100',
+            'blue': 'text-blue-700 bg-blue-100'
+        };
+
+        if (typeof anomalies === 'object' && anomalies !== null) {
+            for (const [colorKey, messages] of Object.entries(anomalies)) {
+                if (messages && messages.length > 0) {
+                    hasItems = true;
+                    
+                    const groupHeader = document.createElement('h4');
+                    groupHeader.className = 'font-bold text-xs px-2 py-1 rounded inline-block mt-2 mb-1 ' + (colorStyles[colorKey] || 'bg-gray-200 text-gray-800');
+                    groupHeader.textContent = colorNames[colorKey] || colorKey;
+                    
+                    if(anomaliesContent.children.length === 0) {
+                        groupHeader.classList.remove('mt-2');
+                    }
+                    
+                    anomaliesContent.appendChild(groupHeader);
+                    
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-disc pl-6 space-y-1 text-xs text-gray-300';
+                    
+                    messages.forEach(function(msg) {
+                        const li = document.createElement('li');
+                        li.textContent = msg;
+                        ul.appendChild(li);
+                    });
+                    
+                    anomaliesContent.appendChild(ul);
+                }
+            }
+        }
+
+        if (hasItems) {
+            anomaliesWrapper.classList.remove('hidden');
+        } else {
+            anomaliesWrapper.classList.add('hidden');
+        }
+
         switchTab('me');
         document.getElementById('detailModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
@@ -986,10 +1189,108 @@
         document.body.style.overflow = '';
     }
 
+    function toggleDetailAnomalies() {
+        const content = document.getElementById('anomalies-content');
+        const icon = document.getElementById('anomalies-toggle-icon');
+        
+        if (content.classList.contains('hidden')) {
+            content.classList.remove('hidden');
+            icon.classList.add('rotate-180');
+        } else {
+            content.classList.add('hidden');
+            icon.classList.remove('rotate-180');
+        }
+    }
+
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeDetailModal();
     });
 </script>
+
+<div id="infoModal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+    <div class="absolute inset-0 bg-black bg-opacity-50" onclick="closeInfoModal()"></div>
+    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+        <div class="bg-gray-800 px-5 py-4 flex items-center justify-between">
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-widest mb-0.5">Info Blok Warna</p>
+                <h3 id="modal-info-vessel" class="text-white font-bold text-lg leading-tight"></h3>
+            </div>
+            <button onclick="closeInfoModal()" class="text-gray-400 hover:text-white transition-colors ml-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div id="info-container" class="px-5 py-4 max-h-[60vh] overflow-y-auto">
+        </div>
+    </div>
+</div>
+
+<script>
+    function showInfoModal(vesselId, anomalies) {
+        document.getElementById('modal-info-vessel').textContent = vesselId;
+        const container = document.getElementById('info-container');
+        container.innerHTML = '';
+
+        const colorNames = {
+            'green': 'Blok Hijau (Baseline)',
+            'red': 'Blok Merah (Kritis/Defisit)',
+            'yellow': 'Blok Kuning (Peringatan)',
+            'blue': 'Blok Biru (Info Pararel)'
+        };
+
+        const colorStyles = {
+            'green': 'text-green-700 bg-green-100',
+            'red': 'text-red-700 bg-red-100',
+            'yellow': 'text-yellow-700 bg-yellow-100',
+            'blue': 'text-blue-700 bg-blue-100'
+        };
+
+        let hasItems = false;
+
+        if (typeof anomalies === 'object' && anomalies !== null) {
+            for (const [colorKey, messages] of Object.entries(anomalies)) {
+                if (messages && messages.length > 0) {
+                    hasItems = true;
+
+                    const groupHeader = document.createElement('h4');
+                    groupHeader.className = 'font-bold text-sm px-2 py-1 rounded inline-block mt-3 mb-2 ' + (colorStyles[colorKey] || 'bg-gray-200 text-gray-800');
+                    groupHeader.textContent = colorNames[colorKey] || colorKey;
+
+                    if(container.children.length === 0) {
+                        groupHeader.classList.remove('mt-3');
+                    }
+
+                    container.appendChild(groupHeader);
+
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-disc pl-6 space-y-1 text-sm text-gray-700';
+
+                    messages.forEach(function(msg) {
+                        const li = document.createElement('li');
+                        li.textContent = msg;
+                        ul.appendChild(li);
+                    });
+
+                    container.appendChild(ul);
+                }
+            }
+        }
+
+        if (!hasItems) {
+            container.innerHTML = '<p class="text-sm text-gray-500">Tidak ada pesan.</p>';
+        }
+
+        document.getElementById('infoModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeInfoModal() {
+        document.getElementById('infoModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+</script>
+
 @endif
 
 @endsection

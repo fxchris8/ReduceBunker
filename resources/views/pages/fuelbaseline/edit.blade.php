@@ -82,19 +82,15 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">SS Multiplier ME</label>
-                        <select name="ss_multiplier_me"
-                                class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
-                            <option value="2" {{ old('ss_multiplier_me', $fuelBaselines->ss_multiplier_me) == 2 ? 'selected' : '' }}>2x</option>
-                            <option value="3" {{ old('ss_multiplier_me', $fuelBaselines->ss_multiplier_me) == 3 ? 'selected' : '' }}>3x</option>
-                        </select>
+                        <input type="number" step="1" name="ss_multiplier_me"
+                            value="{{ old('ss_multiplier_me', $fuelBaselines->ss_multiplier_me) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">SS Multiplier AE</label>
-                        <select name="ss_multiplier_ae"
-                                class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
-                            <option value="2" {{ old('ss_multiplier_ae', $fuelBaselines->ss_multiplier_ae) == 2 ? 'selected' : '' }}>2x</option>
-                            <option value="3" {{ old('ss_multiplier_ae', $fuelBaselines->ss_multiplier_ae) == 3 ? 'selected' : '' }}>3x</option>
-                        </select>
+                        <input type="number" step="1" name="ss_multiplier_ae"
+                            value="{{ old('ss_multiplier_ae', $fuelBaselines->ss_multiplier_ae) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                 </div>
 
@@ -109,11 +105,9 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">SS Multiplier ME</label>
-                        <select name="ss_multiplier_me_dynamic"
-                                class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
-                            <option value="2" {{ old('ss_multiplier_me_dynamic', $fuelBaselines->ss_multiplier_me_dynamic) == 2 ? 'selected' : '' }}>2x</option>
-                            <option value="3" {{ old('ss_multiplier_me_dynamic', $fuelBaselines->ss_multiplier_me_dynamic) == 3 ? 'selected' : '' }}>3x</option>
-                        </select>
+                        <input type="number" step="1" name="ss_multiplier_me_dynamic"
+                            value="{{ old('ss_multiplier_me_dynamic', $fuelBaselines->ss_multiplier_me_dynamic) }}"
+                            class="border border-gray-300 rounded-md px-4 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                 </div>
 

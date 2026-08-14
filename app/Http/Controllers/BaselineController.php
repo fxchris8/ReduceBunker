@@ -92,11 +92,24 @@ class BaselineController extends Controller
 
     public function show(Request $request)
     { 
-        $selectedVessel = $request->input('vessel') ?? 'AKA';
-        $density = $request->input('density') ?? 950;
-
-        $power_kw = $request->input('power_kw');
-        $steam_time = $request->input('steam_time');
+        if (empty($request->all()) && session()->has('baseline_vessel')) {
+            $selectedVessel = session('baseline_vessel');
+            $density = session('baseline_density', 950);
+            $power_kw = session('baseline_power_kw');
+            $steam_time = session('baseline_steam_time');
+        } else {
+            $selectedVessel = $request->input('vessel') ?? 'AKA';
+            $density = $request->input('density') ?? 950;
+            $power_kw = $request->input('power_kw');
+            $steam_time = $request->input('steam_time');
+            
+            session([
+                'baseline_vessel' => $selectedVessel,
+                'baseline_density' => $density,
+                'baseline_power_kw' => $power_kw,
+                'baseline_steam_time' => $steam_time,
+            ]);
+        }
 
         ///// dropdown dan titik //////
 

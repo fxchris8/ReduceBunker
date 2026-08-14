@@ -30,7 +30,7 @@
                         <label for="vessel" class="block text-sm font-medium text-gray-700 mb-2">Pilih Vessel:</label>
                         <select id="vessel" name="vessel"
                             class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                            onchange="location.href='{{ route('po.baseline') }}?vessel=' + this.value + '&density={{ request('density') }}&power_kw={{ request('power_kw') }}&steam_time={{ request('steam_time') }}'">
+                            onchange="location.href='{{ route('po.baseline') }}?vessel=' + this.value + '&density={{ $density }}&power_kw={{ $power_kw }}&steam_time={{ $steam_time }}'">
                             @foreach($vessels as $vessel)
                                 <option value="{{ $vessel }}" {{ $vessel === $selectedVessel ? 'selected' : '' }}>
                                     {{ $vessel }}
@@ -41,9 +41,9 @@
                         <div class="mt-6">
                             <label for="density" class="block text-sm font-medium text-gray-700 mb-2">Masukkan Density (g/L):</label>
                             <input type="number" step="any" name="density" id="density"
-                                value="{{ request('density', 950) }}"
+                                value="{{ $density }}"
                                 class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + this.value + '&power_kw={{ request('power_kw') }}&steam_time={{ request('steam_time') }}'"
+                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + this.value + '&power_kw={{ $power_kw }}&steam_time={{ $steam_time }}'">
                         </div>
                     </div>
 
@@ -162,17 +162,17 @@
                         <div class="mt-6">
                             <label for="power_kw" class="block text-sm font-medium text-gray-700 mb-2">Power (kW):</label>
                             <input type="number" step="any" name="power_kw" id="power_kw"
-                                value="{{ request('power_kw') }}"
+                                value="{{ $power_kw }}"
                                 class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + document.getElementById('density').value + '&power_kw=' + this.value + '&steam_time=' + document.getElementById('steam_time').value"
+                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + document.getElementById('density').value + '&power_kw=' + this.value + '&steam_time=' + document.getElementById('steam_time').value">
                         </div>
 
                         <div class="mt-6">
                             <label for="steam_time" class="block text-sm font-medium text-gray-700 mb-2">Steam Time (hr):</label>
                             <input type="number" step="any" name="steam_time" id="steam_time"
-                                value="{{ request('steam_time') }}"
+                                value="{{ $steam_time }}"
                                 class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + document.getElementById('density').value + '&power_kw=' + document.getElementById('power_kw').value + '&steam_time=' + this.value"
+                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + document.getElementById('density').value + '&power_kw=' + document.getElementById('power_kw').value + '&steam_time=' + this.value">
                         </div>
 
                         <div class="flex space-x-4 mt-6 mb-4 font-bold">
