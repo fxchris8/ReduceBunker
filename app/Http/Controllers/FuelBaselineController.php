@@ -67,6 +67,10 @@ class FuelBaselineController extends Controller
             'new_vessel_id'            => 'nullable|string|size:3|uppercase|unique:vessels,vessel_id',
             'new_vessel_name'          => 'nullable|string|max:255|required_with:new_vessel_id',
             'vessel_id'                => 'nullable|exists:vessels,vessel_id',
+            'me_fuel_type'             => 'required|string',
+            'me_fuel_type_other'       => 'required_if:me_fuel_type,Other|nullable|string|max:255',
+            'ae_fuel_type'             => 'required|string',
+            'ae_fuel_type_other'       => 'required_if:ae_fuel_type,Other|nullable|string|max:255',
             'static_bl_me'             => 'required|integer|min:0',
             'static_bl_ae'             => 'required|integer|min:0',
             'bl_l_nm'                  => 'nullable|integer|min:0',
@@ -79,6 +83,9 @@ class FuelBaselineController extends Controller
             'ss_multiplier_ae'         => 'required|in:2,3',
             'ss_multiplier_me_dynamic' => 'nullable|in:2,3',
         ]);
+
+        $me_fuel_type = $request->me_fuel_type === 'Other' ? $request->me_fuel_type_other : $request->me_fuel_type;
+        $ae_fuel_type = $request->ae_fuel_type === 'Other' ? $request->ae_fuel_type_other : $request->ae_fuel_type;
 
         if (!empty($validated['new_vessel_id'])) {
             $vessel = Vessel::create([
@@ -97,6 +104,8 @@ class FuelBaselineController extends Controller
 
         FuelBaseline::create([
             'vessel_id'                => $vessel_id,
+            'me_fuel_type'             => $me_fuel_type,
+            'ae_fuel_type'             => $ae_fuel_type,
             'static_bl_me'             => $validated['static_bl_me'],
             'static_bl_ae'             => $validated['static_bl_ae'],
             'bl_l_nm'                  => $validated['bl_l_nm'] ?? null,
@@ -123,6 +132,10 @@ class FuelBaselineController extends Controller
     public function update(Request $request, FuelBaseline $fuel_baseline)
     {
         $validated = $request->validate([
+            'me_fuel_type'             => 'required|string',
+            'me_fuel_type_other'       => 'required_if:me_fuel_type,Other|nullable|string|max:255',
+            'ae_fuel_type'             => 'required|string',
+            'ae_fuel_type_other'       => 'required_if:ae_fuel_type,Other|nullable|string|max:255',
             'static_bl_me'             => 'required|integer|min:0',
             'static_bl_ae'             => 'required|integer|min:0',
             'bl_l_nm'                  => 'nullable|integer|min:0',
@@ -135,6 +148,16 @@ class FuelBaselineController extends Controller
             'ss_multiplier_ae'         => 'required|in:2,3',
             'ss_multiplier_me_dynamic' => 'required|in:2,3',
         ]);
+
+        $validated['me_fuel_type'] = $request->me_fuel_type === 'Other'
+            ? $request->me_fuel_type_other
+            : $request->me_fuel_type;
+
+        $validated['ae_fuel_type'] = $request->ae_fuel_type === 'Other'
+            ? $request->ae_fuel_type_other
+            : $request->ae_fuel_type;
+
+        unset($validated['me_fuel_type_other'], $validated['ae_fuel_type_other']);
 
         $fuel_baseline->update($validated);
 

@@ -76,6 +76,36 @@
                     </div>
                 </div>
 
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fuel Type</p>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div x-data="{ meType: '{{ in_array(old('me_fuel_type', $fuelBaselines->me_fuel_type ?? 'MFO'), ['MFO', 'HSD']) ? old('me_fuel_type', $fuelBaselines->me_fuel_type ?? 'MFO') : 'Other'}}'}">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ME Fuel Type</label>
+                        <select name="me_fuel_type" x-model="meType" class="border border-gray-300 rounded-md px-4 py-2 w-full text-sm focus:ring-2 focus:ring-blue-500">
+                            <option value="MFO">MFO</option>
+                            <option value="HSD">HSD</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div x-show="meType === 'Other'" class="mt-2">
+                            <input type="text" name="me_fuel_type_other" 
+                                value="{{ !in_array(old('me_fuel_type', $fuelBaselines->me_fuel_type ?? ''), ['MFO', 'HSD']) ? old('me_fuel_type_other', $fuelBaselines->me_fuel_type ?? '') : '' }}"
+                                class="border border-gray-300 rounded-md px-4 py-2 w-full text-sm focus:ring-2 focus:ring-blue-500" placeholder="Enter other fuel type">
+                        </div>
+                    </div>
+                    <div x-data="{ aeType: '{{ in_array(old('ae_fuel_type', $fuelBaselines->ae_fuel_type ?? 'HSD'), ['MFO', 'HSD']) ? old('ae_fuel_type', $fuelBaselines->ae_fuel_type ?? 'HSD') : 'Other'}}'}">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">AE Fuel Type</label>
+                        <select name="ae_fuel_type" x-model="aeType" class="border border-gray-300 rounded-md px-4 py-2 w-full text-sm focus:ring-2 focus:ring-blue-500">
+                            <option value="MFO">MFO</option>
+                            <option value="HSD">HSD</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div x-show="aeType === 'Other'" class="mt-2">
+                            <input type="text" name="ae_fuel_type_other" 
+                                value="{{ !in_array(old('ae_fuel_type', $fuelBaselines->ae_fuel_type ?? ''), ['MFO', 'HSD']) ? old('ae_fuel_type_other', $fuelBaselines->ae_fuel_type ?? '') : '' }}"
+                                class="border border-gray-300 rounded-md px-4 py-2 w-full text-sm focus:ring-2 focus:ring-blue-500" placeholder="Enter other fuel type">
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Static Baseline --}}
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Static Baseline</p>
                 <div class="grid grid-cols-4 gap-4 mb-4">
