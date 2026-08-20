@@ -141,6 +141,8 @@
                         <tr>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Vessel Code</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Vessel Name</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">ME Fuel Type</th>
+                            <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">AE Fuel Type</th>
                             <th colspan="7" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Static Baseline</th>
                             <th colspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs text-center">Dynamic Baseline</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Density</th>
@@ -169,6 +171,12 @@
                                 </td>
                                 <td class="px-4 py-3 border border-gray-200 text-left">
                                     {{ $baseline->vessel->vessel_name }}
+                                </td>
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->me_fuel_type ?? '-' }}
+                                </td>
+                                <td class="px-4 py-3 border border-gray-200">
+                                    {{ $baseline->ae_fuel_type ?? '-' }}
                                 </td>
 
                                 {{-- Static Baseline --}}
