@@ -13,6 +13,8 @@ class FuelBaseline extends Model
 
     protected $fillable = [
         'vessel_id',
+        'me_fuel_type',
+        'ae_fuel_type',
         'static_bl_me',
         'static_bl_ae',
         'bl_l_nm',
