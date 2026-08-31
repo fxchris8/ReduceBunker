@@ -4,6 +4,84 @@
 
 @section('content')
 <div class="container mx-auto py-6 px-4">
+    @if (isset($apiError) && $apiError)
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded shadow-sm">
+            <p class="font-bold">Error!</p>
+            <p>Gagal mengambil data dari API Vessel. Tidak dapat membandingkan data vessel saat ini.</p>
+        </div>
+    @elseif(isset($missingVessels) && count($missingVessels) > 0)
+        <div class="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 mb-4 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <p class="font-bold">Warning!</p>
+                <p class="text-sm">Terdapat <span class="font-bold">{{ count($missingVessels) }} vessel</span> di API yang belum ada di database.</p>
+            </div>
+            <button
+                type="button"
+                onclick="openMissingVesselsModal()"
+                class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded text-sm w-full md:w-auto">
+                Lihat Detail
+            </button>
+        </div>
+
+        <div id="missingVesselsModal" class="hidden fixed inset-0 z-50">
+            <div class="absolute inset-0 bg-gray-900/50" onclick="closeMissingVesselsModal()"></div>
+
+            <div class="relative flex min-h-full items-center justify-center p-4" onclick="closeMissingVesselsModal()">
+                <div class="w-full max-w-3xl rounded-lg bg-white shadow-xl" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-between px-5 py-4 border-b">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Vessel Tidak Ditemukan di Database</h3>
+                            <p class="text-sm text-gray-500">Total: {{ count($missingVessels) }} vessel</p>
+                        </div>
+                        <button
+                            type="button"
+                            onclick="closeMissingVesselsModal()"
+                            class="text-gray-400 hover:text-gray-600 p-1 rounded"
+                            aria-label="Tutup modal">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="px-5 py-4">
+                        <div class="border rounded-lg overflow-hidden">
+                            <div class="max-h-[60vh] overflow-auto">
+                                <table class="w-full text-sm text-left border-collapse">
+                                    <thead class="bg-gray-100 text-gray-700 sticky top-0 z-10">
+                                        <tr>
+                                            <th class="px-4 py-2 border-b w-16">No</th>
+                                            <th class="px-4 py-2 border-b w-32">Vessel ID</th>
+                                            <th class="px-4 py-2 border-b">Vessel Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($missingVessels as $vessel)
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-2 border-b text-gray-500">{{ $loop->iteration }}</td>
+                                            <td class="px-4 py-2 border-b font-medium">{{ data_get($vessel, 'vessel_id') }}</td>
+                                            <td class="px-4 py-2 border-b">{{ data_get($vessel, 'vessel_name') }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-5 py-4 border-t flex justify-end">
+                        <button
+                            type="button"
+                            onclick="closeMissingVesselsModal()"
+                            class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
     <div class="bg-white rounded-lg shadow-md">
         <div class="bg-gray-50 px-4 py-4 border-b flex items-center justify-between">
             <h1 class="text-xl font-bold">Baseline Management</h1>
@@ -218,7 +296,7 @@
                                         ({{ $baseline->ss_multiplier_me_dynamic }}x)
                                     </span>
                                 </td>
-                               
+
                                 {{-- Other --}}
                                 <td class="px-4 py-3 border border-gray-200">
                                     {{ $baseline->density }}
@@ -399,4 +477,26 @@ function toggleSortDir() {
 
     window._fetchTable();
 }
+
+function openMissingVesselsModal() {
+    const modal = document.getElementById('missingVesselsModal');
+    if (!modal) return;
+
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeMissingVesselsModal() {
+    const modal = document.getElementById('missingVesselsModal');
+    if (!modal) return;
+
+    modal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        closeMissingVesselsModal();
+    }
+});
 </script>
