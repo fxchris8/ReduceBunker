@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login SSO</title>
+    <link rel="icon" href="{{ asset('images/logo.svg') }}">
     <style>
         :root {
             color-scheme: light;
