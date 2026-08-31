@@ -5,9 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\FuelBaseline;
 use App\Models\Vessel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class FuelBaselineController extends Controller
 {
+    private const API_VESSELS_CACHE_KEY = 'api_vessels_ship_particular_v1';
+    
     public function index(Request $request)
     {
         $perPage  = $request->get('per_page', 10);
@@ -49,8 +54,61 @@ class FuelBaselineController extends Controller
             $isPaginated   = true;
         }
 
+        $missingVessels = [];
+        $apiError = false;
 
-        return view('pages.fuelbaseline.index', compact('fuelBaselines', 'isPaginated', 'perPage', 'sortBy', 'sortDir', 'search'));
+        try {
+            // Cache for 1 day
+            $apiData = Cache::remember(self::API_VESSELS_CACHE_KEY, 86400, function () {
+                $response = Http::timeout(120)
+                    ->withHeaders([
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->withBody(json_encode(new \stdClass()), 'application/json')
+                    ->get('http://nanika.spil.co.id:3021/get-list-ship-particular');
+
+                if (!$response->successful()) {
+                    throw new \Exception('API response not successful. Status: ' . $response->status());
+                }
+
+                return $response->json('data_ship');
+            });
+
+            if (!empty($apiData)) {
+                $apiVessels = collect($apiData)
+                    ->map(function ($vessel) {
+                        return [
+                            'vessel_id'   => data_get($vessel, 'vessel_id', data_get($vessel, 'vesselid')),
+                            'vessel_name' => data_get($vessel, 'vessel_name', data_get($vessel, 'vesselname')),
+                        ];
+                    })
+                    ->filter(fn ($vessel) => !empty($vessel['vessel_id']))
+                    ->values();
+
+                $apiVesselIds = $apiVessels->pluck('vessel_id')->toArray();
+                $dbVesselIds = Vessel::pluck('vessel_id')->toArray();
+                $missingVesselIds = array_diff($apiVesselIds, $dbVesselIds);
+
+                if (!empty($missingVesselIds)) {
+                    $missingVessels = $apiVessels->whereIn('vessel_id', $missingVesselIds)->values()->all();
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch API data: ' . $e->getMessage());
+            $apiError = true;
+        }
+
+        return view('pages.fuelbaseline.index', compact(
+            'fuelBaselines',
+            'isPaginated',
+            'perPage',
+            'sortBy',
+            'sortDir',
+            'search',
+            'missingVessels',
+            'apiError'
+        ));
     }
 
     public function create()
@@ -92,6 +150,10 @@ class FuelBaselineController extends Controller
                 'vessel_id'   => strtoupper($validated['new_vessel_id']),
                 'vessel_name' => $validated['new_vessel_name'],
             ]);
+
+            // Vessel DB berubah, invalidate cache daftar vessel dari API agar sinkron lebih cepat
+            Cache::forget(self::API_VESSELS_CACHE_KEY);
+
             $vessel_id = $vessel->vessel_id;
         } else {
             $vessel_id = $validated['vessel_id'];

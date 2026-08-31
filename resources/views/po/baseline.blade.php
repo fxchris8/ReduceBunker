@@ -13,7 +13,7 @@
 
 <div class="container mx-auto py-6 px-4">
     <div class="bg-white rounded-lg shadow-md">
-        <div class="bg-gray-50 px-4 py-4 border-b">
+        <div class="bg-gray-50 px-4 py-4 border-b flex justify-between items-center">
             <h1 class="text-xl font-bold">Baseline Analysis</h1>
         </div>
 
@@ -25,169 +25,199 @@
             @endif
 
             <div class="px-4 py-2 rounded-md text-lg">
-                @isset($vessels)
+                <form action="{{ route('po.baseline') }}" method="GET" id="filterForm" class="mb-6 space-y-4">
                     <div>
-                        <label for="vessel" class="block text-sm font-medium text-gray-700 mb-2">Pilih Vessel:</label>
-                        <select id="vessel" name="vessel"
-                            class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                            onchange="location.href='{{ route('po.baseline') }}?vessel=' + this.value + '&density={{ $density }}&power_kw={{ $power_kw }}&steam_time={{ $steam_time }}'">
-                            @foreach($vessels as $vessel)
-                                <option value="{{ $vessel }}" {{ $vessel === $selectedVessel ? 'selected' : '' }}>
-                                    {{ $vessel }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <div class="mt-6">
-                            <label for="density" class="block text-sm font-medium text-gray-700 mb-2">Masukkan Density (g/L):</label>
-                            <input type="number" step="any" name="density" id="density"
-                                value="{{ $density }}"
-                                class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + this.value + '&power_kw={{ $power_kw }}&steam_time={{ $steam_time }}'">
-                        </div>
+                        <label for="density" class="block text-sm font-medium text-gray-700 mb-2">Masukkan Density (g/L):</label>
+                        <input type="number" step="any" name="density" id="density"
+                            value="{{ $density }}"
+                            class="block w-full max-w-sm px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out">
                     </div>
 
-                    <div class="mt-8">
-                        <h2 class="text-lg font-semibold mb-4">Grafik Kurva</h2>
-                        <div class="flex flex-wrap gap-6">
-                            <div class="flex-1 min-w-[300px]">
-                                <h3 class="text-md font-semibold mb-2">Grafik BHP</h3>
-                                <canvas id="grafikKurvaBHP" height="100"></canvas>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
+                        <div class="flex items-center gap-2 text-sm">
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                    </svg>
+                                </span>
+                                <input type="text"
+                                    name="search"
+                                    id="searchInput"
+                                    value="{{ $search ?? '' }}"
+                                    placeholder="Search vessel code / name..."
+                                    class="w-64 pl-9 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500">
+                                @if(!empty($search))
+                                    <a href="{{ route('po.baseline', ['density' => $density, 'per_page' => $perPage ?? 10]) }}"
+                                    class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600 transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                    </a>
+                                @endif
                             </div>
-                            <div class="flex-1 min-w-[300px]">
-                                <h3 class="text-md font-semibold mb-2">Grafik kW</h3>
-                                <canvas id="grafikKurvaKW" height="100"></canvas>
+                        </div>
+
+                        <div class="flex items-center gap-3 text-sm text-gray-500">
+                            <div class="flex items-center gap-2">
+                                <span>Show</span>
+                                <select name="per_page"
+                                        class="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-red-500">
+                                    @foreach(['10', '25', '50', 'all'] as $option)
+                                        <option value="{{ $option }}" {{ (string)($perPage ?? '10') === $option ? 'selected' : '' }}>
+                                            {{ $option === 'all' ? 'All' : $option }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <span>entries</span>
                             </div>
+                            <div class="w-px h-4 bg-gray-300"></div>
+                            <span id="dataInfo">
+                                @if(($isPaginated ?? false) && isset($vessels) && $vessels->count())
+                                    Showing {{ $vessels->firstItem() }}–{{ $vessels->lastItem() }} of {{ $vessels->total() }} entries
+                                @elseif(isset($vessels))
+                                    Showing {{ $vessels->count() }} entries
+                                @endif
+                            </span>
                         </div>
                     </div>
+                </form>
 
-                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <script>
-                        const ctx = document.getElementById('grafikKurvaBHP').getContext('2d');
-                        const dataPoints = @json($grafikData_bhp);
-
-                        const chart = new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                datasets: [{
-                                    label: @json($labelKurva_bhp),
-                                    data: dataPoints,
-                                    borderColor: 'rgba(255, 99, 132, 1)',
-                                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                    fill: false,
-                                    tension: 0.1,
-                                    pointRadius: 0
-                                }]
-                            },
-                            options: {
-                                scales: {
-                                    x: {
-                                        min: {{ $ori_x_min }}, 
-                                        max: {{ $ori_x_max }}, 
-                                        type: 'linear',
-                                        title: {
-                                            display: true,
-                                            text: 'BHP'
-                                        }
-                                    },
-                                    y: {
-                                        min: {{ $ori_y_min }}, 
-                                        max: {{ $ori_y_max }}, 
-                                        title: {
-                                            display: true,
-                                            text: 'g/BHP/hr'
-                                        }
-                                    }
-                                },
-                                plugins: {
-                                    legend: {
-                                        display: true
-                                    }
-                                }
-                            }
-                        });
-                    </script>
-
-                    <script>
-                        const ctxKW = document.getElementById('grafikKurvaKW').getContext('2d');
-                        const dataPointsKW = @json($grafikData_kw);
-
-                        const chartKW = new Chart(ctxKW, {
-                            type: 'line',
-                            data: {
-                                datasets: [{
-                                    label: @json($labelKurva_kw),
-                                    data: dataPointsKW,
-                                    borderColor: 'rgba(54, 162, 235, 1)',
-                                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                    fill: false,
-                                    tension: 0.1,
-                                    pointRadius: 0
-                                }]
-                            },
-                            options: {
-                                scales: {
-                                    x: {
-                                        min: {{ $convert_x_min }}, 
-                                        max: {{ $convert_x_max }}, 
-                                        type: 'linear',
-                                        title: {
-                                            display: true,
-                                            text: 'kW'
-                                        }
-                                    },
-                                    y: {
-                                        min: {{ $convert_y_min }}, 
-                                        max: {{ $convert_y_max }}, 
-                                        title: {
-                                            display: true,
-                                            text: 'L/kW/hr'
-                                        }
-                                    }
-                                },
-                                plugins: {
-                                    legend: {
-                                        display: true
-                                    }
-                                }
-                            }
-                        });
-                    </script>
-
-                    <div class="flex space-x-4 mt-6 mb-4 font-bold">
-                        <h3 class="text-lg">Persamaan Kurva kW: <span class="text-red-800">{{ $labelKurva_kw }}</span></h3>
+                <div id="tableWrapper">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-700">Vessel Code</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-700">Vessel Name</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-700">Power ME</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-700">SFOC (L/kW/hr)</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-700">L/hr</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-gray-700">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($tableData as $row)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="py-2 px-4 border-b text-sm text-gray-700">{{ $row['vessel_id'] }}</td>
+                                    <td class="py-2 px-4 border-b text-sm text-gray-700">{{ $row['vessel_name'] }}</td>
+                                    <td class="py-2 px-4 border-b text-sm text-gray-700">{{ $row['power_me'] }}</td>
+                                    <td class="py-2 px-4 border-b text-sm text-gray-700">{{ $row['sfoc'] }}</td>
+                                    <td class="py-2 px-4 border-b text-sm text-gray-700 font-semibold">{{ $row['l_hr'] }}</td>
+                                    <td class="py-2 px-4 border-b text-sm text-gray-700">
+                                        <a href="{{ route('po.baseline.detail', ['vessel' => $row['vessel_id'], 'density' => $density, 'power_kw' => $row['power_kw_num'], 'steam_time' => 1]) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                            View Detail
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                                @if(count($tableData) == 0)
+                                <tr>
+                                    <td colspan="6" class="py-4 text-center text-gray-500">No vessels data available.</td>
+                                </tr>
+                                @endif
+                            </tbody>
+                        </table>
                     </div>
 
-                    <div>
-                        <div class="mt-6">
-                            <label for="power_kw" class="block text-sm font-medium text-gray-700 mb-2">Power (kW):</label>
-                            <input type="number" step="any" name="power_kw" id="power_kw"
-                                value="{{ $power_kw }}"
-                                class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + document.getElementById('density').value + '&power_kw=' + this.value + '&steam_time=' + document.getElementById('steam_time').value">
+                    @if(($isPaginated ?? false) && isset($vessels) && $vessels->hasPages())
+                        <div id="paginationWrapper" class="mt-4">
+                            {{ $vessels->links() }}
                         </div>
-
-                        <div class="mt-6">
-                            <label for="steam_time" class="block text-sm font-medium text-gray-700 mb-2">Steam Time (hr):</label>
-                            <input type="number" step="any" name="steam_time" id="steam_time"
-                                value="{{ $steam_time }}"
-                                class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition duration-150 ease-in-out"
-                                onchange="location.href='{{ route('po.baseline') }}?vessel={{ $selectedVessel }}&density=' + document.getElementById('density').value + '&power_kw=' + document.getElementById('power_kw').value + '&steam_time=' + this.value">
-                        </div>
-
-                        <div class="flex space-x-4 mt-6 mb-4 font-bold">
-                            <h3 class="text-lg">SFOC: <span class="text-red-800">{{ $sfoc_kw }}</span> L/kW/hr</h3>
-                        </div>
-
-                        <div class="flex space-x-4 mb-4 font-bold   ">
-                            <h3 class="text-lg">Baseline Konsumsi: <span class="text-red-800">{{ $konsumsi }}</span> L</h1>
-                        </div>
-                    </div>
-                @endisset
+                    @endif
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-
 @endsection
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let debounceTimer;
+
+    function getParams(page) {
+        const params = new URLSearchParams();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput && searchInput.value) params.set('search', searchInput.value);
+        
+        const perPageSelect = document.querySelector('select[name="per_page"]');
+        if (perPageSelect && perPageSelect.value) params.set('per_page', perPageSelect.value);
+        
+        const densityInput = document.getElementById('density');
+        if (densityInput && densityInput.value) params.set('density', densityInput.value);
+        
+        if (page) params.set('page', page);
+        return params;
+    }
+
+    function fetchTable(page) {
+        const params = getParams(page);
+        const url    = `{{ route('po.baseline') }}?${params.toString()}`;
+
+        const tableWrapper = document.getElementById('tableWrapper');
+        if (tableWrapper) tableWrapper.style.opacity = '0.4';
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(res => res.text())
+            .then(html => {
+                const doc      = new DOMParser().parseFromString(html, 'text/html');
+                const newTable = doc.getElementById('tableWrapper');
+
+                if (newTable && tableWrapper) {
+                    tableWrapper.innerHTML = newTable.innerHTML;
+                    tableWrapper.style.opacity = '1';
+                }
+
+                const newInfo = doc.getElementById('dataInfo');
+                const oldInfo = document.getElementById('dataInfo');
+                if (newInfo && oldInfo) oldInfo.innerHTML = newInfo.innerHTML;
+
+                window.history.replaceState(null, '', url);
+                bindPaginationLinks();
+            })
+            .catch(err => {
+                console.error('Fetch error:', err);
+                if (tableWrapper) tableWrapper.style.opacity = '1';
+            });
+    }
+
+    function bindPaginationLinks() {
+        document.querySelectorAll('#paginationWrapper a').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const page = new URL(this.href).searchParams.get('page');
+                if (page) fetchTable(page);
+            });
+        });
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => fetchTable(), 350);
+        });
+    }
+    
+    const densityInput = document.getElementById('density');
+    if (densityInput) {
+        densityInput.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => fetchTable(), 350);
+        });
+    }
+
+    const perPageSelect = document.querySelector('select[name="per_page"]');
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', function () {
+            fetchTable();
+        });
+    }
+
+    bindPaginationLinks();
+});
+</script>

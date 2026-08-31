@@ -77,11 +77,12 @@
                             ];
                         @endphp
 
-                        <div x-data="{ compact: false }">
+                        <div x-data="{ compact: false, search: '' }">
                             <div class="mt-3 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
                                 <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
                                     At PORT
                                 </h2>
+                                <input type="text" x-model="search" placeholder="Filter Kapal..." class="border border-gray-300 rounded-md px-3 py-1 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600">
                             </div>
 
                             <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
@@ -107,7 +108,7 @@
                                     <tbody class="divide-y divide-gray-200">
                                         @foreach($report14 as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                            <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
                                                 <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
                                                     {{ $row['Vessel ID']['value'] }}
                                                 </td>
@@ -219,11 +220,12 @@
                             ];
                         @endphp
 
-                        <div x-data="{ compact: false }">
+                        <div x-data="{ compact: false, search: '' }">
                         <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
                             <h2 class="text-xl font-semibold text-blue-700 bg-blue-100 inline-block px-2 rounded">
                                 At SEA
                             </h2>
+                            <input type="text" x-model="search" placeholder="Filter Kapal..." class="border border-gray-300 rounded-md px-3 py-1 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                         </div>
 
                         <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
@@ -263,7 +265,7 @@
                                 <tbody class="divide-y divide-gray-200">
                                     @foreach($seaRows as $index => $row)
                                         @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                        <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
+                                        <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
                                             <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
                                                 {{ $row['Vessel ID']['value'] }}
                                             </td>
@@ -334,7 +336,8 @@
                                                         {{ $row['EXCESS ME']['value'] ?? 0 }},
                                                         {{ $row['SHIP SPEED']['value'] ?? 0 }},
                                                         {{ $row['Ideal Consumption Dynamic (L)']['value'] === '' ? 0 : ($row['Ideal Consumption Dynamic (L)']['value'] ?? 0) }},
-                                                        {!! $anomaliesJson !!}
+                                                        {!! $anomaliesJson !!},
+                                                        {{ $row['STEAM. DIST.']['value'] ?? 0 }}
                                                     )'
                                                         class="text-yellow-500 hover:text-yellow-600 p-1 rounded hover:bg-yellow-50 transition"
                                                         title="Lihat Detail">
@@ -373,11 +376,12 @@
                             $compactHeaders_port_sea = array_values(array_unique(array_merge($compactHeaders_port, $compactHeaders_sea)));
                         @endphp
 
-                        <div x-data="{ compact: false }">
+                        <div x-data="{ compact: false, search: '' }">
                             <div class="mt-5 px-4 py-2 rounded-md text-lg font-bold mb-4 flex justify-between items-center">
                                 <h2 class="text-xl font-semibold text-green-700 bg-green-100 inline-block px-2 rounded">
                                     Port & Sea
                                 </h2>
+                                <input type="text" x-model="search" placeholder="Filter Kapal..." class="border border-gray-300 rounded-md px-3 py-1 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600">
                             </div>
 
                             <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
@@ -403,7 +407,7 @@
                                     <tbody class="divide-y divide-gray-200">
                                         @foreach($port_sea_data as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                            <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['port'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
                                                 <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
                                                     {{ $row['Vessel ID']['port'] ?? '' }}
                                                 </td>
@@ -471,7 +475,7 @@
                                                     </div>
                                                 </td>
                                             </tr>
-                                            <tr class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['sea'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
                                                 <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
                                                     {{ $row['Vessel ID']['sea'] ?? '' }}
                                                 </td>
@@ -677,9 +681,10 @@
                             </div>
                             <div id="me-ideal-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
                                 <div class="text-xs text-gray-800 space-y-1">
-                                    <div class="text-gray-600 italic pb-1">
+                                    <div class="text-gray-600 italic pb-1 border-b border-yellow-200 mb-1">
                                         BL ME (L/Hour) x (Steam Time + Maneuvering Time)
                                     </div>
+                                    <div id="me-ideal-calc" class="text-gray-700 font-semibold"></div>
                                 </div>
                             </div>
                             <div id="me-ideal-dynamic-row" class="flex justify-between items-center px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
@@ -697,9 +702,10 @@
                             </div>
                             <div id="me-ideal-dynamic-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
                                 <div class="text-xs text-gray-800 space-y-1">
-                                    <div class="text-gray-600 italic pb-1">
+                                    <div class="text-gray-600 italic pb-1 border-b border-yellow-200 mb-1">
                                         BL ME Dynamic (L/Hour) x (Steam Time + Maneuvering Time)
                                     </div>
+                                    <div id="me-ideal-dynamic-calc" class="text-gray-700 font-semibold"></div>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
@@ -718,6 +724,10 @@
                             <div class="flex justify-between items-center px-4 py-2.5">
                                 <span class="text-sm text-gray-500">BL L/Nm</span>
                                 <span id="me-lnm-bl" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5">
+                                <span class="text-sm text-gray-500">STEAM. DIST.</span>
+                                <span id="me-steam-dist" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                             <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
                                 <div class="flex items-center gap-1.5">
@@ -738,8 +748,12 @@
                                 </div>
                             </div>
                             <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
-                                <span class="text-sm font-bold text-gray-700">Excess L/Nm</span>
+                                <span class="text-sm font-bold text-gray-700">Excess L/Nm (%)</span>
                                 <span id="me-lnm-exceed" class="text-sm font-semibold text-gray-800"></span>
+                            </div>
+                            <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
+                                <span class="text-sm font-bold text-gray-700">Excess L/Nm</span>
+                                <span id="me-lnm-exceed-abs" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                         </div>
                     </div>
@@ -807,9 +821,10 @@
                                 <span id="ae-excess-tolerance" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                             <div id="ae-tolerance-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
-                                <div class="text-xs text-gray-600 italic">
+                                <div class="text-xs text-gray-600 italic pb-1 border-b border-yellow-200 mb-1">
                                     BL AE (L/Day) + (AE Pararel Duration x BL AE (L/Hour)) - Total Consumption
                                 </div>
+                                <div id="ae-tolerance-calc" class="text-gray-700 font-semibold text-xs"></div>
                             </div>
                         </div>
                     </div>
@@ -973,7 +988,7 @@
         blAeParallel2, tanggal = '', position = '', departurePort = '', destination = '',
         blLNm = 0, lnmAktual = 0, lnmExceed = 0,
         excessAe = 0, excessAeTolerance = 0, excessMe = 0, shipSpeed = 0,
-        idealDynamic = 0, anomalies = null
+        idealDynamic = 0, anomalies = null, steamDist = 0
     ) {
         meMfo        = parseFloat(meMfo)        || 0;
         meHsd        = parseFloat(meHsd)        || 0;
@@ -997,6 +1012,7 @@
         aePararelDur = parseFloat(aePararelDur) || 0;
         blLNm        = parseFloat(blLNm)        || 0;
         shipSpeed    = parseFloat(shipSpeed)    || 0;
+        steamDist    = parseFloat(steamDist)    || 0;
 
         const meTotal   = meMfo + meHsd;
         const blMeLHour = blMfo;
@@ -1052,6 +1068,7 @@
         lnmAktual = parseFloat(lnmAktual) || 0;
         lnmExceed = parseFloat(lnmExceed) || 0;
 
+        document.getElementById('me-steam-dist').textContent = fmtNum(steamDist, 'Nm');
         document.getElementById('me-lnm-bl').textContent     = fmtNum(blLNm, 'L/Nm');
         document.getElementById('me-lnm-aktual').textContent = fmtNum(lnmAktual, 'L/Nm');
 
@@ -1064,6 +1081,11 @@
         lnmExceedEl.textContent = fmtNum(lnmExceed, '%');
         lnmExceedEl.className = 'text-sm font-semibold ' + (lnmExceed < 0 ? 'text-red-600 font-bold' : 'text-green-600');
 
+        const lnmExceedAbs = blLNm - lnmAktual;
+        const lnmExceedAbsEl = document.getElementById('me-lnm-exceed-abs');
+        lnmExceedAbsEl.textContent = fmtNum(lnmExceedAbs, 'L/Nm');
+        lnmExceedAbsEl.className = 'text-sm font-semibold ' + (lnmExceedAbs < 0 ? 'text-red-600 font-bold' : 'text-green-600');
+
         const mePropSlipEl = document.getElementById('me-prop-slip');
         mePropSlipEl.textContent = fmtNum(propSlip, '%');
         mePropSlipEl.className = 'text-sm font-semibold ' + (Math.abs(propSlip) >= 15 ? 'text-red-600 font-bold' : 'text-gray-800');
@@ -1074,6 +1096,15 @@
         document.getElementById('me-ideal-cost').textContent          = fmt(idealCost);
         document.getElementById('me-ideal-dynamic').textContent       = fmt(idealDynamic);
 
+        const totalTime = steamTime + maneuvTime;
+        document.getElementById('me-ideal-calc').textContent          = fmtNum(blMeLHour) + ' x (' + fmtNum(steamTime) + ' + ' + fmtNum(maneuvTime) + ') = ' + fmt(idealCost);
+
+        let blMeDynamicLHour = 0;
+        if (totalTime > 0) {
+            blMeDynamicLHour = idealDynamic / totalTime;
+        }
+        document.getElementById('me-ideal-dynamic-calc').textContent  = fmtNum(blMeDynamicLHour) + ' x (' + fmtNum(steamTime) + ' + ' + fmtNum(maneuvTime) + ') = ' + fmt(idealDynamic);
+
         document.getElementById('me-ideal-detail').classList.add('hidden');
         document.getElementById('me-ideal-arrow').classList.remove('rotate-90');
         
@@ -1082,6 +1113,8 @@
 
         document.getElementById('ae-tolerance-detail').classList.add('hidden');
         document.getElementById('ae-tolerance-arrow').classList.remove('rotate-90');
+
+        document.getElementById('ae-tolerance-calc').textContent = fmt(blAeLDay) + ' + (' + fmt(aePararelDur) + ' x ' + fmt(blAeLHour) + ') ' + ' - ' + fmt(aeTotal) + ' = ' + fmt(blAeLDay + (aePararelDur * blAeLHour) - aeTotal)
 
         const meExcessEl = document.getElementById('me-excess');
         meExcessEl.textContent = fmt(meExcess);

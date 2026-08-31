@@ -22,6 +22,10 @@ class ConsumptionController extends Controller
         $bl_ae_1_reffer = $vesselBaseline?->bl_ae_1_reffer ?? 0;
         $ae_parallel_2  = $vesselBaseline?->ae_parallel_2 ?? 0;
 
+        $steamDist = $this->normalizeNumeric($grouped['steam_dist'] ?? 0);
+        $meMfo     = $this->normalizeNumeric($grouped['me_mfo'] ?? 0);
+        $meHsd     = $this->normalizeNumeric($grouped['me_hsd'] ?? 0);
+
         $ordered = [
             'Vessel ID' => $grouped['vesselid'] ?? null,
             'tanggal'   => isset($grouped['tanggal'])
@@ -30,13 +34,13 @@ class ConsumptionController extends Controller
             'POSITION'                          => $grouped['pos'] ?? null,
             'DEPARTURE PORT'                    => $grouped['departure'] ?? null,
             'DESTINATION'                       => $grouped['destination'] ?? null,
-            'STEAM. DIST.'                      => $grouped['steam_dist'] ?? null,
+            'STEAM. DIST.'                      => $steamDist,
             'STEAM TIME (HOUR : MINUTE)'        => $grouped['steam_time'] ?? null,
             'SHIP SPEED'                        => $grouped['ship_speed'] ?? null,
             'PROPELLER SLIP'                    => $grouped['prop_slip'] ?? null,
             'ME RPM'                            => $grouped['me_rpm'] ?? null,
-            'M/E MFO'                           => $grouped['me_mfo'] ?? null,
-            'M/E HSD'                           => $grouped['me_hsd'] ?? null,
+            'M/E MFO'                           => $meMfo,
+            'M/E HSD'                           => $meHsd,
             'A/E MFO'                           => $grouped['ae_mfo'] ?? null,
             'A/E HSD'                           => $grouped['ae_hsd'] ?? null,
             'MANEUVERING TIME (HOURS)'          => $grouped['duration_manuev'] ?? null,
@@ -61,19 +65,11 @@ class ConsumptionController extends Controller
             'BL HSD'                            => $bl_ae,
             'BL REFFER'                         => $bl_ae_1_reffer,
             'BL AE PARALLEL 2'                  => $ae_parallel_2,
-            'L/NM' => (
-                isset($grouped['steam_time']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
-            ) ? (
-                (($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)) / $grouped['steam_dist']
-            ) : 0,
+            'L/NM' => ($steamDist != 0 ? (($meMfo + $meHsd) / $steamDist) : 0),
             'EXCESS ME L/NM (%)' => (
-                isset(
-                $bl_l_nm,
-                $grouped['steam_time'], $grouped['steam_dist']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
+                $steamDist != 0 && $bl_l_nm != 0
             ) ? (
-                (((($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)) / $grouped['steam_dist']) > 0)
-                    ? (($bl_l_nm - ((($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)) / $grouped['steam_dist'])) / $bl_l_nm) * 100
-                    : 0
+                (($bl_l_nm - (($meMfo + $meHsd) / $steamDist)) / $bl_l_nm) * 100
             ) : 0,
             'EXCESS ME' => ($bl_me * (($grouped['steam_time'] ?? 0) + ($grouped['duration_manuev'] ?? 0)))
                 - (($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)),
@@ -92,6 +88,43 @@ class ConsumptionController extends Controller
         }
 
         return $ordered;
+    }
+
+    private function normalizeNumeric($value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        $str = trim((string) $value);
+        $str = preg_replace('/[^0-9,\.\-]/', '', $str);
+
+        if ($str === '' || $str === '-' || $str === '.' || $str === ',') {
+            return 0.0;
+        }
+
+        $hasComma = strpos($str, ',') !== false;
+        $hasDot   = strpos($str, '.') !== false;
+
+        if ($hasComma && $hasDot) {
+            $lastComma = strrpos($str, ',');
+            $lastDot   = strrpos($str, '.');
+
+            if ($lastComma > $lastDot) {
+                $str = str_replace('.', '', $str);
+                $str = str_replace(',', '.', $str);
+            } else {
+                $str = str_replace(',', '', $str);
+            }
+        } elseif ($hasComma) {
+            $str = str_replace(',', '.', $str);
+        }
+
+        return (float) $str;
     }
 
     private function polyfitQuadratic(array $x, array $y)
