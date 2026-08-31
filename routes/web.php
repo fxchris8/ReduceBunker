@@ -55,7 +55,8 @@ Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
 
     Route::post('/upload-file', [POController::class, 'uploadFile'])->name('upload.file');
 
-    Route::any('/baseline-analysis', [BaselineController::class, 'show'])->name('po.baseline');
+    Route::get('/baseline-analysis', [BaselineController::class, 'index'])->name('po.baseline');
+    Route::any('/baseline-analysis/{vessel}', [BaselineController::class, 'detail'])->name('po.baseline.detail');
 
     Route::resource('/fuel-baseline', FuelBaselineController::class)->except(['show']);
 });
