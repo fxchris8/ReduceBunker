@@ -11,6 +11,7 @@ use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\POController;
 use App\Http\Controllers\BaselineController;
 use App\Http\Controllers\FuelBaselineController;
+use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureSsoSessionIsFresh;
 
 Route::middleware('guest')->group(function () {
@@ -29,15 +30,15 @@ Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
     Route::post('/send-email/send', [ConsumptionEmailController::class, 'sendEmail'])->name('send.email');
 
     Route::any('/', [SummaryController::class, 'show'])->name('dashboard');
-    // Route::post('/summary-analysis', [SummaryController::class, 'upload'])->name('file.dashboard');
-    // Route::get('/summary-analysis', [SummaryController::class, 'summaryAnalysis'])->name('summary.analysis');
-
-    Route::get('/details/me-hsd-maneuvering/{sessionType}', [DetailController::class, 'mehsd'])->name('details.mehsd');
-    Route::get('/details/excess-time/{sessionType}', [DetailController::class, 'time'])->name('details.time');
-
-    Route::get('/details/bl-me-hsd-maneuvering/{sessionType}', [DetailController::class, 'bl_mehsd'])->name('details.bl_mehsd');
-    Route::get('/details/bl-me-mfo/{sessionType}', [DetailController::class, 'bl_memfo'])->name('details.bl_memfo');
-    Route::get('/details/bl-ae/{sessionType}', [DetailController::class, 'bl_ae'])->name('details.bl_ae');
+    Route::get('/dashboard/daily-detail', [SummaryController::class, 'dailyDetail'])->name('dashboard.daily-detail');
+    Route::get("/dashboard/daily-detail/export", [SummaryController::class, 'exportDailyDetail'])->name('dashboard.daily-detail.export');
+    Route::get("/dashboard/export", [SummaryController::class, 'exportMonthly'])->name('dashboard.export');
+    
+    // Route::get('/details/me-hsd-maneuvering/{sessionType}', [DetailController::class, 'mehsd'])->name('details.mehsd');
+    // Route::get('/details/excess-time/{sessionType}', [DetailController::class, 'time'])->name('details.time');
+    // Route::get('/details/bl-me-hsd-maneuvering/{sessionType}', [DetailController::class, 'bl_mehsd'])->name('details.bl_mehsd');
+    // Route::get('/details/bl-me-mfo/{sessionType}', [DetailController::class, 'bl_memfo'])->name('details.bl_memfo');
+    // Route::get('/details/bl-ae/{sessionType}', [DetailController::class, 'bl_ae'])->name('details.bl_ae');
 
     Route::any('/refueling-planning', [PlanningController::class, 'show'])->name('po.planning');
     Route::post('/refueling/download', [PlanningController::class, 'download'])->name('file.refueling.download');
@@ -59,4 +60,10 @@ Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
     Route::any('/baseline-analysis/{vessel}', [BaselineController::class, 'detail'])->name('po.baseline.detail');
 
     Route::resource('/fuel-baseline', FuelBaselineController::class)->except(['show']);
+
+    Route::middleware('can:admin-access')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])->name('users.updateRole');
+        Route::post('/dashboard/daily-detail/update', [SummaryController::class, 'updateDailyDetail'])->name('dashboard.daily-detail.update');
+    });
 });

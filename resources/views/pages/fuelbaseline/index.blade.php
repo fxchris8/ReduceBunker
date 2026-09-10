@@ -85,10 +85,12 @@
     <div class="bg-white rounded-lg shadow-md">
         <div class="bg-gray-50 px-4 py-4 border-b flex items-center justify-between">
             <h1 class="text-xl font-bold">Baseline Management</h1>
+            @can('admin-access')
             <a href="{{ route('fuel-baseline.create') }}"
                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-semibold">
                 + Add Fuel Baseline
             </a>
+            @endcan
         </div>
 
         <div class="p-6">
@@ -226,7 +228,9 @@
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Density</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Speed (Knot)</th>
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Last Updated</th>
+                            @can('admin-access')
                             <th rowspan="2" class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs align-middle">Actions</th>
+                            @endcan
                         </tr>
                         <tr>
                             <th class="px-4 py-3 border border-gray-200 uppercase tracking-wide text-xs">ME (L/Hours)</th>
@@ -307,6 +311,7 @@
                                 <td class="px-4 py-3 border border-gray-200 text-gray-500 text-xs">
                                     {{ ($baseline->updated_at ?? $baseline->created_at)?->format('d M Y H:i') ?? '-' }}
                                 </td>
+                                @can('admin-access')
                                 <td class="px-4 py-3 border border-gray-200">
                                     <div class="flex justify-center gap-2">
                                         <a href="{{ route('fuel-baseline.edit', $baseline) }}"
@@ -355,6 +360,7 @@
                                         </form>
                                     </div>
                                 </td>
+                                @endcan
                             </tr>
                         @empty
                             <tr>

@@ -2,460 +2,650 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\VesselConsumptionDaily;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Http;
-use DateTime;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class SummaryController extends Controller
 {
-    function reorderReport($grouped) {
-        $bl_l_nm_FilePath = storage_path('app/BL for Analysis.xlsx');
-        $spreadsheet_bl_l_nm = IOFactory::load($bl_l_nm_FilePath);
-        $sheet_bl_l_nm = $spreadsheet_bl_l_nm->getActiveSheet();
-        $bl_l_nm_Data = $sheet_bl_l_nm->toArray(null, true, true, true);
-
-        $bl_l_nm_map = [];
-
-        foreach (array_slice($bl_l_nm_Data, 1) as $row) {
-            $vessel = trim($row['A']); 
-            $bl_l_nm   = trim($row['F']);
-            if ($vessel && $bl_l_nm) {
-                $bl_l_nm_map[$vessel] = ['bl_l_nm' => $bl_l_nm];
-            }
-        }
-
-        $vesselRaw = $grouped['vesselid'] ?? '';
-        $vesselKey = strtoupper(trim($vesselRaw));
-
-        $bl_l_nm = $bl_l_nm_map[$vesselKey]['bl_l_nm'] ?? 10;
-        
-        $ordered = [
-            'Vessel ID' => $grouped['vesselid'] ?? null,
-            'tanggal' => isset($grouped['tanggal']) 
-                ? (new DateTime($grouped['tanggal']))->format('d F Y H:i') 
-                : null,
-            
-            'POSITION' => $grouped['pos'] ?? null,
-            
-            'DEPARTURE PORT' => $grouped['departure'] ?? null,
-            'DESTINATION' => $grouped['destination'] ?? null,
-
-            'STEAM. DIST.' => $grouped['steam_dist'] ?? null,
-            'STEAM TIME (HOUR : MINUTE)' => $grouped['steam_time'] ?? null,
-            'SHIP SPEED' => $grouped['ship_speed'] ?? null,
-            'PROPELLER SLIP' => $grouped['prop_slip'] ?? null,
-            'ME RPM' => $grouped['me_rpm'] ?? null,
-
-            'M/E MFO' => $grouped['me_mfo'] ?? null,
-            'M/E HSD' => $grouped['me_hsd'] ?? null,
-
-            'A/E MFO' => $grouped['ae_mfo'] ?? null,
-            'A/E HSD' => $grouped['ae_hsd'] ?? null,
-
-            'MANEUVERING TIME (HOURS)' => $grouped['duration_manuev'] ?? null,
-
-            'BOILER HSD' => $grouped['boiler_hsd'] ?? null,
-            'BOILER MFO' => $grouped['boiler_mfo'] ?? null,
-
-            'GENSET CONSUMPTION - HSD' => $grouped['genset_consum_hsd'] ?? null,
-            'EMERGENCY GENERATOR CONSUMPTION' => $grouped['emg'] ?? null,
-
-            'LOAD A/E 1 (KW)' => $grouped['load_ae_1'] ?? null,
-            'LOAD A/E 2 (KW)' => $grouped['load_ae_2'] ?? null,
-            'LOAD A/E 3 (KW)' => $grouped['load_ae_3'] ?? null,
-            'LOAD A/E 4 (KW)' => $grouped['load_ae_4'] ?? null,
-
-            'REEFER 20"' => $grouped['reefer20'] ?? null,
-            'CRANE DURATION' => $grouped['crane_duration'] ?? null,
-            'TOTAL CRANE' => $grouped['total_crane'] ?? null, 
-            'AE PARAREL DURATION' => $grouped['ae_pararel_duration'] ?? null,
-            'REEFER 40"' => $grouped['reefer40'] ?? null,
-            
-            'BL M/E' => $grouped['bl_me_hsd'] ?? null,
-            'ME Maneuvering Cons. (L/H)' => $grouped['me_manuev_consum'] ?? null,
-            'SELISIH ME Maneuvering' => $grouped['selisih'] ?? null,
-
-            'BL L/NM' => $bl_l_nm,
-
-            'L/NM' => (
-                isset($grouped['steam_time']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
-            ) ? (
-                ($grouped['me_mfo'] ?? 0) / $grouped['steam_dist']
-            ) : 0,
-            
-            'EXCESS ME MFO L/NM (%)' => (
-                isset(
-                $bl_l_nm, 
-                $grouped['steam_time'], $grouped['steam_dist']) && $grouped['steam_time'] >= 24 && !empty($grouped['steam_dist'])
-            ) ? (
-                ((($grouped['me_mfo'] ?? 0) / $grouped['steam_dist']) > 0)
-                    ? (($bl_l_nm - (($grouped['me_mfo'] ?? 0) / $grouped['steam_dist'])) / $bl_l_nm) * 100
-                    : 0
-            ) : 0,
-
-            'BL A/E (L/Day)' => $grouped['bl_ae'] ?? null,
-            'AE Consumption' => ($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0),
-            'EXCESS AE' => ($grouped['bl_ae'] ?? 0) - (($grouped['ae_hsd'] ?? 0) + ($grouped['ae_mfo'] ?? 0) + ($grouped['genset_consum_hsd'] ?? 0)),
-            ];
-
-        return $ordered;
-    }
-
     public function show(Request $request)
-    {   
-
-        if (!$request->filled('report_date')){
-            return view('dashboard');
-        }
-        // api
-        $reportDate = $request->input('report_date', date('Y-m-d', strtotime('-1 day')));
-        $formattedDate = \Carbon\Carbon::parse($reportDate)->format('d/m/Y');
-
-        $basePayload = [
-            "tanggal" => $formattedDate,
-        ];
-
-        $reportIds = [14, 16];
-        $allReports = [];
-
-        foreach ($reportIds as $reportId) {
-            $payload = $basePayload;
-            $payload['report_id'] = (string)$reportId;
-
-            $response = Http::timeout(120)
-            ->withHeaders([
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            ])->withBody(json_encode($payload), 'application/json')
-            ->get('http://nanika.spil.co.id:3021/get-bunker-analysis');
-
-            if (!$response->successful()) {
-                return view('po.planning', [
-                    'error' => 'Gagal ambil data API (report_id: '.$reportId.', status: '.$response->status().')',
-                    'report14' => [],
-                    'report16' => [],
-                ]);
-            }
-
-            $data = $response->json();
-            $reports = $data['data'] ?? [];
-
-            // ambil kolom
-            $normalized = array_map([$this, 'reorderReport'], $reports);
-
-            // misahin sea port
-            $allReports[$reportId] = $normalized;
-        }
-
-        $port_data = $allReports[14] ?? [];
-        $sea_data = $allReports[16] ?? [];
-
-        // hapus duplikat di satu data
-        function deduplicateByVesselId(array $reports): array {
-            $seen = [];
-            $filtered = [];
-
-            foreach ($reports as $report) {
-                $vesselid = $report['Vessel  ID'] ?? null;
-                if ($vesselid && !in_array($vesselid, $seen)) {
-                    $seen[] = $vesselid;
-                    $filtered[] = $report;
-                }
-            }
-
-            return $filtered;
-        }
-        
-        $port_data = deduplicateByVesselId($port_data);
-        $sea_data  = deduplicateByVesselId($sea_data);
-
-        // hitung jumlah vessel yang operate
-        $allVessels = array_merge($port_data, $sea_data);
-        $uniqueVessels = count(array_unique(array_map(fn($r) => strtoupper($r['Vessel ID'] ?? ''), $allVessels)));
-        $uniqueVesselIds = array_unique(array_map(fn($r) => strtoupper($r['Vessel ID'] ?? ''), $allVessels));
-
-        // hitung vessel per fleet
-        $fleetMap = [];
-        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(storage_path('app/fleet.xlsx'))->getActiveSheet();
-        foreach (array_slice($sheet->toArray(null, true, true, true), 1) as $row) {
-            $fleet = trim($row['A']);
-            $vessel = strtoupper(trim($row['B']));
-            if ($fleet && $vessel) $fleetMap[$vessel] = $fleet;
-        }
-
-        $fleetCounts = [];
-        foreach ($fleetMap as $vessel => $fleet) {
-            $fleetCounts[$fleet] = 0;
-        }
-
-        $unknownVessels = [];
-
-        foreach ($uniqueVesselIds as $vessel) {
-            $fleet = $fleetMap[$vessel] ?? 'UNKNOWN';
-            $fleetCounts[$fleet] = ($fleetCounts[$fleet] ?? 0) + 1;
-
-            if ($fleet === 'UNKNOWN') {
-                $unknownVessels[] = $vessel; 
-            }
-        }
-        ksort($fleetCounts);
-
-        $calculateSpecificConsumption = function (array $data, array $keys): array {
-            $totals = array_fill_keys($keys, 0.0);
-
-            foreach ($data as $row) {
-                foreach ($keys as $key) {
-                    $value = floatval($row[$key] ?? 0);
-                    $totals[$key] += $value;
-                }
-            }
-
-            return $totals;
-        };
-
-        $consumptionKeys = [
-            'M/E HSD',
-            'M/E MFO',
-            'A/E HSD',
-            'A/E MFO',
-            'BOILER HSD',
-            'BOILER MFO',
-            'GENSET CONSUMPTION - HSD',
-        ];
-
-        $totalConsumption_port = $calculateSpecificConsumption($port_data, $consumptionKeys);
-        $totalConsumption_sea  = $calculateSpecificConsumption($sea_data, $consumptionKeys);
-
-        // me hsd tanpa maneuvering
-        $countManeuvering = function ($data) {
-            $count = 0;
-            foreach ($data as $row) {
-                $me_hsd = floatval($row['M/E HSD'] ?? 0);
-                $man = floatval($row['MANEUVERING TIME (HOURS)'] ?? 0);
-                if ($me_hsd > 0 && $man == 0) $count++;
-            }
-            return $count;
-        };
-
-        $getManeuveringDetails = function ($data) {
-            $details = [];
-            foreach ($data as $row) {
-                $me_hsd = floatval($row['M/E HSD'] ?? 0);
-                $man = floatval($row['MANEUVERING TIME (HOURS)'] ?? 0);
-                $vessel = strtoupper(trim($row['Vessel ID'] ?? ''));
-                if ($me_hsd > 0 && $man == 0 && $vessel !== '') {
-                    $details[] = [
-                        'vessel' => $vessel,
-                        'me_hsd' => $me_hsd,
-                        'maneuvering' => $man
-                    ];
-                }
-            }
-
-            usort($details, function ($a, $b) {
-                return $b['me_hsd'] <=> $a['me_hsd'];
-            });
-
-            return $details;
-        };
-
-        $count_me_hsd_maneuvering_port = $countManeuvering($port_data);
-        $count_me_hsd_maneuvering_sea  = $countManeuvering($sea_data);
-
-        // ae berlebih
-        $countExcessTime = function ($data) {
-            $count = 0;
-            foreach ($data as $row) {
-                $ae = floatval($row['AE PARAREL DURATION'] ?? 0);
-                $crane = floatval($row['CRANE DURATION'] ?? 0);
-                $man = floatval($row['MANEUVERING TIME (HOURS)'] ?? 0);
-                if (($ae - $crane - $man) > 3) $count++;
-            }
-            return $count;
-        };
-
-        $getExcessTimeDetails = function ($data) {
-            $details = [];
-            foreach ($data as $row) {
-                $ae = floatval($row['AE PARAREL DURATION'] ?? 0);
-                $crane = floatval($row['CRANE DURATION'] ?? 0);
-                $man = floatval($row['MANEUVERING TIME (HOURS)'] ?? 0);
-                $vessel = strtoupper(($row['Vessel ID'] ?? ''));
-                $diff = $ae - $crane - $man;
-                if ($diff > 3 && $vessel !== '') {
-                    $details[] = [
-                        'vessel' => $vessel,
-                        'ae_pararel' => $ae,
-                        'crane' => $crane,
-                        'maneuvering' => $man,
-                        'diff' => $diff
-                    ];
-                }
-            }
-
-            usort($details, function ($a, $b) {
-                return $b['diff'] <=> $a['diff'];
-            });
-
-            return $details;
-        };
-
-        $count_time_port = $countExcessTime($port_data);
-        $count_time_sea  = $countExcessTime($sea_data);
-
-        // minus
-        $countMinusValues = function ($data, $columns) {
-            $counts = array_fill_keys($columns, 0);
-            foreach ($data as $row) {
-                foreach ($columns as $col) {
-                    $value = trim($row[$col] ?? '');
-                    $numeric = is_numeric($value) ? floatval($value) : null;
-
-                    if ($numeric !== null && $numeric < 0) {
-                        $counts[$col]++;
-                    }
-                }
-            }
-            return $counts;
-        };
-
-        $getMinusDetails = function ($data, $columns) {
-            $details = [];
-            foreach ($data as $row) {
-                $vessel = strtoupper(trim($row['Vessel ID'] ?? ''));
-
-                $me_hsd = floatval($row['M/E HSD'] ?? 0);
-                $man = floatval($row['MANEUVERING TIME (HOURS)'] ?? 0);
-                $bl_me = floatval($row['BL M/E'] ?? 0);
-                $me_mnv = floatval($row['ME Maneuvering Cons. (L/H)'] ?? 0);
-                $selisih = floatval($row['SELISIH ME Maneuvering'] ?? 0);
-
-                $ae_mfo = floatval($row['A/E MFO'] ?? 0);
-                $ae_hsd = floatval($row['A/E HSD'] ?? 0);
-                $genset = floatval($row['GENSET CONSUMPTION - HSD'] ?? 0);
-                $bl_ae = floatval($row['BL A/E (L/Day)'] ?? 0);
-                $ae_consumption = floatval($row['AE Consumption'] ?? 0);
-                $excess_ae = floatval($row['EXCESS AE'] ?? 0);
-
-                $steam_distance = floatval($row['STEAM. DIST.'] ?? 0);
-                $steam_time = floatval($row['STEAM TIME (HOUR : MINUTE)'] ?? 0);
-                $me_mfo = floatval($row['M/E MFO'] ?? 0);
-                $bl_l_nm = floatval($row['BL L/NM'] ?? 0);
-                $l_nm = floatval($row['L/NM'] ?? 0);
-                $excess_me_mfo_l_nm = floatval($row['EXCESS ME MFO L/NM (%)'] ?? 0);
-
-                if ($vessel === '') continue;
-
-                foreach ($columns as $col) {
-                    $value = trim($row[$col] ?? '');
-
-                    if ($col == 'SELISIH ME Maneuvering') {
-                        if ($selisih !== null && $selisih < 0) {
-                            $details[$col][] = [
-                                'vessel' => $vessel,
-                                'me_hsd' => $me_hsd,
-                                'maneuvering' => $man,
-                                'bl_me' => $bl_me,
-                                'me_mnv' => $me_mnv,
-                                'selisih' => $selisih
-                            ];
-                        }
-                    }
-                    else if ($col == 'EXCESS AE') {
-                        if ($excess_ae !== null && $excess_ae < 0) {
-                            $details[$col][] = [
-                                'vessel' => $vessel,
-                                'ae_mfo' => $ae_mfo,
-                                'ae_hsd' => $ae_hsd,
-                                'genset' => $genset,
-                                'bl_ae' => $bl_ae,
-                                'ae_consumption' => $ae_consumption,
-                                'excess_ae' => $excess_ae
-                            ];
-                        }
-                    }
-                    else if ($col == 'EXCESS ME MFO L/NM (%)') {
-                        if ($excess_me_mfo_l_nm !== null && $excess_me_mfo_l_nm < 0) {
-                            $details[$col][] = [
-                                'vessel' => $vessel,
-                                'steam_distance' => $steam_distance,
-                                'steam_time' => $steam_time,
-                                'me_mfo' => $me_mfo,
-                                'bl_l_nm' => $bl_l_nm,
-                                'l_nm' => $l_nm,
-                                'excess_me_mfo_l_nm' => $excess_me_mfo_l_nm
-                            ];
-                        }
-                    }
-                }
-            }
-
-            return $details;
-        };
-
-        $minusColumns = ['SELISIH ME Maneuvering', 'EXCESS AE', 'EXCESS ME MFO L/NM (%)'];
-
-        $count_minus_port = $countMinusValues($port_data, $minusColumns);
-        $count_minus_sea  = $countMinusValues($sea_data, $minusColumns);
-
-        $details_minus_port = $getMinusDetails($port_data, $minusColumns);
-        $details_minus_sea  = $getMinusDetails($sea_data, $minusColumns);
-
-        if (!empty($details_minus_port['SELISIH ME Maneuvering'])) {
-            usort($details_minus_port['SELISIH ME Maneuvering'], function ($a, $b) {
-                return ($b['selisih'] ?? 0) <=> ($a['selisih'] ?? 0);
-            });
-        }
-
-        if (!empty($details_minus_port['EXCESS AE'])) {
-            usort($details_minus_port['EXCESS AE'], function ($a, $b) {
-                return ($b['excess_ae'] ?? 0) <=> ($a['excess_ae'] ?? 0);
-            });
-        }
-        
-        if (!empty($details_minus_sea['SELISIH ME Maneuvering'])) {
-            usort($details_minus_sea['SELISIH ME Maneuvering'], function ($a, $b) {
-                return ($b['selisih'] ?? 0) <=> ($a['selisih'] ?? 0);
-            });
-        }
-
-        if (!empty($details_minus_sea['EXCESS AE'])) {
-            usort($details_minus_sea['EXCESS AE'], function ($a, $b) {
-                return ($b['excess_ae'] ?? 0) <=> ($a['excess_ae'] ?? 0);
-            });
-        }
-
-        if (!empty($details_minus_sea['EXCESS ME MFO L/NM (%)'])) {
-            usort($details_minus_sea['EXCESS ME MFO L/NM (%)'], function ($a, $b) {
-                return ($a['excess_me_mfo_l_nm'] ?? 0) <=> ($b['excess_me_mfo_l_nm'] ?? 0);
-            });
-        }
-
-        session([
-            'details_me_hsd_maneuvering_port' => $getManeuveringDetails($port_data),
-            'details_me_hsd_maneuvering_sea'  => $getManeuveringDetails($sea_data),
-            'details_time_port'               => $getExcessTimeDetails($port_data),
-            'details_time_sea'                => $getExcessTimeDetails($sea_data),
-            'details_minus_port'              => $details_minus_port,
-            'details_minus_sea'               => $details_minus_sea,
-            'unknown_vessels'                 => $unknownVessels,
+    {
+        $request->validate([
+            "report_month" => ["nullable", 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
         ]);
 
-        return view('dashboard', compact(
-            'uniqueVessels',
-            'fleetCounts',
-            'totalConsumption_port',
-            'totalConsumption_sea',
-            'count_me_hsd_maneuvering_port',
-            'count_me_hsd_maneuvering_sea',
-            'count_time_port',
-            'count_time_sea',
-            'count_minus_port',
-            'count_minus_sea',
-            'unknownVessels',
-        ));
+        $reportMonth = $request->input(
+            "report_month",
+            now("Asia/Jakarta")->format("Y-m"),
+        );
+        $monthStart = Carbon::createFromFormat(
+            "!Y-m",
+            $reportMonth,
+            "Asia/Jakarta",
+        )->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $consumptions = VesselConsumptionDaily::query()
+            ->select("vessel_id")
+            ->selectRaw("SUM(me_mfo) as me_mfo")
+            ->selectRaw("SUM(me_hsd) as me_hsd")
+            ->selectRaw("SUM(ae_mfo) as ae_mfo")
+            ->selectRaw("SUM(ae_hsd) as ae_hsd")
+            ->selectRaw("SUM(boiler_hsd) as boiler_hsd")
+            ->selectRaw("SUM(boiler_mfo) as boiler_mfo")
+            ->selectRaw("SUM(genset_consum_hsd) as genset_consum_hsd")
+            ->selectRaw("MAX(synced_at) as last_synced_at")
+            ->whereBetween("report_date", [
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
+            ])
+            ->groupBy("vessel_id")
+            ->orderBy("vessel_id")
+            ->get();
+
+        $totalConsumption = [
+            "me_mfo" => $consumptions->sum("me_mfo"),
+            "me_hsd" => $consumptions->sum("me_hsd"),
+            "ae_mfo" => $consumptions->sum("ae_mfo"),
+            "ae_hsd" => $consumptions->sum("ae_hsd"),
+            "boiler_hsd" => $consumptions->sum("boiler_hsd"),
+            "boiler_mfo" => $consumptions->sum("boiler_mfo"),
+            "genset_consum_hsd" => $consumptions->sum("genset_consum_hsd"),
+        ];
+
+        $totalMfo = (float) (
+            $totalConsumption["me_mfo"] +
+            $totalConsumption["ae_mfo"] +
+            $totalConsumption["boiler_mfo"]
+        );
+        $totalHsd = (float) (
+            $totalConsumption["me_hsd"] +
+            $totalConsumption["ae_hsd"] +
+            $totalConsumption["boiler_hsd"] +
+            $totalConsumption["genset_consum_hsd"]
+        );
+
+        $mfoBreakdown = [
+            "boiler" => (float) $totalConsumption["boiler_mfo"],
+            "me" => (float) $totalConsumption["me_mfo"],
+            "ae" => (float) $totalConsumption["ae_mfo"],
+        ];
+
+        $hsdBreakdown = [
+            "boiler" => (float) $totalConsumption["boiler_hsd"],
+            "me" => (float) $totalConsumption["me_hsd"],
+            "ae" => (float) $totalConsumption["ae_hsd"],
+            "genset" => (float) $totalConsumption["genset_consum_hsd"],
+        ];
+
+        $lastSyncedAt = VesselConsumptionDaily::query()
+            ->whereBetween("report_date", [
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
+            ])
+            ->max("synced_at");
+
+        return view("dashboard", [
+            "reportMonth" => $reportMonth,
+            "reportMonthLabel" => $monthStart
+                ->locale("id")
+                ->translatedFormat("F Y"),
+            "consumptions" => $consumptions,
+            "totalConsumption" => $totalConsumption,
+            "totalMfo" => $totalMfo,
+            "totalHsd" => $totalHsd,
+            "mfoBreakdown" => $mfoBreakdown,
+            "hsdBreakdown" => $hsdBreakdown,
+            "lastSyncedAt" => $lastSyncedAt
+                ? Carbon::parse($lastSyncedAt)->timezone("Asia/Jakarta")
+                : null,
+        ]);
+    }
+
+    public function dailyDetail(Request $request)
+    {
+        $request->validate([
+            "vessel_id" => ["required", "string"],
+            "report_month" => ["nullable", 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+        ]);
+
+        $vesselId = $request->input("vessel_id");
+        $reportMonth = $request->input(
+            "report_month",
+            now("Asia/Jakarta")->format("Y-m"),
+        );
+        $monthStart = Carbon::createFromFormat(
+            "!Y-m",
+            $reportMonth,
+            "Asia/Jakarta",
+        )->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $records = VesselConsumptionDaily::query()
+            ->where("vessel_id", $vesselId)
+            ->whereBetween("report_date", [
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
+            ])
+            ->orderBy("report_date", "asc")
+            ->orderBy("session_type", "asc")
+            ->get();
+
+        $fuelKeys = [
+            "me_mfo",
+            "me_hsd",
+            "ae_mfo",
+            "ae_hsd",
+            "boiler_hsd",
+            "boiler_mfo",
+            "genset_consum_hsd",
+        ];
+
+        $dailyRows = $records->map(function ($record) use ($fuelKeys) {
+            $session = strtolower($record->session_type);
+            $row = [
+                "id" => $record->id,
+                "date" => $record->report_date->format("Y-m-d"),
+                "date_label" => $record->report_date
+                    ->locale("id")
+                    ->translatedFormat("d M Y"),
+                "session_type" => $session,
+                "position_label" =>
+                    $session === "sea"
+                        ? "At Sea"
+                        : ($session === "port"
+                            ? "At Port"
+                            : ucfirst($session)),
+                "remarks" => $record->remarks ?: "-",
+                "engine_daily_work" => $record->engine_daily_work ?: "-",
+                "deck_daily_work" => $record->deck_daily_work ?: "-",
+                "steam_time" => $session === "sea" ? (float) ($record->steam_time ?? 0) : 0.0,
+            ];
+            foreach ($fuelKeys as $key) {
+                $row[$key] = (float) $record->{$key};
+            }
+            return $row;
+        });
+
+        $totals = [];
+        foreach ($fuelKeys as $key) {
+            $portSum = (float) $records
+                ->where("session_type", "port")
+                ->sum($key);
+            $seaSum = (float) $records->where("session_type", "sea")->sum($key);
+            $totals[$key] = [
+                "port" => $portSum,
+                "sea" => $seaSum,
+                "total" => $portSum + $seaSum,
+            ];
+        }
+
+        $seaSteamTime = (float) $records->where("session_type", "sea")->sum("steam_time");
+        $totals["steam_time"] = [
+            "port" => 0.0,
+            "sea" => $seaSteamTime,
+            "total" => $seaSteamTime,
+        ];
+
+        $summary = [
+            "total_mfo" => (float) (
+                ($totals["me_mfo"]["total"] ?? 0) +
+                ($totals["ae_mfo"]["total"] ?? 0) +
+                ($totals["boiler_mfo"]["total"] ?? 0)
+            ),
+            "total_hsd" => (float) (
+                ($totals["me_hsd"]["total"] ?? 0) +
+                ($totals["ae_hsd"]["total"] ?? 0) +
+                ($totals["boiler_hsd"]["total"] ?? 0) +
+                ($totals["genset_consum_hsd"]["total"] ?? 0)
+            ),
+            "mfo_breakdown" => [
+                "boiler" => (float) ($totals["boiler_mfo"]["total"] ?? 0),
+                "me" => (float) ($totals["me_mfo"]["total"] ?? 0),
+                "ae" => (float) ($totals["ae_mfo"]["total"] ?? 0),
+            ],
+            "hsd_breakdown" => [
+                "boiler" => (float) ($totals["boiler_hsd"]["total"] ?? 0),
+                "me" => (float) ($totals["me_hsd"]["total"] ?? 0),
+                "ae" => (float) ($totals["ae_hsd"]["total"] ?? 0),
+                "genset" => (float) ($totals["genset_consum_hsd"]["total"] ?? 0),
+            ],
+        ];
+
+        $averages = $this->calculateVesselAverages($records, $totals);
+
+        return response()->json([
+            "vessel_id" => $vesselId,
+            "report_month" => $reportMonth,
+            "report_month_label" => $monthStart
+                ->locale("id")
+                ->translatedFormat("F Y"),
+            "daily_rows" => $dailyRows,
+            "totals" => $totals,
+            "summary" => $summary,
+            "averages" => $averages,
+        ]);
+    }
+
+    public function updateDailyDetail(Request $request)
+    {
+        $validated = $request->validate([
+            "vessel_id" => ["required", "string"],
+            "report_date" => ["required", "date_format:Y-m-d"],
+            "session_type" => ["required", "in:port,sea"],
+            "report_month" => ["required", 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+            "me_mfo" => ["nullable", "numeric", "min:0"],
+            "me_hsd" => ["nullable", "numeric", "min:0"],
+            "ae_mfo" => ["nullable", "numeric", "min:0"],
+            "ae_hsd" => ["nullable", "numeric", "min:0"],
+            "boiler_hsd" => ["nullable", "numeric", "min:0"],
+            "boiler_mfo" => ["nullable", "numeric", "min:0"],
+            "genset_consum_hsd" => ["nullable", "numeric", "min:0"],
+        ]);
+
+        $vesselId = $validated["vessel_id"];
+        $reportDate = $validated["report_date"];
+        $reportMonth = $validated["report_month"];
+        $sessionType = $validated["session_type"] ?? null;
+
+        $fuelKeys = [
+            'me_mfo', 'me_hsd', 'ae_mfo', 'ae_hsd',
+            'boiler_hsd', 'boiler_mfo', 'genset_consum_hsd',
+        ];
+
+        $updateData = [
+            'synced_at' => now(),
+        ];
+        foreach ($fuelKeys as $key) {
+            if ($request->has($key)) {
+                $updateData[$key] = (float) ($validated[$key] ?? 0);
+            }
+        }
+
+        VesselConsumptionDaily::updateOrCreate(
+            [
+                'report_date' => $reportDate,
+                'vessel_id' => $vesselId,
+                'session_type' => $sessionType,
+            ],
+            $updateData
+        );
+
+        $monthStart = Carbon::createFromFormat(
+            "!Y-m",
+            $reportMonth,
+            "Asia/Jakarta",
+        )->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $records = VesselConsumptionDaily::query()
+            ->where("vessel_id", $vesselId)
+            ->whereBetween("report_date", [
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
+            ])
+            ->get();
+
+        $totals = [];
+        $dashboardVesselTotals = [];
+        foreach ($fuelKeys as $key) {
+            $portSum = (float) $records->where("session_type", "port")->sum($key);
+            $seaSum = (float) $records->where("session_type", "sea")->sum($key);
+            $totals[$key] = [
+                "port" => $portSum,
+                "sea" => $seaSum,
+                "total" => $portSum + $seaSum,
+            ];
+            $dashboardVesselTotals[$key] = $portSum + $seaSum;
+        }
+
+        $dashboardGrandTotals = [];
+        foreach ($fuelKeys as $key) {
+            $dashboardGrandTotals[$key] = (float) VesselConsumptionDaily::whereBetween(
+                "report_date",
+                [$monthStart->toDateString(), $monthEnd->toDateString()]
+            )->sum($key);
+        }
+
+        $vesselSummary = [
+            "total_mfo" => (float) (
+                ($totals["me_mfo"]["total"] ?? 0) +
+                ($totals["ae_mfo"]["total"] ?? 0) +
+                ($totals["boiler_mfo"]["total"] ?? 0)
+            ),
+            "total_hsd" => (float) (
+                ($totals["me_hsd"]["total"] ?? 0) +
+                ($totals["ae_hsd"]["total"] ?? 0) +
+                ($totals["boiler_hsd"]["total"] ?? 0) +
+                ($totals["genset_consum_hsd"]["total"] ?? 0)
+            ),
+            "mfo_breakdown" => [
+                "boiler" => (float) ($totals["boiler_mfo"]["total"] ?? 0),
+                "me" => (float) ($totals["me_mfo"]["total"] ?? 0),
+                "ae" => (float) ($totals["ae_mfo"]["total"] ?? 0),
+            ],
+            "hsd_breakdown" => [
+                "boiler" => (float) ($totals["boiler_hsd"]["total"] ?? 0),
+                "me" => (float) ($totals["me_hsd"]["total"] ?? 0),
+                "ae" => (float) ($totals["ae_hsd"]["total"] ?? 0),
+                "genset" => (float) ($totals["genset_consum_hsd"]["total"] ?? 0),
+            ],
+        ];
+
+        $dashboardGrandSummary = [
+            "total_mfo" => (float) (
+                ($dashboardGrandTotals["me_mfo"] ?? 0) +
+                ($dashboardGrandTotals["ae_mfo"] ?? 0) +
+                ($dashboardGrandTotals["boiler_mfo"] ?? 0)
+            ),
+            "total_hsd" => (float) (
+                ($dashboardGrandTotals["me_hsd"] ?? 0) +
+                ($dashboardGrandTotals["ae_hsd"] ?? 0) +
+                ($dashboardGrandTotals["boiler_hsd"] ?? 0) +
+                ($dashboardGrandTotals["genset_consum_hsd"] ?? 0)
+            ),
+            "mfo_breakdown" => [
+                "boiler" => (float) ($dashboardGrandTotals["boiler_mfo"] ?? 0),
+                "me" => (float) ($dashboardGrandTotals["me_mfo"] ?? 0),
+                "ae" => (float) ($dashboardGrandTotals["ae_mfo"] ?? 0),
+            ],
+            "hsd_breakdown" => [
+                "boiler" => (float) ($dashboardGrandTotals["boiler_hsd"] ?? 0),
+                "me" => (float) ($dashboardGrandTotals["me_hsd"] ?? 0),
+                "ae" => (float) ($dashboardGrandTotals["ae_hsd"] ?? 0),
+                "genset" => (float) ($dashboardGrandTotals["genset_consum_hsd"] ?? 0),
+            ],
+        ];
+
+        $seaSteamTime = (float) $records->where("session_type", "sea")->sum("steam_time");
+        $totals["steam_time"] = [
+            "port" => 0.0,
+            "sea" => $seaSteamTime,
+            "total" => $seaSteamTime,
+        ];
+
+        $vesselAverages = $this->calculateVesselAverages($records, $totals);
+
+        return response()->json([
+            "success" => true,
+            "message" => "Nilai konsumsi berhasil diperbarui.",
+            "vessel_id" => $vesselId,
+            "report_date" => $reportDate,
+            "session_type" => $sessionType,
+            "totals" => $totals,
+            "summary" => $vesselSummary,
+            "averages" => $vesselAverages,
+            "dashboard_vessel_totals" => $dashboardVesselTotals,
+            "dashboard_grand_totals" => $dashboardGrandTotals,
+            "dashboard_grand_summary" => $dashboardGrandSummary,
+        ]);
+    }
+
+    public function exportDailyDetail(Request $request)
+    {
+        $request->validate([
+            "vessel_id" => ["required", "string"],
+            "report_month" => ["nullable", 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+        ]);
+
+        $vesselId = $request->input("vessel_id");
+        $reportMonth = $request->input(
+            "report_month",
+            now("Asia/Jakarta")->format("Y-m"),
+        );
+        $monthStart = Carbon::createFromFormat(
+            "!Y-m",
+            $reportMonth,
+            "Asia/Jakarta",
+        )->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $records = VesselConsumptionDaily::query()
+            ->where("vessel_id", $vesselId)
+            ->whereBetween("report_date", [
+                $monthStart->toDateString(),
+                $monthEnd->toDateString(),
+            ])
+            ->orderBy("report_date", "asc")
+            ->orderBy("session_type", "asc")
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle("Daily Detail");
+
+        $headers = [
+            "No",
+            "Tanggal",
+            "Posisi",
+            "Steam Time",
+            "ME MFO",
+            "ME HSD",
+            "AE MFO",
+            "AE HSD",
+            "Boiler HSD",
+            "Boiler MFO",
+            "Genset Consumption",
+            "Remarks",
+            "Engine Daily Work",
+            "Deck Daily Work",
+        ];
+        $sheet->fromArray($headers, null, "A1");
+
+        $sheet->getStyle("A1:N1")->applyFromArray([
+            "font" => ["bold" => true, "color" => ["rgb" => "FFFFFF"]],
+            "fill" => [
+                "fillType" => Fill::FILL_SOLID,
+                "startColor" => ["rgb" => "1F2937"],
+            ], // dark gray
+            "alignment" => [
+                "horizontal" => Alignment::HORIZONTAL_CENTER,
+                "vertical" => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+
+        $rowIndex = 2;
+        $fuelKeys = ['me_mfo', 'me_hsd', 'ae_mfo', 'ae_hsd', 'boiler_hsd', 'boiler_mfo', 'genset_consum_hsd'];
+
+        foreach ($records as $idx => $row) {
+            $session = strtolower($row->session_type);
+            $posLabel = $session === 'sea' ? 'At Sea' : ($session === 'port' ? 'At Port' : ucfirst($session));
+
+            $datarow = [
+                $idx + 1,
+                $row->report_date ? $row->report_date->format('d/m/Y') : '-',
+                $posLabel,
+                (float) ($row->steam_time ?? 0),
+                (float) $row->me_mfo,
+                (float) $row->me_hsd,
+                (float) $row->ae_mfo,
+                (float) $row->ae_hsd,
+                (float) $row->boiler_hsd,
+                (float) $row->boiler_mfo,
+                (float) $row->genset_consum_hsd,
+                $row->remarks ?: '-',
+                $row->engine_daily_work ?: '-',
+                $row->deck_daily_work ?: '-',
+            ];
+            $sheet->fromArray($datarow, null, "A{$rowIndex}");
+            $rowIndex++;
+        }
+
+        $totalRow = [
+            'Total Akumulasi', '', '',
+            (float) $records->sum('steam_time'),
+            (float) $records->sum('me_mfo'),
+            (float) $records->sum('me_hsd'),
+            (float) $records->sum('ae_mfo'),
+            (float) $records->sum('ae_hsd'),
+            (float) $records->sum('boiler_hsd'),
+            (float) $records->sum('boiler_mfo'),
+            (float) $records->sum('genset_consum_hsd'),
+            '', '', ''
+        ];
+        $sheet->fromArray($totalRow, null, "A{$rowIndex}");
+        $sheet->mergeCells("A{$rowIndex}:C{$rowIndex}");
+        $sheet->getStyle("A{$rowIndex}:N{$rowIndex}")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E0F2FE']],
+        ]);
+
+        foreach (range('A', 'N') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = "Detail_Konsumsi_{$vesselId}_{$reportMonth}.xlsx";
+
+        return response()->streamDownload(function() use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    private function calculateVesselAverages($records, array $totals): array
+    {
+        $totalEffectiveSteamTime = 0.0;
+        $uniqueDates = [];
+
+        foreach ($records as $record) {
+            $dateKey = $record->report_date instanceof Carbon
+                ? $record->report_date->toDateString()
+                : substr((string) $record->report_date, 0, 10);
+            $uniqueDates[$dateKey] = true;
+
+            // Steam time hanya berlaku saat kapal beroperasi di laut ("At Sea")
+            if (strtolower((string) $record->session_type) === "sea") {
+                $st = (float) ($record->steam_time ?? 0);
+                $totalEffectiveSteamTime += min(24.0, $st);
+            }
+        }
+
+        $totalDays = count($uniqueDates);
+        $totalMe = (float) (($totals["me_mfo"]["total"] ?? 0) + ($totals["me_hsd"]["total"] ?? 0));
+        $totalAe = (float) (
+            ($totals["ae_mfo"]["total"] ?? 0) +
+            ($totals["ae_hsd"]["total"] ?? 0) +
+            ($totals["genset_consum_hsd"]["total"] ?? 0)
+        );
+
+        $avgMePerHour = $totalEffectiveSteamTime > 0 ? round($totalMe / $totalEffectiveSteamTime, 2) : 0.0;
+        $avgMePerDay = round($avgMePerHour * 24.0, 2);
+        $avgAePerDay = $totalDays > 0 ? round($totalAe / $totalDays, 2) : 0.0;
+
+        return [
+            "total_steam_time" => round($totalEffectiveSteamTime, 2),
+            "total_days" => $totalDays,
+            "total_me" => round($totalMe, 2),
+            "total_ae" => round($totalAe, 2),
+            "avg_me_per_hour" => $avgMePerHour,
+            "avg_me_per_day" => $avgMePerDay,
+            "avg_ae_per_day" => $avgAePerDay,
+        ];
+    }
+
+    public function exportMonthly(Request $request)
+    {
+        $request->validate([
+            'report_month' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+        ]);
+
+        $reportMonth = $request->input('report_month', now('Asia/Jakarta')->format('Y-m'));
+        $monthStart = Carbon::createFromFormat('!Y-m', $reportMonth, 'Asia/Jakarta')->startOfMonth();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+        $monthLabel = $monthStart->locale('id')->translatedFormat('F Y');
+
+        $consumptions = VesselConsumptionDaily::query()
+            ->select('vessel_id')
+            ->selectRaw('SUM(me_mfo) as me_mfo')
+            ->selectRaw('SUM(me_hsd) as me_hsd')
+            ->selectRaw('SUM(ae_mfo) as ae_mfo')
+            ->selectRaw('SUM(ae_hsd) as ae_hsd')
+            ->selectRaw('SUM(boiler_hsd) as boiler_hsd')
+            ->selectRaw('SUM(boiler_mfo) as boiler_mfo')
+            ->selectRaw('SUM(genset_consum_hsd) as genset_consum_hsd')
+            ->whereBetween('report_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+            ->groupBy('vessel_id')
+            ->orderBy('vessel_id')
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Konsumsi Bulanan');
+
+        // Judul Laporan
+        $sheet->setCellValue('A1', 'LAPORAN KONSUMSI BUNKER - ' . strtoupper($monthLabel));
+        $sheet->mergeCells('A1:I1');
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Header Kolom
+        $headers = [
+            'No', 'Vessel ID', 'ME MFO', 'ME HSD', 
+            'AE MFO', 'AE HSD', 'Boiler HSD', 'Boiler MFO', 
+            'Genset Consumption'
+        ];
+        $sheet->fromArray($headers, null, 'A3');
+        $sheet->getStyle('A3:I3')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+
+        // Baris Data
+        $rowIndex = 4;
+        foreach ($consumptions as $idx => $c) {
+            $row = [
+                $idx + 1,
+                $c->vessel_id,
+                (float) $c->me_mfo,
+                (float) $c->me_hsd,
+                (float) $c->ae_mfo,
+                (float) $c->ae_hsd,
+                (float) $c->boiler_hsd,
+                (float) $c->boiler_mfo,
+                (float) $c->genset_consum_hsd,
+            ];
+            $sheet->fromArray($row, null, "A{$rowIndex}");
+            $rowIndex++;
+        }
+
+        // Baris Total Akumulasi
+        $totalRow = [
+            'Total', '',
+            (float) $consumptions->sum('me_mfo'),
+            (float) $consumptions->sum('me_hsd'),
+            (float) $consumptions->sum('ae_mfo'),
+            (float) $consumptions->sum('ae_hsd'),
+            (float) $consumptions->sum('boiler_hsd'),
+            (float) $consumptions->sum('boiler_mfo'),
+            (float) $consumptions->sum('genset_consum_hsd'),
+        ];
+        $sheet->fromArray($totalRow, null, "A{$rowIndex}");
+        $sheet->mergeCells("A{$rowIndex}:B{$rowIndex}");
+        $sheet->getStyle("A{$rowIndex}:I{$rowIndex}")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E0F2FE']],
+        ]);
+
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $fileName = "Konsumsi_Bulanan_{$reportMonth}.xlsx";
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 }
