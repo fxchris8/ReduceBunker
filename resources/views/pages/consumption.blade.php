@@ -86,10 +86,10 @@
                             </div>
 
                             <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                <table class="table-auto w-full border-separate border-spacing-0 text-sm text-center border border-black">
                                     <thead class="bg-gray-300 sticky top-0 z-30">
                                         <tr>
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40 shadow-[1px_0_0_0_#000]">
                                                 Vessel ID
                                             </th>
                                             @foreach($headers_port as $header)
@@ -108,8 +108,8 @@
                                     <tbody class="divide-y divide-gray-200">
                                         @foreach($report14 as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
-                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
                                                     {{ $row['Vessel ID']['value'] }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
@@ -117,7 +117,7 @@
                                                         @php $isCompact = in_array($colIndex, $compactHeaders_port); @endphp
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                            class="px-4 py-2 text-center border border-black {{ $rowClass ? '' : $cell['class'] }}">
+                                                            class="px-4 py-2 text-center border border-black {{ $colIndex === 'tanggal' ? 'whitespace-nowrap' : '' }} {{ $rowClass ? '' : $cell['class'] }}">
                                                             @php
                                                                 $val = $cell['value'];
                                                                 $isNum = is_numeric($val);
@@ -229,10 +229,10 @@
                         </div>
 
                         <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                            <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                            <table class="table-auto w-full border-separate border-spacing-0 text-sm text-center border border-black">
                                 <thead class="bg-gray-300 sticky top-0 z-30">
                                     <tr>
-                                        <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                        <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40 shadow-[1px_0_0_0_#000]">
                                             Vessel ID
                                         </th>
                                         @foreach($seaHeaders as $header)
@@ -265,8 +265,8 @@
                                 <tbody class="divide-y divide-gray-200">
                                     @foreach($seaRows as $index => $row)
                                         @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                        <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
-                                            <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                        <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
+                                            <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
                                                 {{ $row['Vessel ID']['value'] }}
                                             </td>
                                             @foreach($row as $colIndex => $cell)
@@ -279,7 +279,7 @@
                                                     <td x-show="!compact || $el.dataset.compact === 'true'"
                                                         data-compact="{{ $dataCompact }}"
                                                         title="{{ $cell['message'] ?? '' }}"
-                                                        class="px-4 py-2 text-center border border-black {{ $rowClass ? '' : ($cell['class'] ?? '') }}">
+                                                        class="px-4 py-2 text-center border border-black {{ $colIndex === 'tanggal' ? 'whitespace-nowrap' : '' }} {{ $rowClass ? '' : ($cell['class'] ?? '') }}">
                                                         @php
                                                             $val = $cell['value'];
                                                             $isNum = is_numeric($val);
@@ -385,10 +385,10 @@
                             </div>
 
                             <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                                <table class="table-auto w-full divide-y divide-gray-200 text-sm text-center rounded border">
+                                <table class="table-auto w-full border-separate border-spacing-0 text-sm text-center border border-black">
                                     <thead class="bg-gray-300 sticky top-0 z-30">
                                         <tr>
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40">
+                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40 shadow-[1px_0_0_0_#000]">
                                                 Vessel ID
                                             </th>
                                             @foreach($port_sea_header as $header)
@@ -407,8 +407,8 @@
                                     <tbody class="divide-y divide-gray-200">
                                         @foreach($port_sea_data as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['port'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
-                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['port'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
                                                     {{ $row['Vessel ID']['port'] ?? '' }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
@@ -475,8 +475,8 @@
                                                     </div>
                                                 </td>
                                             </tr>
-                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['sea'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'odd:bg-white even:bg-gray-200' }}">
-                                                <td class="px-4 py-2 text-center border border-black sticky left-0 bg-inherit z-20">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['sea'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
                                                     {{ $row['Vessel ID']['sea'] ?? '' }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
