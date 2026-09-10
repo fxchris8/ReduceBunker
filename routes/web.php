@@ -11,6 +11,7 @@ use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\POController;
 use App\Http\Controllers\BaselineController;
 use App\Http\Controllers\FuelBaselineController;
+use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureSsoSessionIsFresh;
 
 Route::middleware('guest')->group(function () {
@@ -59,4 +60,10 @@ Route::middleware(['auth', EnsureSsoSessionIsFresh::class])->group(function () {
     Route::any('/baseline-analysis/{vessel}', [BaselineController::class, 'detail'])->name('po.baseline.detail');
 
     Route::resource('/fuel-baseline', FuelBaselineController::class)->except(['show']);
+
+    Route::middleware('can:admin-access')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])->name('users.updateRole');
+        Route::post('/dashboard/daily-detail/update', [SummaryController::class, 'updateDailyDetail'])->name('dashboard.daily-detail.update');
+    });
 });

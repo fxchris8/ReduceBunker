@@ -13,6 +13,11 @@ class FuelBaselineController extends Controller
 {
     private const API_VESSELS_CACHE_KEY = 'api_vessels_ship_particular_v1';
     
+    public function __construct()
+    {
+        $this->middleware('can:admin-access')->except(['index', 'show']);
+    }
+
     public function index(Request $request)
     {
         $perPage  = $request->get('per_page', 10);

@@ -56,7 +56,24 @@
                class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('po.baseline') ? 'font-bold underline' : '' }}">
                <i class="fas fa-balance-scale"></i> Baseline Analysis
             </a>
+            @can('admin-access')
+            <a href="{{ route('users.index') }}"
+               class="text-gray-500 block py-2 hover:underline {{ request()->routeIs('users.index') ? 'font-bold underline' : '' }}">
+               <i class="fas fa-users"></i> User Management
+            </a>
+            @endcan
         </nav>
+
+        <!-- Logout -->
+        <div class="px-6 mt-6">
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit"
+                    class="w-full flex items-center gap-2 py-2 text-gray-500 hover:text-red-600 hover:underline">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </form>
+        </div>
     </aside>
 
     <!-- Main Layout -->

@@ -273,7 +273,7 @@ class SsoController extends Controller
             $user->forceFill([
                 'username' => $userInfo['username'],
                 'name' => $name,
-                'role' => $role,
+                'role' => $user->role ?: 'user',
             ])->save();
 
             return $user;
@@ -285,7 +285,7 @@ class SsoController extends Controller
             $user->forceFill([
                 'sso_id' => $userInfo['id'],
                 'name' => $name,
-                'role' => $role,
+                'role' => $user->role ?: 'user',
             ])->save();
 
             return $user;
@@ -295,7 +295,7 @@ class SsoController extends Controller
             'name' => $name,
             'username' => $userInfo['username'],
             'email' => null,
-            'role' => $role,
+            'role' => 'user',
             'sso_id' => $userInfo['id'],
             'password' => null,
         ]);
