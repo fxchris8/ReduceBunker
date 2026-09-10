@@ -27,27 +27,26 @@
                 </div>
             @endif
 
-            <form method="GET" action="{{ route('pages.consumption') }}" class="px-4 py-2 rounded-md text-lg">
-                <div class="mb-4">
-                    <label for="report_date" class="block text-sm font-medium text-gray-700 mb-1">
+            <form method="GET" action="{{ route('pages.consumption') }}" class="flex flex-wrap items-end gap-3 mb-6">
+                <div>
+                    <label for="report_date" class="mb-1 block text-sm font-medium text-gray-700">
                         Tanggal Laporan
                     </label>
                     <input type="date" id="report_date" name="report_date"
-                        class="border border-gray-300 rounded-md px-4 py-2 w-64"
-                        value="{{ request('report_date', session('consumption_report_date')) }}">
+                        value="{{ request('report_date', session('consumption_report_date')) }}"
+                        class="w-64 rounded-md border border-gray-300 px-4 py-2">
                 </div>
 
-                <div class="mb-4">
-                    <label for="density" class="block text-sm font-medium text-gray-700 mb-2">
-                        Masukkan Density (g/L):
+                <div>
+                    <label for="density" class="mb-1 block text-sm font-medium text-gray-700">
+                        Masukkan Density (g/L)
                     </label>
                     <input type="number" step="any" name="density" id="density"
                         value="{{ request('density', session('consumption_density', 950)) }}"
-                        class="block w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700
-                            focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-gray-600 transition duration-150 ease-in-out">
+                        class="w-64 rounded-md border border-gray-300 px-4 py-2">
                 </div>
 
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
                     Tampilkan
                 </button>
             </form>
@@ -85,11 +84,11 @@
                                 <input type="text" x-model="search" placeholder="Filter Kapal..." class="border border-gray-300 rounded-md px-3 py-1 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600">
                             </div>
 
-                            <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                                <table class="table-auto w-full border-separate border-spacing-0 text-sm text-center border border-black">
-                                    <thead class="bg-gray-300 sticky top-0 z-30">
+                            <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-lg border border-gray-200 shadow-sm w-full">
+                                <table class="min-w-full border-separate border-spacing-0 divide-y divide-gray-200 text-sm text-center">
+                                    <thead class="bg-gray-50 sticky top-0 z-30">
                                         <tr>
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40 shadow-[1px_0_0_0_#000]">
+                                            <th class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-r border-gray-200 sticky top-0 left-0 bg-gray-50 z-40 shadow-[1px_0_0_0_#e5e7eb]">
                                                 Vessel ID
                                             </th>
                                             @foreach($headers_port as $header)
@@ -97,19 +96,19 @@
                                                     @php $isCompact = in_array($header, $compactHeaders_port); @endphp
                                                     <th x-show="!compact || $el.dataset.compact === 'true'"
                                                         data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                        class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                                        class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-gray-200 sticky top-0 bg-gray-50 z-30">
                                                         {{ ucfirst($header) }}
                                                     </th>
                                                 @endif
                                             @endforeach
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">Aksi</th>
+                                            <th class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-gray-200 sticky top-0 bg-gray-50 z-30">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200">
+                                    <tbody class="divide-y divide-gray-200 bg-white text-gray-700">
                                         @foreach($report14 as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
-                                                <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center hover:bg-gray-50 transition-colors {{ $rowClass ?: 'bg-white' }}">
+                                                <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
                                                     {{ $row['Vessel ID']['value'] }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
@@ -117,7 +116,7 @@
                                                         @php $isCompact = in_array($colIndex, $compactHeaders_port); @endphp
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                            class="px-4 py-2 text-center border border-black {{ $colIndex === 'tanggal' ? 'whitespace-nowrap' : '' }} {{ $rowClass ? '' : $cell['class'] }}">
+                                                            class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ? '' : $cell['class'] }}">
                                                             @php
                                                                 $val = $cell['value'];
                                                                 $isNum = is_numeric($val);
@@ -127,7 +126,7 @@
                                                         </td>
                                                     @endif
                                                 @endforeach
-                                                <td class="px-4 py-2 text-center border border-black">
+                                                <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
                                                     @php
                                                         $anomalies = $row['_anomalies']['value'] ?? [];
                                                         $hasAnomalies = count($anomalies) > 0;
@@ -228,11 +227,11 @@
                             <input type="text" x-model="search" placeholder="Filter Kapal..." class="border border-gray-300 rounded-md px-3 py-1 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600">
                         </div>
 
-                        <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                            <table class="table-auto w-full border-separate border-spacing-0 text-sm text-center border border-black">
-                                <thead class="bg-gray-300 sticky top-0 z-30">
+                        <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-lg border border-gray-200 shadow-sm w-full">
+                            <table class="min-w-full border-separate border-spacing-0 divide-y divide-gray-200 text-sm text-center">
+                                <thead class="bg-gray-50 sticky top-0 z-30">
                                     <tr>
-                                        <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40 shadow-[1px_0_0_0_#000]">
+                                        <th class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-r border-gray-200 sticky top-0 left-0 bg-gray-50 z-40 shadow-[1px_0_0_0_#e5e7eb]">
                                             Vessel ID
                                         </th>
                                         @foreach($seaHeaders as $header)
@@ -252,21 +251,21 @@
                                                 @endphp
                                                 <th x-show="!compact || $el.dataset.compact === 'true'"
                                                     data-compact="{{ $dataCompact }}"
-                                                    class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                                    class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-gray-200 sticky top-0 bg-gray-50 z-30">
                                                     {{ ucfirst($header) }}
                                                 </th>
                                             @endif
                                         @endforeach
-                                        <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                        <th class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-gray-200 sticky top-0 bg-gray-50 z-30">
                                             Aksi
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200">
+                                <tbody class="divide-y divide-gray-200 bg-white text-gray-700">
                                     @foreach($seaRows as $index => $row)
                                         @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                        <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
-                                            <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
+                                        <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center hover:bg-gray-50 transition-colors {{ $rowClass ?: 'bg-white' }}">
+                                            <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
                                                 {{ $row['Vessel ID']['value'] }}
                                             </td>
                                             @foreach($row as $colIndex => $cell)
@@ -279,7 +278,7 @@
                                                     <td x-show="!compact || $el.dataset.compact === 'true'"
                                                         data-compact="{{ $dataCompact }}"
                                                         title="{{ $cell['message'] ?? '' }}"
-                                                        class="px-4 py-2 text-center border border-black {{ $colIndex === 'tanggal' ? 'whitespace-nowrap' : '' }} {{ $rowClass ? '' : ($cell['class'] ?? '') }}">
+                                                        class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ? '' : ($cell['class'] ?? '') }}">
                                                         @php
                                                             $val = $cell['value'];
                                                             $isNum = is_numeric($val);
@@ -289,7 +288,7 @@
                                                     </td>
                                                 @endif
                                             @endforeach
-                                            <td class="px-4 py-2 text-center border border-black">
+                                            <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
                                                 @php
                                                     $anomalies = $row['_anomalies']['value'] ?? [];
                                                     $hasAnomalies = count($anomalies) > 0;
@@ -384,11 +383,11 @@
                                 <input type="text" x-model="search" placeholder="Filter Kapal..." class="border border-gray-300 rounded-md px-3 py-1 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600">
                             </div>
 
-                            <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-md shadow-sm w-full">
-                                <table class="table-auto w-full border-separate border-spacing-0 text-sm text-center border border-black">
-                                    <thead class="bg-gray-300 sticky top-0 z-30">
+                            <div class="overflow-x-auto overflow-y-auto max-h-[460px] rounded-lg border border-gray-200 shadow-sm w-full">
+                                <table class="min-w-full border-separate border-spacing-0 divide-y divide-gray-200 text-sm text-center">
+                                    <thead class="bg-gray-50 sticky top-0 z-30">
                                         <tr>
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 left-0 bg-gray-300 z-40 shadow-[1px_0_0_0_#000]">
+                                            <th class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-r border-gray-200 sticky top-0 left-0 bg-gray-50 z-40 shadow-[1px_0_0_0_#e5e7eb]">
                                                 Vessel ID
                                             </th>
                                             @foreach($port_sea_header as $header)
@@ -396,19 +395,19 @@
                                                     @php $isCompact = in_array($header, $compactHeaders_port_sea); @endphp
                                                     <th x-show="!compact || $el.dataset.compact === 'true'"
                                                         data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                        class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">
+                                                        class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-gray-200 sticky top-0 bg-gray-50 z-30">
                                                         {{ ucfirst($header) }}
                                                     </th>
                                                 @endif
                                             @endforeach
-                                            <th class="px-4 py-2 text-center border border-black sticky top-0 bg-gray-300 z-30">Aksi</th>
+                                            <th class="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-600 border-b border-gray-200 sticky top-0 bg-gray-50 z-30">Aksi</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200">
+                                    <tbody class="divide-y divide-gray-200 bg-white text-gray-700">
                                         @foreach($port_sea_data as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
-                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['port'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
-                                                <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
+                                            <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['port'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center hover:bg-gray-50 transition-colors {{ $rowClass ?: 'bg-white' }}">
+                                                <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
                                                     {{ $row['Vessel ID']['port'] ?? '' }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
@@ -416,7 +415,7 @@
                                                         @php $isCompact = in_array($colIndex, $compactHeaders_port_sea); @endphp
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                            class="px-4 py-2 text-center border border-black">
+                                                            class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
                                                             @php
                                                                 $valPort = $cell['port'];
                                                                 $isNumPort = is_numeric($valPort);
@@ -426,7 +425,7 @@
                                                         </td>
                                                     @endif
                                                 @endforeach
-                                                <td class="px-4 py-2 text-center border border-black">
+                                                <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
                                                     @php
                                                         $anomaliesPort = $row['_anomalies']['port']['value'] ?? [];
                                                         $hasAnomaliesPort = count($anomaliesPort) > 0;
@@ -743,8 +742,11 @@
                                 <span id="me-lnm-aktual" class="text-sm font-semibold text-gray-800"></span>
                             </div>
                             <div id="me-lnm-detail" class="hidden px-4 py-2.5 bg-yellow-100 border-t border-yellow-200">
-                                <div class="text-xs text-gray-600 italic">
-                                    (ME MFO + ME HSD) / Steam Distance
+                                <div class="text-xs text-gray-800 space-y-1">
+                                    <div id="me-lnm-formula" class="text-gray-600 italic pb-1 border-b border-yellow-200 mb-1">
+                                        ME Fuel / Steam Distance
+                                    </div>
+                                    <div id="me-lnm-calc" class="text-gray-700 font-semibold"></div>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center px-4 py-2.5 bg-yellow-100">
@@ -1072,6 +1074,17 @@
         document.getElementById('me-lnm-bl').textContent     = fmtNum(blLNm, 'L/Nm');
         document.getElementById('me-lnm-aktual').textContent = fmtNum(lnmAktual, 'L/Nm');
 
+        const meFuelName = meMfo > 0 ? 'ME MFO' : 'ME HSD';
+        const meFuelVal  = meMfo > 0 ? meMfo : meHsd;
+        const meLnmFormulaEl = document.getElementById('me-lnm-formula');
+        if (meLnmFormulaEl) {
+            meLnmFormulaEl.textContent = meFuelName + ' / Steam Distance';
+        }
+        const meLnmCalcEl = document.getElementById('me-lnm-calc');
+        if (meLnmCalcEl) {
+            meLnmCalcEl.textContent = fmt(meFuelVal) + ' / ' + fmtNum(steamDist, 'Nm') + ' = ' + fmtNum(lnmAktual, 'L/Nm');
+        }
+
         document.getElementById('me-lnm-detail').classList.add('hidden');
         document.getElementById('me-lnm-arrow').classList.remove('rotate-90');
 
@@ -1114,7 +1127,7 @@
         document.getElementById('ae-tolerance-detail').classList.add('hidden');
         document.getElementById('ae-tolerance-arrow').classList.remove('rotate-90');
 
-        document.getElementById('ae-tolerance-calc').textContent = fmt(blAeLDay) + ' + (' + fmt(aePararelDur) + ' x ' + fmt(blAeLHour) + ') ' + ' - ' + fmt(aeTotal) + ' = ' + fmt(blAeLDay + (aePararelDur * blAeLHour) - aeTotal)
+        document.getElementById('ae-tolerance-calc').textContent = fmt(blAeLDay) + ' + (' + fmtNum(aePararelDur, 'H') + ' x ' + fmt(blAeLHour) + ') - ' + fmt(aeTotal) + ' = ' + fmt(blAeLDay + (aePararelDur * blAeLHour) - aeTotal);
 
         const meExcessEl = document.getElementById('me-excess');
         meExcessEl.textContent = fmt(meExcess);

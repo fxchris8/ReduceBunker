@@ -26,6 +26,8 @@ class ConsumptionController extends Controller
         $meMfo     = $this->normalizeNumeric($grouped['me_mfo'] ?? 0);
         $meHsd     = $this->normalizeNumeric($grouped['me_hsd'] ?? 0);
 
+        $meFuel = $meMfo > 0 ? $meMfo : $meHsd;
+
         $ordered = [
             'Vessel ID' => $grouped['vesselid'] ?? null,
             'tanggal'   => isset($grouped['tanggal'])
@@ -65,11 +67,11 @@ class ConsumptionController extends Controller
             'BL HSD'                            => $bl_ae,
             'BL REFFER'                         => $bl_ae_1_reffer,
             'BL AE PARALLEL 2'                  => $ae_parallel_2,
-            'L/NM' => ($steamDist != 0 ? (($meMfo + $meHsd) / $steamDist) : 0),
+            'L/NM' => ($steamDist != 0 ? ($meFuel / $steamDist) : 0),
             'EXCESS ME L/NM (%)' => (
                 $steamDist != 0 && $bl_l_nm != 0
             ) ? (
-                (($bl_l_nm - (($meMfo + $meHsd) / $steamDist)) / $bl_l_nm) * 100
+                (($bl_l_nm - ($meFuel / $steamDist)) / $bl_l_nm) * 100
             ) : 0,
             'EXCESS ME' => ($bl_me * (($grouped['steam_time'] ?? 0) + ($grouped['duration_manuev'] ?? 0)))
                 - (($grouped['me_mfo'] ?? 0) + ($grouped['me_hsd'] ?? 0)),
