@@ -108,7 +108,7 @@
                                         @foreach($report14 as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
                                             <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center hover:bg-gray-50 transition-colors {{ $rowClass ?: 'bg-white' }}">
-                                                <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
+                                                <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ?: 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
                                                     {{ $row['Vessel ID']['value'] }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
@@ -116,7 +116,7 @@
                                                         @php $isCompact = in_array($colIndex, $compactHeaders_port); @endphp
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                            class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ? '' : $cell['class'] }}">
+                                                            class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ?: $cell['class'] }}">
                                                             @php
                                                                 $val = $cell['value'];
                                                                 $isNum = is_numeric($val);
@@ -126,7 +126,7 @@
                                                         </td>
                                                     @endif
                                                 @endforeach
-                                                <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
+                                                <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ?: 'bg-white' }}">
                                                     @php
                                                         $anomalies = $row['_anomalies']['value'] ?? [];
                                                         $hasAnomalies = count($anomalies) > 0;
@@ -265,7 +265,7 @@
                                     @foreach($seaRows as $index => $row)
                                         @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
                                         <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['value'])) }}'.includes(search.toLowerCase())" class="text-center hover:bg-gray-50 transition-colors {{ $rowClass ?: 'bg-white' }}">
-                                            <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
+                                            <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ?: 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
                                                 {{ $row['Vessel ID']['value'] }}
                                             </td>
                                             @foreach($row as $colIndex => $cell)
@@ -278,7 +278,7 @@
                                                     <td x-show="!compact || $el.dataset.compact === 'true'"
                                                         data-compact="{{ $dataCompact }}"
                                                         title="{{ $cell['message'] ?? '' }}"
-                                                        class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ? '' : ($cell['class'] ?? '') }}">
+                                                        class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ?: ($cell['class'] ?? '') }}">
                                                         @php
                                                             $val = $cell['value'];
                                                             $isNum = is_numeric($val);
@@ -288,7 +288,7 @@
                                                     </td>
                                                 @endif
                                             @endforeach
-                                            <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
+                                            <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ?: 'bg-white' }}">
                                                 @php
                                                     $anomalies = $row['_anomalies']['value'] ?? [];
                                                     $hasAnomalies = count($anomalies) > 0;
@@ -407,7 +407,7 @@
                                         @foreach($port_sea_data as $index => $row)
                                             @php $rowClass = $row['_row_class']['value'] ?? ''; @endphp
                                             <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['port'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center hover:bg-gray-50 transition-colors {{ $rowClass ?: 'bg-white' }}">
-                                                <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
+                                                <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 border-b border-r border-gray-200 sticky left-0 z-20 {{ $rowClass ?: 'bg-white' }} shadow-[1px_0_0_0_#e5e7eb]">
                                                     {{ $row['Vessel ID']['port'] ?? '' }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
@@ -415,7 +415,7 @@
                                                         @php $isCompact = in_array($colIndex, $compactHeaders_port_sea); @endphp
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                            class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
+                                                            class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ?: 'bg-white' }}">
                                                             @php
                                                                 $valPort = $cell['port'];
                                                                 $isNumPort = is_numeric($valPort);
@@ -425,7 +425,7 @@
                                                         </td>
                                                     @endif
                                                 @endforeach
-                                                <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200">
+                                                <td class="whitespace-nowrap px-4 py-3 text-center border-b border-gray-200 {{ $rowClass ?: 'bg-white' }}">
                                                     @php
                                                         $anomaliesPort = $row['_anomalies']['port']['value'] ?? [];
                                                         $hasAnomaliesPort = count($anomaliesPort) > 0;
@@ -475,7 +475,7 @@
                                                 </td>
                                             </tr>
                                             <tr x-show="search === '' || '{{ strtolower(addslashes($row['Vessel ID']['sea'] ?? '')) }}'.includes(search.toLowerCase())" class="text-center {{ $rowClass ?: 'bg-white' }}">
-                                                <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ? '' : 'bg-white' }} shadow-[1px_0_0_0_#000]">
+                                                <td class="px-4 py-2 text-center border border-black sticky left-0 z-20 {{ $rowClass ?: 'bg-white' }} shadow-[1px_0_0_0_#000]">
                                                     {{ $row['Vessel ID']['sea'] ?? '' }}
                                                 </td>
                                                 @foreach ($row as $colIndex => $cell)
@@ -483,7 +483,7 @@
                                                         @php $isCompact = in_array($colIndex, $compactHeaders_port_sea); @endphp
                                                         <td x-show="!compact || $el.dataset.compact === 'true'"
                                                             data-compact="{{ $isCompact ? 'true' : 'false' }}"
-                                                            class="px-4 py-2 text-center border border-black">
+                                                            class="px-4 py-2 text-center border border-black {{ $rowClass ?: 'bg-white' }}">
                                                             @php
                                                                 $valSea = $cell['sea'];
                                                                 $isNumSea = is_numeric($valSea);
@@ -493,7 +493,7 @@
                                                         </td>
                                                     @endif
                                                 @endforeach
-                                                <td class="px-4 py-2 text-center border border-black">
+                                                <td class="px-4 py-2 text-center border border-black {{ $rowClass ?: 'bg-white' }}">
                                                     @php
                                                         $anomaliesSea = $row['_anomalies']['sea']['value'] ?? [];
                                                         $hasAnomaliesSea = count($anomaliesSea) > 0;
